@@ -1,0 +1,11 @@
+[project]
+name = "codeqa"
+version = "0.1.0"
+description = "Evidence-based, language-independent code quality analysis"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.codeqa]
+repository_layout_contract = "contracts/repository-layout.json"
+
+# Build and package publication are deferred until implementation exists.

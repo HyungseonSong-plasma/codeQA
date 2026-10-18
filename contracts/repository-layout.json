@@ -1,0 +1,26 @@
+{
+  "contract": "codeqa.repository.root-layout",
+  "schema_version": 1,
+  "status": "frozen",
+  "root_directories": [
+    ".github",
+    "contracts",
+    "docs",
+    "fixtures",
+    "profiles",
+    "skills",
+    "src",
+    "tests"
+  ],
+  "root_files": [
+    ".gitignore",
+    "README.md",
+    "pyproject.toml"
+  ],
+  "change_control": {
+    "issue_required": true,
+    "architecture_decision_record_required": true,
+    "reviewer_approval_required": true,
+    "rationale": "Top-level additions, removals, or renames require an explicit architecture change; ordinary implementation changes happen inside the approved directories."
+  }
+}
