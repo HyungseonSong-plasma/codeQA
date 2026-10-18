@@ -5,7 +5,9 @@ description = "Evidence-based, language-independent code quality analysis"
 requires-python = ">=3.12"
 dependencies = []
 
-[tool.codeqa]
-repository_layout_contract = "contracts/repository-layout.json"
+# All codeQA consumers use the logical resource ID, never the location.
+# Registry paths are relative to the repository root (this pyproject.toml).
+[tool.codeqa.resources]
+repository_layout = "profiles/repository-layout.json"
 
 # Build and package publication are deferred until implementation exists.

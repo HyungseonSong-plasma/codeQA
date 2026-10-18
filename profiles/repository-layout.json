@@ -1,5 +1,5 @@
 {
-  "contract": "codeqa.repository.root-layout",
+  "policy_id": "codeqa.repository.root-layout",
   "schema_version": 1,
   "status": "frozen",
   "root_directories": [
