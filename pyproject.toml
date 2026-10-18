@@ -9,6 +9,9 @@ description = "Evidence-based, language-independent code quality analysis"
 requires-python = ">=3.12"
 dependencies = []
 
+[project.optional-dependencies]
+test = ["jsonschema>=4.22,<5"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["codeqa*"]
@@ -16,3 +19,4 @@ include = ["codeqa*"]
 # Resources are referenced by logical ID; paths are repository-relative.
 [tool.codeqa.resources]
 repository_layout = "profiles/repository-layout.json"
+ccg_schema = "contracts/ccg/graph-v0.1.schema.json"

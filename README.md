@@ -53,7 +53,7 @@ for its enforcement boundaries and [package structure](docs/codeqa-package-archi
 ## Validation
 
 ```bash
-python3 -m pip install -e .
+python3 -m pip install -e '.[test]'
 python3 -m unittest discover -s tests -v
 ```
 
@@ -61,3 +61,11 @@ Git snapshot reads use `codeqa.infrastructure.git.GitReader`; pure
 policy comparisons no longer invoke Git processes directly.
 
 No quality result or CCG support is claimed until implemented and tested.
+
+## CCG graph contract
+
+The initial, language-independent CCG v0.1 exchange schema is registered as
+`ccg_schema` in `[tool.codeqa.resources]` and documented in
+[`contracts/ccg/README.md`](contracts/ccg/README.md).
+This is a data contract, not an implemented CCG engine or language adapter.
+Schema conformance tests use the optional `test` extra shown above.
