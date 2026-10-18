@@ -19,6 +19,37 @@ class ResourceResolutionError(ValueError):
     """A resource cannot be safely and unambiguously resolved or loaded."""
 
 
+def validate_resource_path(relative: str, resource_id: str) -> PurePosixPath:
+    """Validate a registry location independently of its storage mechanism."""
+    if not isinstance(relative, str) or not relative.strip():
+        raise ResourceResolutionError(f"invalid path for resource: {resource_id}")
+    path = PurePosixPath(relative)
+    if (
+        path.is_absolute()
+        or PureWindowsPath(relative).is_absolute()
+        or "\\" in relative
+        or any(part in {"", ".", ".."} for part in relative.split("/"))
+    ):
+        raise ResourceResolutionError(f"unsafe path for resource: {resource_id}")
+    return path
+
+
+def registry_path(config: dict[str, Any], resource_id: str) -> PurePosixPath:
+    """Obtain the validated location from an in-memory TOML mapping."""
+    if not isinstance(resource_id, str) or not _RESOURCE_ID.fullmatch(resource_id):
+        raise ResourceResolutionError("invalid resource ID")
+    table: Any = config
+    for key in ("tool", "codeqa", "resources"):
+        if not isinstance(table, dict) or key not in table:
+            raise ResourceResolutionError("missing [tool.codeqa.resources] registry")
+        table = table[key]
+    if not isinstance(table, dict):
+        raise ResourceResolutionError("resource registry must be a TOML table")
+    if resource_id not in table:
+        raise ResourceResolutionError(f"unregistered resource ID: {resource_id}")
+    return validate_resource_path(table[resource_id], resource_id)
+
+
 class ResourceRegistry:
     """Resolve configured resource IDs against one explicit repository root."""
 
@@ -27,46 +58,17 @@ class ResourceRegistry:
         if not self.root.is_dir():
             raise ResourceResolutionError("repository root does not exist")
 
-    def _resources(self) -> dict[str, str]:
-        config_path = self.root / "pyproject.toml"
+    def _config(self) -> dict[str, Any]:
         try:
-            with config_path.open("rb") as stream:
-                config = tomllib.load(stream)
+            with (self.root / "pyproject.toml").open("rb") as stream:
+                return tomllib.load(stream)
         except (OSError, tomllib.TOMLDecodeError) as exc:
             raise ResourceResolutionError("cannot load repository resource registry") from exc
 
-        table: Any = config
-        for key in ("tool", "codeqa", "resources"):
-            if not isinstance(table, dict) or key not in table:
-                raise ResourceResolutionError("missing [tool.codeqa.resources] registry")
-            table = table[key]
-        if not isinstance(table, dict):
-            raise ResourceResolutionError("resource registry must be a TOML table")
-        return table
-
     def resolve(self, resource_id: str) -> Path:
         """Return the verified in-repository file path for a logical resource ID."""
-        if not isinstance(resource_id, str) or not _RESOURCE_ID.fullmatch(resource_id):
-            raise ResourceResolutionError("invalid resource ID")
-
-        resources = self._resources()
-        if resource_id not in resources:
-            raise ResourceResolutionError(f"unregistered resource ID: {resource_id}")
-
-        relative = resources[resource_id]
-        if not isinstance(relative, str) or not relative.strip():
-            raise ResourceResolutionError(f"invalid path for resource: {resource_id}")
-        # Registry paths have one cross-platform canonical representation.
-        path = PurePosixPath(relative)
-        if (
-            path.is_absolute()
-            or PureWindowsPath(relative).is_absolute()
-            or "\\" in relative
-            or any(part in {"", ".", ".."} for part in relative.split("/"))
-        ):
-            raise ResourceResolutionError(f"unsafe path for resource: {resource_id}")
-
-        candidate = (self.root / Path(*path.parts)).resolve()
+        relative = registry_path(self._config(), resource_id)
+        candidate = (self.root / Path(*relative.parts)).resolve()
         if not candidate.is_relative_to(self.root):
             raise ResourceResolutionError(f"resource escapes repository: {resource_id}")
         if not candidate.is_file():
