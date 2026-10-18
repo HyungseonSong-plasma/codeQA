@@ -46,8 +46,8 @@ codeQA/
 1. **Generic layout evaluator**: `codeqa.evaluation.layout.evaluate_layout(paths, policy)`
    is a pure function that compares arbitrary repository paths with its provided
    JSON layout policy. No filesystem, GitHub, Git or codeQA folder names.
-2. **Live codeQA self-check**: `tests/test_repository_layout.py` supplies the
-   checked-out tracked Git paths and policy loaded via
+2. **Live codeQA self-check**: `tests/test_repository_layout.py` obtains
+   tracked paths through the read-only infrastructure Git reader and policy loaded via
    `ResourceRegistry(ROOT).load_json("repository_layout")`.
 3. **Frozen policy guard**: `codeqa.governance.frozen_policy` compares the
    *logical policy contents* to the protected base commit. It resolves the

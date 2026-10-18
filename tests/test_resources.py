@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import sys
 import tempfile
 import unittest
 
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-from codeqa.infrastructure.resources import ResourceRegistry, ResourceResolutionError  # noqa: E402
+from codeqa.infrastructure.resources import (
+    ResourceRegistry, ResourceResolutionError, parse_json, parse_registry,
+)
 
 
 class ResourceRegistryTests(unittest.TestCase):
@@ -106,6 +105,17 @@ class ResourceRegistryTests(unittest.TestCase):
             self._write_registry("profiles/linked.json")
             with self.assertRaises(ResourceResolutionError):
                 ResourceRegistry(self.root).resolve("repository_layout")
+
+    def test_shared_registry_and_json_parsing(self) -> None:
+        registry = parse_registry(b'[tool.codeqa.resources]\nrepository_layout = "policies/x.json"\n')
+        self.assertEqual(registry["tool"]["codeqa"]["resources"]["repository_layout"], "policies/x.json")
+        self.assertEqual(parse_json(b'{"value": 42}', "example"), {"value": 42})
+
+    def test_invalid_resource_parsers_fail_closed(self) -> None:
+        with self.assertRaises(ResourceResolutionError):
+            parse_registry(b'[broken')
+        with self.assertRaises(ResourceResolutionError):
+            parse_json(b'{bad', "example")
 
 
 if __name__ == "__main__":

@@ -48,3 +48,18 @@ This is a pre-public-API internal refactor; compatibility aliases are not added.
 no analysis implementations. Only package boundaries are established.
 
 The frozen top-level repository structure and its JSON layout policy stay unchanged.
+
+## Refactoring boundary
+
+`infrastructure.git.GitReader` is the sole production subprocess adapter for
+local Git snapshot inspection. It is **read only** and does not replace
+`chatgpt-operation` ownership of GitHub operations. Governance consumes this
+infrastructure API and compares loaded policy values in a pure function.
+
+`resources.parse_registry` and `resources.parse_json` normalize interpretation
+of current working-tree bytes and historical Git blobs. No new infrastructure
+layers were introduced beyond the single reusable Git reader.
+
+A proper setuptools `src` package is now defined in `pyproject.toml`. Run
+`python3 -m pip install -e .` before testing. Individual tests must not modify
+`sys.path` to locate implementation modules.

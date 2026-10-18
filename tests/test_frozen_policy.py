@@ -4,13 +4,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from codeqa.governance.frozen_policy import (  # noqa: E402
+from codeqa.governance.frozen_policy import (
     FrozenPolicyError, baseline_policy, verify_frozen_policy,
+    verify_policy_unchanged,
 )
 
 
@@ -74,6 +73,18 @@ class FrozenPolicyGuardTests(unittest.TestCase):
         self._write_config("policies/missing.json")
         with self.assertRaises(FrozenPolicyError):
             verify_frozen_policy(self.repo, self.base, "layout")
+
+    def test_pure_comparison_works_without_git(self) -> None:
+        verify_policy_unchanged({"a": 1}, {"a": 1}, "layout")
+        with self.assertRaises(FrozenPolicyError):
+            verify_policy_unchanged({"a": 1}, {"a": 2}, "layout")
+
+    def test_deleted_baseline_resource_fails_closed(self) -> None:
+        self._git("rm", "profiles/baseline.json")
+        self._git("commit", "-qm", "remove policy")
+        updated = self._git("rev-parse", "HEAD").strip()
+        with self.assertRaises(FrozenPolicyError):
+            baseline_policy(self.repo, updated, "layout")
 
 
 if __name__ == "__main__":

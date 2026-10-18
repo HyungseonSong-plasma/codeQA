@@ -1,68 +1,50 @@
-"""Compare a frozen logical JSON policy against a trusted base Git revision.
+"""Validate frozen policy data against an approved Git revision.
 
-The policy path on either side comes from that revision's own resource registry.
-This catches concurrent edits to the repository layout and its policy file
-without hard-coding repository-specific layout names or a physical policy path.
-
-Note: CI logic in a PR is not immutable. Strong anti-tampering requires a separate
-GitHub ruleset or an externally maintained required check.
+All Git process invocation belongs to infrastructure; validation remains pure.
 """
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
-import re
-import subprocess
 import sys
-import tomllib
 from typing import Any
 
-from codeqa.infrastructure.resources import ResourceRegistry, ResourceResolutionError, registry_path
+from codeqa.infrastructure.git import GitReader, GitReadError
+from codeqa.infrastructure.resources import (
+    ResourceRegistry, ResourceResolutionError, parse_json, parse_registry,
+    registry_path,
+)
 
 
 class FrozenPolicyError(ValueError):
-    """Frozen policy differs from its approved baseline or cannot be verified."""
+    """Frozen policy differs from approved baseline or cannot be checked."""
 
 
-def _git_file(root: Path, revision: str, relative: str) -> bytes:
-    proc = subprocess.run(
-        ["git", "show", f"{revision}:{relative}"],
-        cwd=root, capture_output=True, check=False,
-    )
-    if proc.returncode:
-        raise FrozenPolicyError(f"cannot load baseline Git file: {relative}")
-    return proc.stdout
+def verify_policy_unchanged(approved: Any, current: Any, resource_id: str) -> None:
+    """Compare policy values without Git or filesystem access."""
+    if approved != current:
+        raise FrozenPolicyError(f"frozen policy '{resource_id}' changed from baseline")
 
 
 def baseline_policy(root: Path, revision: str, resource_id: str) -> Any:
-    """Resolve logical ID using a specific commit's registry and JSON blob."""
-    if not re.fullmatch(r"[0-9a-fA-F]{40}", revision):
-        raise FrozenPolicyError("baseline must be a full Git commit SHA")
+    """Resolve policy using the baseline revision's own resource registry."""
     try:
-        config = tomllib.loads(
-            _git_file(root, revision, "pyproject.toml").decode("utf-8")
-        )
-        relative = registry_path(config, resource_id)
-        return json.loads(
-            _git_file(root, revision, str(relative)).decode("utf-8")
-        )
-    except (UnicodeError, tomllib.TOMLDecodeError, json.JSONDecodeError,
-            ResourceResolutionError) as exc:
-        raise FrozenPolicyError("invalid baseline resource registry or policy") from exc
+        reader = GitReader(root)
+        config = parse_registry(reader.read_file(revision, "pyproject.toml"))
+        path = registry_path(config, resource_id)
+        return parse_json(reader.read_file(revision, str(path)), resource_id)
+    except (GitReadError, ResourceResolutionError) as exc:
+        raise FrozenPolicyError("cannot load approved baseline policy") from exc
 
 
 def verify_frozen_policy(root: Path, revision: str, resource_id: str) -> None:
-    """Fail closed if the frozen policy's contents changed from the base commit."""
+    """Check a current logical policy against its approved baseline."""
     previous = baseline_policy(root, revision, resource_id)
     try:
         current = ResourceRegistry(root).load_json(resource_id)
     except ResourceResolutionError as exc:
         raise FrozenPolicyError("current resource is unavailable") from exc
-    if previous != current:
-        raise FrozenPolicyError(
-            f"frozen policy '{resource_id}' changed versus base {revision}"
-        )
+    verify_policy_unchanged(previous, current, resource_id)
 
 
 def main() -> int:
