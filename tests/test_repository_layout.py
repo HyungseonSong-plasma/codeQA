@@ -1,19 +1,22 @@
-"""Enforce the versioned, frozen top-level repository layout.
+"""Verify the versioned, frozen root layout using a logical policy ID.
 
 Run: python3 -m unittest discover -s tests -v
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import subprocess
+import sys
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = ROOT / "contracts" / "repository-layout.json"
+sys.path.insert(0, str(ROOT / "src"))
+from codeqa.resources import ResourceRegistry  # noqa: E402
 
-# An independent hard-coded baseline stops accidental manifest-only relaxation.
+
+# Independent baseline: changing the resource registry or policy JSON alone
+# must not permit a change in the frozen top-level layout.
 FROZEN_DIRECTORIES = frozenset({
     ".github", "contracts", "docs", "fixtures",
     "profiles", "skills", "src", "tests",
@@ -22,12 +25,12 @@ FROZEN_FILES = frozenset({".gitignore", "README.md", "pyproject.toml"})
 
 
 def root_names(tracked_paths: list[str]) -> set[str]:
-    """Extract root entries from a list of tracked POSIX paths."""
+    """Extract root entries from tracked POSIX paths."""
     return {path.partition("/")[0] for path in tracked_paths if path}
 
 
 def layout_errors(tracked_paths: list[str], allowed: set[str]) -> list[str]:
-    """Report all unauthorized or missing top-level entries."""
+    """Report all unexpected and missing top-level entries."""
     actual = root_names(tracked_paths)
     return (
         [f"unexpected root entry: {entry}" for entry in sorted(actual - allowed)]
@@ -46,19 +49,19 @@ def tracked_files() -> list[str]:
 class RepositoryLayoutTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        cls.policy = ResourceRegistry(ROOT).load_json("repository_layout")
 
-    def test_layout_contract_is_frozen(self) -> None:
-        self.assertEqual(self.contract["contract"], "codeqa.repository.root-layout")
-        self.assertEqual(self.contract["schema_version"], 1)
-        self.assertEqual(self.contract["status"], "frozen")
-        self.assertEqual(set(self.contract["root_directories"]), FROZEN_DIRECTORIES)
-        self.assertEqual(set(self.contract["root_files"]), FROZEN_FILES)
-        self.assertEqual(len(self.contract["root_directories"]), len(FROZEN_DIRECTORIES))
-        self.assertEqual(len(self.contract["root_files"]), len(FROZEN_FILES))
-        self.assertTrue(self.contract["change_control"]["issue_required"])
-        self.assertTrue(self.contract["change_control"]["architecture_decision_record_required"])
-        self.assertTrue(self.contract["change_control"]["reviewer_approval_required"])
+    def test_layout_policy_is_frozen(self) -> None:
+        self.assertEqual(self.policy["policy_id"], "codeqa.repository.root-layout")
+        self.assertEqual(self.policy["schema_version"], 1)
+        self.assertEqual(self.policy["status"], "frozen")
+        self.assertEqual(set(self.policy["root_directories"]), FROZEN_DIRECTORIES)
+        self.assertEqual(set(self.policy["root_files"]), FROZEN_FILES)
+        self.assertEqual(len(self.policy["root_directories"]), len(FROZEN_DIRECTORIES))
+        self.assertEqual(len(self.policy["root_files"]), len(FROZEN_FILES))
+        self.assertTrue(self.policy["change_control"]["issue_required"])
+        self.assertTrue(self.policy["change_control"]["architecture_decision_record_required"])
+        self.assertTrue(self.policy["change_control"]["reviewer_approval_required"])
 
     def test_tracked_root_contains_exactly_allowed_entries(self) -> None:
         expected = FROZEN_DIRECTORIES | FROZEN_FILES
