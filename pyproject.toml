@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "codeqa"
 version = "0.1.0"
@@ -5,9 +9,10 @@ description = "Evidence-based, language-independent code quality analysis"
 requires-python = ">=3.12"
 dependencies = []
 
-# All codeQA consumers use the logical resource ID, never the location.
-# Registry paths are relative to the repository root (this pyproject.toml).
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["codeqa*"]
+
+# Resources are referenced by logical ID; paths are repository-relative.
 [tool.codeqa.resources]
 repository_layout = "profiles/repository-layout.json"
-
-# Build and package publication are deferred until implementation exists.

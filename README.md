@@ -53,7 +53,11 @@ for its enforcement boundaries and [package structure](docs/codeqa-package-archi
 ## Validation
 
 ```bash
+python3 -m pip install -e .
 python3 -m unittest discover -s tests -v
 ```
+
+Git snapshot reads use `codeqa.infrastructure.git.GitReader`; pure
+policy comparisons no longer invoke Git processes directly.
 
 No quality result or CCG support is claimed until implemented and tested.

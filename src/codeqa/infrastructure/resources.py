@@ -50,6 +50,22 @@ def registry_path(config: dict[str, Any], resource_id: str) -> PurePosixPath:
     return validate_resource_path(table[resource_id], resource_id)
 
 
+def parse_registry(content: bytes) -> dict[str, Any]:
+    """Parse a TOML registry from working-tree or historical Git bytes."""
+    try:
+        return tomllib.loads(content.decode("utf-8"))
+    except (UnicodeError, tomllib.TOMLDecodeError) as exc:
+        raise ResourceResolutionError("invalid resource registry TOML") from exc
+
+
+def parse_json(content: bytes, resource_id: str) -> Any:
+    """Parse registered JSON identically for historical and current resources."""
+    try:
+        return json.loads(content.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ResourceResolutionError(f"invalid JSON resource: {resource_id}") from exc
+
+
 class ResourceRegistry:
     """Resolve configured resource IDs against one explicit repository root."""
 
@@ -60,9 +76,8 @@ class ResourceRegistry:
 
     def _config(self) -> dict[str, Any]:
         try:
-            with (self.root / "pyproject.toml").open("rb") as stream:
-                return tomllib.load(stream)
-        except (OSError, tomllib.TOMLDecodeError) as exc:
+            return parse_registry((self.root / "pyproject.toml").read_bytes())
+        except OSError as exc:
             raise ResourceResolutionError("cannot load repository resource registry") from exc
 
     def resolve(self, resource_id: str) -> Path:
@@ -77,9 +92,7 @@ class ResourceRegistry:
 
     def load_json(self, resource_id: str) -> Any:
         """Load a JSON resource; parsing errors fail closed."""
-        resource = self.resolve(resource_id)
         try:
-            with resource.open("r", encoding="utf-8") as stream:
-                return json.load(stream)
-        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-            raise ResourceResolutionError(f"invalid JSON resource: {resource_id}") from exc
+            return parse_json(self.resolve(resource_id).read_bytes(), resource_id)
+        except OSError as exc:
+            raise ResourceResolutionError(f"cannot read resource: {resource_id}") from exc

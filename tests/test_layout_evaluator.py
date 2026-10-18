@@ -1,12 +1,9 @@
 """Pure, repository-neutral layout evaluator conformance tests."""
 from __future__ import annotations
 
-from pathlib import Path
-import sys
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from codeqa.evaluation.layout import evaluate_layout  # noqa: E402
+from codeqa.evaluation.layout import evaluate_layout
 
 
 class LayoutEvaluatorTests(unittest.TestCase):
