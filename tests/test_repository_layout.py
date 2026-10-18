@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from codeqa.evaluation.layout import evaluate_layout  # noqa: E402
-from codeqa.resources import ResourceRegistry  # noqa: E402
+from codeqa.infrastructure.resources import ResourceRegistry  # noqa: E402
 
 
 def tracked_files(root: Path) -> list[str]:

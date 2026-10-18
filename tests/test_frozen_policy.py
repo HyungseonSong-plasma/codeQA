@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from codeqa.evaluation.frozen_policy import (  # noqa: E402
+from codeqa.governance.frozen_policy import (  # noqa: E402
     FrozenPolicyError, baseline_policy, verify_frozen_policy,
 )
 

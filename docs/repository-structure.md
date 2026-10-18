@@ -38,7 +38,7 @@ codeQA/
 | `fixtures/` | Ground-truth adapter/graph/evaluator test datasets. |
 | `profiles/` | Concrete reusable quality defaults and codeQA's own repository policy. |
 | `skills/` | QA skills exposed to Samuel/David orchestration. |
-| `src/` | Python-first codeQA Core, adapters, evaluations and resource resolver. |
+| `src/` | Python-first codeQA packages, separated by [responsibility boundaries](codeqa-package-architecture.md). |
 | `tests/` | Contract, behavior, regression, adversarial and integration verification. |
 
 ## Separation of verification concerns
@@ -49,7 +49,7 @@ codeQA/
 2. **Live codeQA self-check**: `tests/test_repository_layout.py` supplies the
    checked-out tracked Git paths and policy loaded via
    `ResourceRegistry(ROOT).load_json("repository_layout")`.
-3. **Frozen policy guard**: `codeqa.evaluation.frozen_policy` compares the
+3. **Frozen policy guard**: `codeqa.governance.frozen_policy` compares the
    *logical policy contents* to the protected base commit. It resolves the
    baseline path from the **baseline commit's registry**, and the current path
    from the current registry. Relocation with identical contents passes.

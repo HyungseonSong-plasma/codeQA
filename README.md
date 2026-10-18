@@ -22,7 +22,7 @@ The root layout is frozen. The evaluator reads directory and file names
 - `fixtures/`: fixed conformance test inputs and expected results
 - `profiles/`: reusable quality profiles and codeQA's own layout policy
 - `skills/`: QA skills invoked by the central OS
-- `src/`: Python-first Core, adapters and evaluators
+- `src/`: Python-first Core, adapters, evaluation, pipeline, governance and infrastructure
 - `tests/`: contract, unit and integration tests
 
 The implementation language for codeQA and adapter integration is Python-first.
@@ -35,7 +35,7 @@ independent of implementation languages. GitHub mutation remains owned by
 Consumers reference logical IDs rather than hard-coded resource file paths:
 
 ```python
-from codeqa.resources import ResourceRegistry
+from codeqa.infrastructure.resources import ResourceRegistry
 from codeqa.evaluation.layout import evaluate_layout
 
 policy = ResourceRegistry(repository_root).load_json("repository_layout")
@@ -48,7 +48,7 @@ The resolver fails closed on missing, malformed and unsafe resources.
 
 The separate CI frozen-policy guard compares policy contents against the Git
 base commit, irrespective of their paths. See `docs/repository-structure.md`
-for its enforcement boundaries.
+for its enforcement boundaries and [package structure](docs/codeqa-package-architecture.md).
 
 ## Validation
 
