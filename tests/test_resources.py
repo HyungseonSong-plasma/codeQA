@@ -10,7 +10,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from codeqa.resources import ResourceRegistry, ResourceResolutionError  # noqa: E402
+from codeqa.infrastructure.resources import ResourceRegistry, ResourceResolutionError  # noqa: E402
 
 
 class ResourceRegistryTests(unittest.TestCase):

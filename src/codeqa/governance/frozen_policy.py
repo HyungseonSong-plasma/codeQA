@@ -18,7 +18,7 @@ import sys
 import tomllib
 from typing import Any
 
-from codeqa.resources import ResourceRegistry, ResourceResolutionError, registry_path
+from codeqa.infrastructure.resources import ResourceRegistry, ResourceResolutionError, registry_path
 
 
 class FrozenPolicyError(ValueError):
