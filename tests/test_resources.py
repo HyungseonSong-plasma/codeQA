@@ -107,7 +107,7 @@ class ResourceRegistryTests(unittest.TestCase):
                 ResourceRegistry(self.root).resolve("repository_layout")
 
     def test_shared_registry_and_json_parsing(self) -> None:
-        registry = parse_registry(b'[tool.codeqa.resources]\\nrepository_layout = "policies/x.json"\\n')
+        registry = parse_registry(b'[tool.codeqa.resources]\nrepository_layout = "policies/x.json"\n')
         self.assertEqual(registry["tool"]["codeqa"]["resources"]["repository_layout"], "policies/x.json")
         self.assertEqual(parse_json(b'{"value": 42}', "example"), {"value": 42})
 
