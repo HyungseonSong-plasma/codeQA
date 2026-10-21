@@ -35,11 +35,16 @@ extraction messages. It must not be used to invent graph facts.
 
 ## Semantic invariants beyond JSON Schema
 
-The Schema checks shape and conditional edge fields. The future Core validator
-must also check unique node IDs, reference existence for edge source/target,
-valid source-span ordering, consistent coverage accounting and reproducible
-IDs/order for identical pinned inputs and tool configuration. JSON Schema
-cannot enforce those graph-wide invariants by itself.
+JSON Schema checks shape and conditional edge fields. The Core validator in
+`src/codeqa/core/validation.py` now additionally checks unique node IDs,
+edge source/target existence, location span ordering, snapshot-relative paths,
+coverage overlap, repeated unprocessed paths and coverage status consistency.
+Node/edge facts with a source location must refer to an analyzed file.
+
+`canonical_json(graph)` gives deterministic order/encoding for equivalent
+facts. It does **not** prove reproducible extraction or stable ID generation:
+Adapters must generate consistent IDs and evidence for identical pinned input,
+configuration and tool versions.
 
 No quality scores, thresholds, PASS/FAIL verdicts, repository-specific policy,
 or language-specific AST objects belong in the CCG. Those are owned by
@@ -47,6 +52,12 @@ or language-specific AST objects belong in the CCG. Those are owned by
 
 ## Scope boundary
 
-This contract does **not** implement a CCG runtime, any language adapter,
-semantic resolution or graph-wide validation. It is the v0.1 exchange format
-that those components will implement and test against.
+The contract is implemented in `codeqa.core` by immutable data classes
+(`Graph`, `Node`, `Edge`, `Coverage`, `SourceLocation`, etc.).
+`parse_graph(document, schema)` validates against the supplied versioned
+JSON Schema and then checks graph-wide invariants. It raises
+`GraphValidationError` with structured `GraphIssue` details on failure.
+
+The Core **does not** load the schema, read Git, interpret language-specific
+ASTs, resolve calls or make quality judgments. Adapters and full semantic
+resolution remain separate future implementation tasks.

@@ -53,19 +53,31 @@ for its enforcement boundaries and [package structure](docs/codeqa-package-archi
 ## Validation
 
 ```bash
-python3 -m pip install -e '.[test]'
+python3 -m pip install -e .
 python3 -m unittest discover -s tests -v
 ```
 
 Git snapshot reads use `codeqa.infrastructure.git.GitReader`; pure
 policy comparisons no longer invoke Git processes directly.
 
-No quality result or CCG support is claimed until implemented and tested.
+CCG v0.1 graph modeling, schema and semantic validation are implemented and tested; language adapters and quality evaluation are not yet implemented.
 
 ## CCG graph contract
 
 The initial, language-independent CCG v0.1 exchange schema is registered as
 `ccg_schema` in `[tool.codeqa.resources]` and documented in
 [`contracts/ccg/README.md`](contracts/ccg/README.md).
-This is a data contract, not an implemented CCG engine or language adapter.
-Schema conformance tests use the optional `test` extra shown above.
+The contract is implemented by the immutable model and validator in
+`src/codeqa/core/`. The Core receives the schema as data; only the caller
+resolves the logical resource ID.
+
+```python
+from codeqa.core import parse_graph, canonical_json
+from codeqa.infrastructure.resources import ResourceRegistry
+
+schema = ResourceRegistry(repository_root).load_json("ccg_schema")
+graph = parse_graph(document, schema)
+output = canonical_json(graph)
+```
+
+No language adapter or semantic call resolution is implemented yet.
