@@ -8,6 +8,8 @@ src/
 └── codeqa/
     ├── __init__.py
     ├── core/
+    │   ├── graph.py
+    │   └── validation.py
     ├── adapters/
     ├── evaluation/
     │   └── layout.py
@@ -44,8 +46,8 @@ and the preexisting frozen-policy guard now lives in `governance/`.
 Imports in unit tests and the mandatory CI `layout` step use the new module names.
 This is a pre-public-API internal refactor; compatibility aliases are not added.
 
-`core/`, `adapters/`, and `pipeline/` currently contain package markers but
-no analysis implementations. Only package boundaries are established.
+`core/` now implements the CCG v0.1 model, schema validation and graph-wide
+integrity checks. `adapters/` and `pipeline/` remain implementation stubs.
 
 The frozen top-level repository structure and its JSON layout policy stay unchanged.
 
@@ -63,3 +65,6 @@ layers were introduced beyond the single reusable Git reader.
 A proper setuptools `src` package is now defined in `pyproject.toml`. Run
 `python3 -m pip install -e .` before testing. Individual tests must not modify
 `sys.path` to locate implementation modules.
+
+The Core receives JSON Schema from its caller (e.g. through the outer Resource
+Registry); it never imports infrastructure or holds physical contract paths.

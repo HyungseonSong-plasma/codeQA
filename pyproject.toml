@@ -7,10 +7,7 @@ name = "codeqa"
 version = "0.1.0"
 description = "Evidence-based, language-independent code quality analysis"
 requires-python = ">=3.12"
-dependencies = []
-
-[project.optional-dependencies]
-test = ["jsonschema>=4.22,<5"]
+dependencies = ["jsonschema>=4.22,<5"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
