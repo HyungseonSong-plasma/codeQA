@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import unittest
+import subprocess
 
 from codeqa.adapters.python_snapshot import parse_python_snapshot
 from codeqa.adapters.python_dependencies import extract_parsed_dependencies
@@ -84,9 +85,10 @@ class SemanticRoleTests(unittest.TestCase):
             (ROOT / "profiles/semantic-directory-roles-v0.1.json").read_text()
         )
         reader = GitReader(ROOT)
+        head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
         all_paths = reader.tracked_paths()
         sources = {
-            p: reader.read_file("HEAD", p).decode("utf-8")
+            p: reader.read_file(head, p).decode("utf-8")
             for p in all_paths if p.startswith("src/codeqa/") and p.endswith(".py")
         }
         parsed = parse_python_snapshot(sources)

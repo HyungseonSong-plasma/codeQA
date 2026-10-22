@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from codeqa.adapters.python_snapshot import parse_python_snapshot
@@ -14,15 +15,16 @@ from codeqa.infrastructure.git import GitReader
 def main() -> int:
     root = Path(__file__).resolve().parents[2]
     reader = GitReader(root)
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     paths = reader.tracked_paths()
     policy_path = root / "profiles/semantic-directory-roles-v0.1.json"
     policy = json.loads(policy_path.read_text(encoding="utf-8"))
     sources = {
-        path: reader.read_file("HEAD", path).decode("utf-8")
+        path: reader.read_file(head, path).decode("utf-8")
         for path in paths if path.startswith("src/codeqa/") and path.endswith(".py")
     }
     parsed = parse_python_snapshot(sources)
-    deps = extract_parsed_dependencies(parsed, snapshot_id="HEAD")
+    deps = extract_parsed_dependencies(parsed, snapshot_id=head)
     report = evaluate_semantic_layout(
         paths, [(e.source_path, e.target_path) for e in deps.edges], policy,
     )

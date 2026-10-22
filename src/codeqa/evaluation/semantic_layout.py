@@ -99,6 +99,7 @@ def evaluate_semantic_layout(
     findings: set[SemanticLayoutFinding] = set()
     present = {
         p[len(root)+1:].split("/")[0] for p in scoped
+        if "/" in p[len(root)+1:]
     }
     for role in sorted(roles):
         if role not in present:
