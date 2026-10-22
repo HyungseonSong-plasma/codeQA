@@ -1,0 +1,58 @@
+name: External Python Audit — moose-test-repo
+
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/external_python_audit.py'
+      - '.github/workflows/moose-test-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/external_python_audit.py'
+      - '.github/workflows/moose-test-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-audit:
+    name: external-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout pinned codeQA analyzer
+        uses: actions/checkout@v4
+        with:
+          path: codeqa
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Checkout immutable moose-test-repo source
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 1977ad5559e5aa7a1c8d04c83735c15e007130d5
+          path: target
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Python runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install analyzer only (never install or execute target)
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Analyze pinned Python sources (read-only)
+        run: |
+          python3 codeqa/.github/scripts/external_python_audit.py \
+            --target-root target \
+            --source-sha 1977ad5559e5aa7a1c8d04c83735c15e007130d5 \
+            --codeqa-root codeqa \
+            --output moose-test-codeqa-audit.json
+      - name: Upload reproducible JSON audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moose-test-codeqa-audit
+          path: moose-test-codeqa-audit.json
+          if-no-files-found: warn
+          retention-days: 30
