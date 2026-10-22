@@ -149,3 +149,10 @@ function **declaration candidates** reached by explicit unique imports,
 with source and target IDs. This is not proven runtime call resolution,
 does not modify CCG or v0.1 Mechanical findings, and never certifies
 low coupling. See [cross-module symbol evidence](docs/cross-module-symbol-evidence.md).
+
+## Semantic Architecture Ontology v0.1
+
+Optional, non-scoring projection of declared directory responsibilities,
+source-grounded import/CCG relationships, constraints and evidence; cannot
+infer actual runtime behavior or certifiable semantic alignment. See
+[Semantic Architecture Ontology](docs/semantic-architecture-ontology.md).

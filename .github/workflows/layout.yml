@@ -26,7 +26,7 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check -e .
       - name: Verify CCG Core, contracts, layout and frozen policy tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
-      - name: Evaluate semantic directory roles (explicit transition remains review)
+      - name: Evaluate directory roles and versioned semantic architecture evidence
         run: python3 .github/scripts/semantic_layout_audit.py
       - name: Upload semantic directory-role evidence
         if: always()
