@@ -44,6 +44,7 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
     graph, quality, dep = analysis.graph, analysis.quality, analysis.dependencies
     context = analysis.contextual_review
     symbols = analysis.symbol_calls
+    behavior = analysis.responsibility_behavior
     semantic = analysis.semantic_architecture
     contextual_by_id = {item.node_id: item for item in context.reviews}
     findings = sorted(
@@ -88,6 +89,15 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
 
     data = {
         "scope": name,
+        "responsibility_behavior": (
+            {
+                "summary": behavior.summary_document(),
+                "review_examples": [
+                    asdict(item) for item in behavior.placements
+                    if item.status == "ROLE_CONFLICT_REVIEW"
+                ][:20],
+            } if behavior is not None else {"status": "NOT_REQUESTED"}
+        ),
         "semantic_architecture": (
             {
                 "summary": semantic.summary_document(),
@@ -236,6 +246,14 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
             f"target={item.target_node_id} assurance={item.assurance}",
             flush=True,
         )
+    if behavior is not None:
+        print(
+            f"  RESPONSIBILITY_BEHAVIOR {name}: status={behavior.status} "
+            f"observations={len(behavior.observations)} "
+            f"role_conflicts={sum(p.status == 'ROLE_CONFLICT_REVIEW' for p in behavior.placements)} "
+            f"retrospective=TRUE",
+            flush=True,
+        )
     if semantic is not None:
         print(
             f"  SEMANTIC_ARCHITECTURE {name}: "
@@ -294,6 +312,10 @@ def main() -> None:
         (codeqa_root / "profiles/moose-test-directory-roles-subset-v0.1.json")
         .read_text(encoding="utf-8")
     )
+    moose_behavior_policy = json.loads(
+        (codeqa_root / "profiles/moose-test-responsibility-behavior-v0.1.json")
+        .read_text(encoding="utf-8")
+    )
     cache = PythonAnalysisCache(max_entries=1024)
     results = {}
     for name, sources in scoped_inputs.items():
@@ -305,6 +327,7 @@ def main() -> None:
             mechanical_profile=profile,
             cache=cache,
             semantic_policy=semantic_policy if name in ("product", "all_python") else None,
+            behavior_policy=moose_behavior_policy if name == "product" else None,
         )
         results[name] = _summarize(
             name, analysis, rank_impacts=name in ("product", "all_python"),
@@ -315,6 +338,12 @@ def main() -> None:
         "analyzer_repo": "HyungseonSong-plasma/codeQA",
         "analyzer_sha": _head(codeqa_root),
         "profile": profile,
+        "retrospective_responsibility_behavior_policy": {
+            "policy_id": moose_behavior_policy["policy_id"],
+            "source_policy_commit": moose_behavior_policy["source_policy_commit"],
+            "same_time_as_analyzed_source": False,
+            "known_transitional_review": moose_behavior_policy["known_transitional_review"],
+        },
         "retrospective_semantic_role_policy": {
             "policy_id": semantic_policy["policy_id"],
             "source_policy_commit": semantic_policy["source_policy_commit"],
@@ -344,6 +373,8 @@ def main() -> None:
             "Cross-file symbol candidates identify unambiguous source declarations but do not verify runtime dispatch.",
             "Semantic role ontology is retrospective and covers only representable full-role constraints, not narrower moose guard rules.",
             "No function behavior or scientific contract alignment inferred from directory or function names.",
+            "MOOSE behavior review is retroactive and limited to explicitly cataloged subprocess.run syntax in product scope, never proof that a process executed.",
+
         ],
         "scopes": results,
     }

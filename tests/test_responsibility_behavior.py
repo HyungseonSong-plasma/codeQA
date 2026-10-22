@@ -230,6 +230,32 @@ class BehaviorTests(unittest.TestCase):
                      "semantic_architecture"):
             self.assertEqual(getattr(base, attr), getattr(extra, attr))
 
+    def test_moose_retrospective_policy_preserves_15_roles_and_exact_process_rule(self):
+        policy = json.loads(
+            (ROOT / "profiles/moose-test-responsibility-behavior-v0.1.json").read_text()
+        )
+        roles = json.loads(
+            (ROOT / "profiles/moose-test-directory-roles-subset-v0.1.json").read_text()
+        )
+        self.assertEqual(set(policy["roles"]), set(roles["roles"]))
+        self.assertEqual(policy["assessment_temporality"], "RETROSPECTIVE_PINNED_SOURCE")
+        self.assertEqual(policy["historical_input_sha"],
+                         "1977ad5559e5aa7a1c8d04c83735c15e007130d5")
+        self.assertEqual(
+            policy["roles"]["ontology"]["forbidden"],
+            ["PROCESS_INVOCATION_SYNTAX"],
+        )
+        self.assertTrue(all(not row["forbidden"] for name, row
+                            in policy["roles"].items() if name != "ontology"))
+        self.assertEqual(
+            set(validate_behavior_policy(policy, roles)),
+            {("subprocess", "run")},
+        )
+        self.assertEqual(
+            policy["known_transitional_review"]["path"],
+            "physics_harness/ontology/sol_runtime_consumer.py",
+        )
+
     def test_manual_synthetic_observation_stays_review_not_runtime_violation(self):
         a = self.analyze({
             "src/pkg/adapters/a.py": "", "src/pkg/evaluation/e.py": "",

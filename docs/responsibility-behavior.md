@@ -35,3 +35,14 @@ Absence of observed calls never proves absence of behavior. Evaluated cases do *
 Tests cover unshadowed aliases, from-import aliases, AST/process syntax, forbidden roles, local/parameter rebinding, dotted imports, duplicate names, nested scopes, dynamic fluent-looking method calls, deterministic serialization, policy misconfiguration, and unchanged legacy reports. Each new behavior catalog entry requires verified positive **and adversarial** examples before adding a role rule.
 
 CodeQA's existing GitHub semantic-layout audit emits a separate `responsibility_behavior` JSON view. It does not fail CI merely for a `ROLE_CONFLICT_REVIEW`; policy owners must first validate the behavior assignment. It continues to fail known forbidden static directory-role edges.
+
+## Retrospective MOOSE example
+
+The pinned MOOSE external audit applies the separate fifteen-role policy
+`profiles/moose-test-responsibility-behavior-v0.1.json` to its 124-file
+`physics_harness/` product scope. Only the native policy's
+`ontology -> subprocess.run` exclusion is represented. The existing
+`ontology/sol_runtime_consumer.py` import/call is a **known transitional
+review**, not a confirmed illegal execution. The source revision predates
+the current directory-role policy, so all findings are labeled
+`RETROSPECTIVE_PINNED_SOURCE`. No evaluated target code is executed.

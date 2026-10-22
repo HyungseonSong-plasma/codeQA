@@ -1,0 +1,71 @@
+{
+  "policy_id": "moose.responsibility-behavior-retrospective.v0.1",
+  "schema_version": "0.1",
+  "scope": "physics_harness",
+  "source_policy_commit": "2e14935e9bab03e684c4e01a35840d8e125802d9",
+  "source_policy_path": "docs/architecture/physics_directory_roles_v1.json",
+  "historical_input_sha": "1977ad5559e5aa7a1c8d04c83735c15e007130d5",
+  "assessment_temporality": "RETROSPECTIVE_PINNED_SOURCE",
+  "policy_note": "Only native ontology forbidden process-call syntax subprocess.run is transcribed; transitional sol_runtime_consumer.py call remains REVIEW_REQUIRED, never a proved runtime architecture violation.",
+  "catalog": [
+    {
+      "module": "subprocess",
+      "symbol": "run",
+      "kind": "PROCESS_INVOCATION_SYNTAX"
+    }
+  ],
+  "roles": {
+    "specification": {
+      "forbidden": []
+    },
+    "ontology": {
+      "forbidden": [
+        "PROCESS_INVOCATION_SYNTAX"
+      ]
+    },
+    "planning": {
+      "forbidden": []
+    },
+    "execution": {
+      "forbidden": []
+    },
+    "adapters": {
+      "forbidden": []
+    },
+    "observation": {
+      "forbidden": []
+    },
+    "analysis": {
+      "forbidden": []
+    },
+    "reasoning": {
+      "forbidden": []
+    },
+    "validation": {
+      "forbidden": []
+    },
+    "provenance": {
+      "forbidden": []
+    },
+    "domains": {
+      "forbidden": []
+    },
+    "application": {
+      "forbidden": []
+    },
+    "cli": {
+      "forbidden": []
+    },
+    "evidence": {
+      "forbidden": []
+    },
+    "evaluation": {
+      "forbidden": []
+    }
+  },
+  "known_transitional_review": {
+    "path": "physics_harness/ontology/sol_runtime_consumer.py",
+    "callee": "subprocess.run",
+    "source": "moose policy process_exceptions; not an automatic waiver for other paths"
+  }
+}
