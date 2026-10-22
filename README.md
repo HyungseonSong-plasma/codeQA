@@ -125,3 +125,10 @@ are reported separately. See [self-audit](docs/self-audit.md).
 reverse-import direct/transitive impact paths, witnesses and unknowns.
 This is **observed potential static impact**, not proof of runtime coupling,
 a complete impact bound or safe exclusion of tests. See [Dependency and Impact v0.1](docs/dependency-impact.md).
+
+## Efficient evidence and incremental analysis
+
+The Python pipeline now parses each source once per analysis, supports opt-in
+content-addressed reuse, shares cross-report evidence references and provides
+a unified summary. Impact traversal is optional and only reports potential
+static Import paths. See [Efficient Evidence Pipeline](docs/efficient-evidence-pipeline.md).

@@ -97,3 +97,8 @@ A language-neutral companion dependency evidence model lives in
 lives in `evaluation/impact.py`. `pipeline/python.py` composes them.
 The CCG v0.1 exchange schema is unchanged; static import correspondence is
 not added to CCG's `resolved` edges without proven target identity.
+
+The Python Adapter holds parsed ASTs and caller-owned file-local caches.
+Core now includes language-neutral evidence identifiers, while the Pipeline
+composes CCG, static dependencies, linked evidence, QA and optional impact
+without re-parsing or adding AST knowledge to Core.

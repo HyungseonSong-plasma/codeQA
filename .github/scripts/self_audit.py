@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 import subprocess
 
+from codeqa.adapters import PythonAnalysisCache
 from codeqa.infrastructure.git import GitReader
 from codeqa.infrastructure.resources import ResourceRegistry
 from codeqa.evaluation.impact import analyze_change_impact
@@ -59,10 +60,11 @@ def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dic
         "all_python": sources,
     }
     results = {}
+    cache = PythonAnalysisCache()
     for name, inputs in groups.items():
         analysis = analyze_python(
             inputs, snapshot_id=f"git:{sha}",
-            ccg_schema=schema, mechanical_profile=profile,
+            ccg_schema=schema, mechanical_profile=profile, cache=cache,
         )
         graph, report = analysis.graph, analysis.quality
         dependencies = analysis.dependencies
@@ -86,6 +88,19 @@ def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dic
         ))
         results[name] = {
             "source_files": len(inputs),
+            "unified_summary": analysis.summary_document(),
+            "efficiency": analysis.efficiency.to_document(),
+            "evidence": {
+                "facts": len(analysis.evidence.facts),
+                "linked_relations": sum(
+                    fact.evidence_id is not None
+                    for fact in analysis.evidence.relations
+                ),
+                "unlinked_relations": sum(
+                    fact.evidence_id is None
+                    for fact in analysis.evidence.relations
+                ),
+            },
             "source_paths": sorted(inputs),
             "ccg_nodes": len(graph.nodes),
             "ccg_edges": len(graph.edges),
@@ -154,6 +169,15 @@ def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dic
                 f"confidence={example['confidence']}",
                 flush=True,
             )
+        counters = analysis.efficiency
+        print(
+            f"  EFFICIENCY {name}: parsed={counters.parsed_files} "
+            f"parse_reused={counters.reused_parses} "
+            f"extracted={counters.extracted_files} "
+            f"extraction_reused={counters.reused_extractions} "
+            f"evidence_facts={len(analysis.evidence.facts)}",
+            flush=True,
+        )
         for finding in report.findings:
             print(
                 f"  REVIEW {finding.rule_id} {finding.node_id} "
