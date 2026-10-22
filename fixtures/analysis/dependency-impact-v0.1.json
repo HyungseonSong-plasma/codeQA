@@ -1,0 +1,62 @@
+{
+  "sources": {
+    "src/demo/__init__.py": "",
+    "src/demo/core.py": "def value():\n    return 1\n",
+    "src/demo/service.py": "from .core import value\n",
+    "src/demo/api.py": "from demo.service import value\nimport demo.bridge\n",
+    "src/demo/bridge.py": "import demo.api\n",
+    "src/demo/cli.py": "import demo.api\n",
+    "src/demo/test_support.py": "from demo.service import value\n",
+    "src/demo/runtime.py": "import importlib\n\ndef load():\n    return importlib.import_module('demo.core')\n",
+    "src/demo/external.py": "import random\n",
+    "src/demo/conditional.py": "if False:\n    import demo.core\n",
+    "src/demo/attribute.py": "from demo import core\n"
+  },
+  "expected": {
+    "pairs": [
+      [
+        "src/demo/api.py",
+        "src/demo/bridge.py"
+      ],
+      [
+        "src/demo/api.py",
+        "src/demo/service.py"
+      ],
+      [
+        "src/demo/attribute.py",
+        "src/demo/__init__.py"
+      ],
+      [
+        "src/demo/bridge.py",
+        "src/demo/api.py"
+      ],
+      [
+        "src/demo/cli.py",
+        "src/demo/api.py"
+      ],
+      [
+        "src/demo/conditional.py",
+        "src/demo/core.py"
+      ],
+      [
+        "src/demo/service.py",
+        "src/demo/core.py"
+      ],
+      [
+        "src/demo/test_support.py",
+        "src/demo/service.py"
+      ]
+    ],
+    "changed": "src/demo/core.py",
+    "direct": [
+      "src/demo/conditional.py",
+      "src/demo/service.py"
+    ],
+    "transitive": [
+      "src/demo/api.py",
+      "src/demo/test_support.py",
+      "src/demo/bridge.py",
+      "src/demo/cli.py"
+    ]
+  }
+}

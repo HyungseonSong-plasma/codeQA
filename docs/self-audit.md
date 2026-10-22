@@ -51,3 +51,13 @@ It does not claim that fewer current-HEAD findings imply higher quality.
 New non-scoring `call_metrics` are intentionally omitted from the historical
 baseline because they did not exist in the earlier analyzer. Both current
 and frozen-source reports are uploaded as artifacts.
+
+## Dependency evidence and impact ranking
+
+The self-audit now records observed source-to-target import pairs,
+conditional/nested import observations, unknown imports by reason, and
+ranked static reverse-import impact examples for product Python sources.
+For `all_python`, dependent tests can be included when a statically
+matching module import is present. Impact rankings are **lower bounds**:
+dynamic imports, out-of-snapshot dependencies, test fixtures and runtime
+dispatch are not exhaustively mapped. Rankings are not quality scores.

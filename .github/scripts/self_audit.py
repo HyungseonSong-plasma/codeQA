@@ -12,6 +12,7 @@ import subprocess
 
 from codeqa.infrastructure.git import GitReader
 from codeqa.infrastructure.resources import ResourceRegistry
+from codeqa.evaluation.impact import analyze_change_impact
 from codeqa.pipeline.python import analyze_python
 
 
@@ -64,6 +65,25 @@ def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dic
             ccg_schema=schema, mechanical_profile=profile,
         )
         graph, report = analysis.graph, analysis.quality
+        dependencies = analysis.dependencies
+        import_pairs = {(e.source_path, e.target_path) for e in dependencies.edges}
+        impact_ranking = []
+        for source_path in dependencies.analyzed_paths:
+            if not source_path.startswith("src/codeqa/"):
+                continue
+            impact = analyze_change_impact(dependencies, [source_path])
+            if impact.affected:
+                impact_ranking.append({
+                    "changed_path": source_path,
+                    "direct_dependents": len(impact.direct_dependents),
+                    "transitive_dependents": len(impact.transitive_dependents),
+                    "affected_paths": [record.path for record in impact.affected],
+                    "witnesses": [asdict(record) for record in impact.affected],
+                    "confidence": impact.confidence,
+                })
+        impact_ranking.sort(key=lambda item: (
+            -len(item["affected_paths"]), item["changed_path"]
+        ))
         results[name] = {
             "source_files": len(inputs),
             "source_paths": sorted(inputs),
@@ -83,6 +103,22 @@ def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dic
                 and e.provenance.method == "lexical_module_binding"
                 for e in graph.edges
             ),
+            "static_dependencies": {
+                "observed_import_sites": len(dependencies.edges),
+                "unique_source_target_pairs": len(import_pairs),
+                "conditional_or_deferred_sites": sum(
+                    edge.execution == "conditional_or_deferred"
+                    for edge in dependencies.edges
+                ),
+                "unmapped_by_reason": dict(sorted(Counter(
+                    item.reason for item in dependencies.unknown
+                ).items())),
+                "unknown_source_paths": sorted({
+                    item.source_path for item in dependencies.unknown
+                }),
+                "impact_ranking": impact_ranking[:8],
+                "confidence": "STATIC_LOWER_BOUND",
+            },
             "coverage": graph.coverage.status,
             "diagnostics": [asdict(d) for d in graph.diagnostics],
             "quality": report.to_document(),
@@ -102,6 +138,22 @@ def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dic
             f"unresolved_by_kind={results[name]['unresolved_by_kind']}",
             flush=True,
         )
+        overview = results[name]["static_dependencies"]
+        print(
+            f"  DEPENDENCIES {name}: import_sites={overview['observed_import_sites']} "
+            f"unique_pairs={overview['unique_source_target_pairs']} "
+            f"conditional={overview['conditional_or_deferred_sites']} "
+            f"unmapped={overview['unmapped_by_reason']}",
+            flush=True,
+        )
+        for example in overview["impact_ranking"][:5]:
+            print(
+                f"  IMPACT {name}: changed={example['changed_path']} "
+                f"direct={example['direct_dependents']} "
+                f"transitive={example['transitive_dependents']} "
+                f"confidence={example['confidence']}",
+                flush=True,
+            )
         for finding in report.findings:
             print(
                 f"  REVIEW {finding.rule_id} {finding.node_id} "

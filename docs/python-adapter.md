@@ -32,3 +32,11 @@ or reflective attribute operations change bindings.
 Unknown import/call targets are not invented, and deeper language adapters will
 require separate capability contracts. Use the immutable snapshot ID supplied by
 the caller; no snapshot acquisition occurs here.
+
+## Import dependency companion view
+
+The Python pipeline additionally exposes a static import-to-source-file
+correspondence model and a reverse-impact query. See
+[Dependency and Impact v0.1](dependency-impact.md). A module-path match
+is **not** the same as CCG `resolved` runtime symbol identity, so existing
+CCG `imports` edges remain unresolved.
