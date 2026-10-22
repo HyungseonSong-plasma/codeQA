@@ -1,0 +1,40 @@
+name: codeQA Self Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-audit:
+    name: self-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pinned source revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install codeQA
+        run: python3 -m pip install --disable-pip-version-check -e .
+      - name: Analyze codeQA at exact checked-out commit
+        env:
+          CODEQA_SNAPSHOT_SHA: ${{ github.sha }}
+        run: |
+          python3 .github/scripts/self_audit.py \
+            --sha "$CODEQA_SNAPSHOT_SHA" \
+            --output self-audit-report.json
+      - name: Store structured report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeqa-self-audit
+          path: self-audit-report.json
+          if-no-files-found: warn
