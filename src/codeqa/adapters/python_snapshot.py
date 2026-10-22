@@ -7,6 +7,7 @@ stale cross-file dependency targets after another file changes.
 from __future__ import annotations
 
 import ast
+from collections import OrderedDict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
@@ -36,19 +37,25 @@ class ParsedSnapshot:
 class PythonParseCache:
     """Opt-in, non-global cache; callers control reuse and lifetime."""
 
-    def __init__(self) -> None:
-        self._entries: dict[tuple[str, str], ParsedFile] = {}
+    def __init__(self, max_entries: int = 512) -> None:
+        if type(max_entries) is not int or max_entries < 1:
+            raise ValueError("max_entries must be a positive integer")
+        self.max_entries = max_entries
+        self._entries: OrderedDict[tuple[str, str], ParsedFile] = OrderedDict()
 
     def parse(self, path: str, source: str) -> tuple[ParsedFile, bool]:
         digest = sha256(source.encode("utf-8")).hexdigest()
         key = (path, digest)
         if key in self._entries:
+            self._entries.move_to_end(key)
             return self._entries[key], True
         try:
             result = ParsedFile(path, digest, ast.parse(source, filename=path))
         except SyntaxError as exc:
             result = ParsedFile(path, digest, None, exc.msg)
         self._entries[key] = result
+        if len(self._entries) > self.max_entries:
+            self._entries.popitem(last=False)
         return result, False
 
 
@@ -96,8 +103,14 @@ class PythonAnalysisCache:
     semantic validation, verdicts and dependency links are rebuilt per run.
     """
 
-    def __init__(self) -> None:
-        self.parsing = PythonParseCache()
-        self.graph_facts: dict[
+    def __init__(self, max_entries: int = 512) -> None:
+        self.parsing = PythonParseCache(max_entries=max_entries)
+        self.max_entries = max_entries
+        self.graph_facts: OrderedDict[
             tuple[str, str], tuple[tuple[dict, ...], tuple[dict, ...]]
-        ] = {}
+        ] = OrderedDict()
+
+    def clear(self) -> None:
+        """Release caller-owned ASTs and local extraction facts."""
+        self.parsing._entries.clear()
+        self.graph_facts.clear()

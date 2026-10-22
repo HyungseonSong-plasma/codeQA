@@ -171,6 +171,7 @@ def adapt_parsed_python(
         key = (item.path, item.digest)
         if cache is not None and key in cache.graph_facts:
             cached_nodes, cached_edges = cache.graph_facts[key]
+            cache.graph_facts.move_to_end(key)
             if stats is not None:
                 stats["reused"] += 1
         else:
@@ -180,6 +181,8 @@ def adapt_parsed_python(
             cached_edges = tuple(result.edges)
             if cache is not None:
                 cache.graph_facts[key] = (cached_nodes, cached_edges)
+                if len(cache.graph_facts) > cache.max_entries:
+                    cache.graph_facts.popitem(last=False)
             if stats is not None:
                 stats["extracted"] += 1
         # No references to mutable internal cache dictionaries leave the

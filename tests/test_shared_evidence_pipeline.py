@@ -178,6 +178,26 @@ class SharedEvidenceTests(unittest.TestCase):
             self.assertIn(section, data)
         json.dumps(data)
 
+    def test_bounded_cache_evicts_old_entries_and_clear_releases_all(self):
+        cache = PythonAnalysisCache(max_entries=1)
+        src = {"a.py": "pass\n", "b.py": "pass\n"}
+        self.analyze(src, cache=cache)
+        newest = self.analyze({"b.py": "pass\n"}, cache=cache)
+        self.assertEqual(newest.efficiency.reused_parses, 1)
+        self.assertEqual(newest.efficiency.reused_extractions, 1)
+        evicted = self.analyze({"a.py": "pass\n"}, cache=cache)
+        self.assertEqual(evicted.efficiency.parsed_files, 1)
+        self.assertEqual(evicted.efficiency.extracted_files, 1)
+        cache.clear()
+        after_clear = self.analyze({"a.py": "pass\n"}, cache=cache)
+        self.assertEqual(after_clear.efficiency.parsed_files, 1)
+        self.assertEqual(after_clear.efficiency.reused_extractions, 0)
+
+    def test_invalid_cache_size_is_rejected(self):
+        for size in (0, -1, True, 1.5):
+            with self.subTest(size=size), self.assertRaises(ValueError):
+                PythonAnalysisCache(max_entries=size)
+
     def test_cache_not_implicitly_global(self):
         src = {"a.py": "pass\n"}
         self.assertEqual(self.analyze(src).efficiency.parsed_files, 1)

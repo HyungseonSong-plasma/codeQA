@@ -44,6 +44,11 @@ print(second.summary_document())
 print(second.impact.to_document())
 ```
 
+The opt-in cache is bounded by `max_entries=512` file-version entries by
+default, using LRU eviction for both AST and extracted CCG facts. Callers
+may set another positive capacity or call `cache.clear()` to release memory.
+No cache is global; the lifecycle is owned by the caller.
+
 Without the optional cache, there is **no cross-request global state**.
 `efficiency.parsed_files` and `reused_parses` count Python parse work;
 `extracted_files` and `reused_extractions` count CCG local extraction work.
