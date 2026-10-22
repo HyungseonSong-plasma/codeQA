@@ -1,0 +1,5 @@
+{
+  "profile_id": "codeqa.mechanical.v0.1",
+  "max_function_lines": 80,
+  "max_call_sites": 12
+}

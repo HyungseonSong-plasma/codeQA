@@ -81,3 +81,25 @@ output = canonical_json(graph)
 ```
 
 No language adapter or semantic call resolution is implemented yet.
+
+## Python mechanical analysis pipeline
+
+`codeqa.pipeline.python.analyze_python` composes the syntax-only Python
+Adapter, CCG Core validation and conservative mechanical review signals.
+The `mechanical_profile` resource ID supplies explicit thresholds.
+See [Mechanical Pipeline](docs/mechanical-pipeline.md) and
+[Python Adapter](docs/python-adapter.md) for scope and limitations.
+
+```python
+from codeqa.pipeline.python import analyze_python
+from codeqa.infrastructure.resources import ResourceRegistry
+
+resources = ResourceRegistry(codeqa_repository_root)
+result = analyze_python(
+    {"example.py": "def hello():\n    return 1\n"},
+    snapshot_id="immutable-snapshot-id",
+    ccg_schema=resources.load_json("ccg_schema"),
+    mechanical_profile=resources.load_json("mechanical_profile"),
+)
+print(result.quality.status)  # PASS for the limited mechanical signals only
+```
