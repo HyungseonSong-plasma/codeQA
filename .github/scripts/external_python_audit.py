@@ -43,6 +43,7 @@ def _scope(path: str) -> str:
 def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
     graph, quality, dep = analysis.graph, analysis.quality, analysis.dependencies
     context = analysis.contextual_review
+    symbols = analysis.symbol_calls
     contextual_by_id = {item.node_id: item for item in context.reviews}
     findings = sorted(
         quality.findings,
@@ -134,6 +135,24 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
                 "No automatic suppression or downgrade of P3 review findings.",
             ],
         },
+        "symbol_declaration_evidence": {
+            "assurance": symbols.assurance,
+            "scanned_call_sites": symbols.scanned_call_sites,
+            "candidate_call_sites": len(symbols.candidates),
+            "distinct_source_target_function_pairs": len({
+                (item.source_node_id, item.target_node_id)
+                for item in symbols.candidates
+            }),
+            "skipped_by_reason": dict(symbols.excluded_by_reason),
+            "examples": [
+                item.to_document() for item in symbols.candidates[:40]
+            ],
+            "limitations": [
+                "Candidates are syntactic source declarations, never proven runtime call targets.",
+                "No speculative CCG edge resolution, coupling verdict or full symbol analysis.",
+                "No DSL runtime or scientific domain-contract semantics assumed.",
+            ],
+        },
         "dependencies": {
             "import_sites": len(dep.edges),
             "unique_pairs": len(pairs),
@@ -177,7 +196,8 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
         f"call_warnings={context.call_site_findings} "
         f"syntax_context={context.context_available} "
         f"attribute_dominant={dict(context.flags_by_kind).get('ATTRIBUTE_SYNTAX_DOMINANT', 0)} "
-        f"chained={dict(context.flags_by_kind).get('CHAINED_ATTRIBUTE_SYNTAX', 0)}",
+        f"chained={dict(context.flags_by_kind).get('CHAINED_ATTRIBUTE_SYNTAX', 0)} "
+        f"symbol_candidates={len(symbols.candidates)}",
         flush=True,
     )
     for f in findings[:8]:
@@ -196,6 +216,13 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
             f"distinct_syntax={item.distinct_callee_syntax} "
             f"unresolved={item.unresolved_call_sites} "
             f"flags={','.join(item.context_flags)}",
+            flush=True,
+        )
+    for item in symbols.candidates[:6]:
+        print(
+            f"  SYMBOL_CANDIDATE {name}: source={item.source_node_id} "
+            f"call={item.call_expression}@{item.call_line}:{item.call_column} "
+            f"target={item.target_node_id} assurance={item.assurance}",
             flush=True,
         )
     for item in top_impact[:8]:
@@ -280,6 +307,7 @@ def main() -> None:
             "No analyzed target source, test, MOOSE runtime or fixture was executed.",
             "Call contexts provide AST syntax shapes, not verified Polars/DSL/library identity.",
             "The unchanged Mechanical v0.1 call-volume rule remains a non-defect review heuristic.",
+            "Cross-file symbol candidates identify unambiguous source declarations but do not verify runtime dispatch.",
         ],
         "scopes": results,
     }

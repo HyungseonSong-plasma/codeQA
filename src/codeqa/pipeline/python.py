@@ -15,11 +15,13 @@ from codeqa.adapters.python import adapt_parsed_python
 from codeqa.adapters.python_dependencies import extract_parsed_dependencies
 from codeqa.adapters.python_evidence import build_python_evidence
 from codeqa.adapters.python_context import FunctionSyntaxContext, extract_function_context
+from codeqa.adapters.python_symbols import extract_symbol_call_candidates
 from codeqa.adapters.python_snapshot import (
     PythonAnalysisCache, parse_python_snapshot,
 )
 from codeqa.core import DependencyGraph, Graph
 from codeqa.core.evidence import EvidenceIndex
+from codeqa.core.symbols import SymbolCallReport
 from codeqa.evaluation.impact import ImpactReport, analyze_change_impact
 from codeqa.evaluation.contextual import ContextualReviewReport, evaluate_call_context
 from codeqa.evaluation.mechanical import (
@@ -51,6 +53,7 @@ class PythonAnalysis:
     evidence: EvidenceIndex
     function_context: tuple[FunctionSyntaxContext, ...]
     contextual_review: ContextualReviewReport
+    symbol_calls: SymbolCallReport
     efficiency: AnalysisEfficiency
     impact: ImpactReport | None = None
 
@@ -85,6 +88,12 @@ class PythonAnalysis:
                     r.evidence_id is None for r in self.evidence.relations
                 ),
             },
+            "symbol_calls": {
+                "assurance": self.symbol_calls.assurance,
+                "scanned_call_sites": self.symbol_calls.scanned_call_sites,
+                "cross_file_declaration_candidates": len(self.symbol_calls.candidates),
+                "excluded_by_reason": dict(self.symbol_calls.excluded_by_reason),
+            },
             "contextual_review": {
                 "call_site_findings": self.contextual_review.call_site_findings,
                 "context_available": self.contextual_review.context_available,
@@ -115,6 +124,7 @@ class PythonAnalysis:
             "evidence": self.evidence.to_document(),
             "function_context": [entry.to_document() for entry in self.function_context],
             "contextual_review": self.contextual_review.to_document(),
+            "symbol_calls": self.symbol_calls.to_document(),
             "efficiency": self.efficiency.to_document(),
             "impact": self.impact.to_document() if self.impact is not None else None,
         }
@@ -145,7 +155,10 @@ def analyze_python(
     )
     function_context = extract_function_context(parsed)
     quality = evaluate_mechanical(graph, profile)
-    contextual = evaluate_call_context(quality, function_context)
+    symbol_calls = extract_symbol_call_candidates(
+        parsed, evidence, snapshot_id=snapshot_id,
+    )
+    contextual = evaluate_call_context(quality, function_context, symbol_calls)
     impact = (
         analyze_change_impact(dependencies, changed_paths)
         if changed_paths is not None else None
@@ -155,6 +168,7 @@ def analyze_python(
         quality=quality,
         function_context=function_context,
         contextual_review=contextual,
+        symbol_calls=symbol_calls,
         dependencies=dependencies,
         evidence=evidence,
         efficiency=AnalysisEfficiency(

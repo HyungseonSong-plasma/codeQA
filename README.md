@@ -141,3 +141,11 @@ fluent semantics, runtime dependency or coupling score is inferred from source
 syntax. The pinned [moose-test-repo audit](.github/workflows/moose-test-audit.yml)
 compares the unchanged CCG/Mechanical baseline with the enriched report.
 See [contextual call review](docs/contextual-call-review.md).
+
+## Cross-module declaration evidence
+
+The Python analysis pipeline can now report conservative cross-module
+function **declaration candidates** reached by explicit unique imports,
+with source and target IDs. This is not proven runtime call resolution,
+does not modify CCG or v0.1 Mechanical findings, and never certifies
+low coupling. See [cross-module symbol evidence](docs/cross-module-symbol-evidence.md).
