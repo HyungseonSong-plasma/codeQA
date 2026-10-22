@@ -42,7 +42,6 @@ jobs:
           python3 .github/scripts/verify_self_audit_baseline.py \
             fixtures/analysis/self-audit-baseline.json \
             self-audit-pinned-baseline.json
-            self-audit-comparison.json
       - name: Compare before and after with one identical analyzer
         run: |
           python3 .github/scripts/compare_self_audit.py \
@@ -57,4 +56,5 @@ jobs:
           path: |
             self-audit-report.json
             self-audit-pinned-baseline.json
+            self-audit-comparison.json
           if-no-files-found: warn
