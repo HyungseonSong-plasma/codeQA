@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HyungseonSong-plasma/codeQA/contracts/semantic/responsibility-behavior-v0.1.schema.json",
+  "title": "Responsibility Behavior v0.1 syntax triage (non-scoring)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshot_id",
+    "policy_id",
+    "scanned_call_sites",
+    "observations",
+    "placements",
+    "excluded_by_reason",
+    "unassessed_dimensions",
+    "status"
+  ],
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scanned_call_sites": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "placements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/placement"
+      }
+    },
+    "excluded_by_reason": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer",
+            "minimum": 0
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "unassessed_dimensions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "runtime_execution",
+          "transitive_calls",
+          "dynamic_dispatch",
+          "complete_function_responsibility",
+          "scientific_domain_semantics"
+        ]
+      }
+    },
+    "status": {
+      "enum": [
+        "REVIEW_REQUIRED",
+        "NOT_EVALUATED"
+      ]
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node_id",
+        "path",
+        "line",
+        "column",
+        "expression",
+        "declared_module",
+        "declared_symbol",
+        "behavior_kind",
+        "evidence_id",
+        "assurance"
+      ],
+      "properties": {
+        "source_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declared_module": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declared_symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "behavior_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assurance": {
+          "const": "DECLARED_API_CALL_SYNTAX_ONLY"
+        }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node_id",
+        "path",
+        "directory_role",
+        "behavior_kind",
+        "status",
+        "evidence_id",
+        "reason"
+      ],
+      "properties": {
+        "source_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "directory_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "behavior_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "ROLE_CONFLICT_REVIEW",
+            "ROLE_COMPATIBLE_OBSERVATION"
+          ]
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

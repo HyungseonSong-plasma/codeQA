@@ -156,3 +156,9 @@ Optional, non-scoring projection of declared directory responsibilities,
 source-grounded import/CCG relationships, constraints and evidence; cannot
 infer actual runtime behavior or certifiable semantic alignment. See
 [Semantic Architecture Ontology](docs/semantic-architecture-ontology.md).
+
+## Responsibility & Behavior v0.1
+
+Optional imported-API syntax observations and evidence-backed role conflict
+**review**, with no runtime side-effect inference or automatic semantic PASS.
+See [Responsibility & Behavior](docs/responsibility-behavior.md).

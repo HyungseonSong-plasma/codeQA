@@ -22,6 +22,9 @@ def main() -> int:
     paths = reader.tracked_paths()
     policy_path = root / "profiles/semantic-directory-roles-v0.1.json"
     policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    behavior_policy = json.loads(
+        (root / "profiles/responsibility-behavior-v0.1.json").read_text(encoding="utf-8")
+    )
     sources = {
         path: reader.read_file(head, path).decode("utf-8")
         for path in paths if path.startswith("src/codeqa/") and path.endswith(".py")
@@ -32,11 +35,14 @@ def main() -> int:
         ccg_schema=registry.load_json("ccg_schema"),
         mechanical_profile=registry.load_json("mechanical_profile"),
         semantic_policy=policy,
+        behavior_policy=behavior_policy,
     )
     deps = analysis.dependencies
     parsed_unprocessed = analysis.graph.coverage.unprocessed
     assert analysis.semantic_architecture is not None
     ontology = analysis.semantic_architecture
+    assert analysis.responsibility_behavior is not None
+    behavior = analysis.responsibility_behavior
     report = evaluate_semantic_layout(
         paths, [(e.source_path, e.target_path) for e in deps.edges], policy,
     )
@@ -48,6 +54,8 @@ def main() -> int:
         "observed_import_sites": len(deps.edges),
         "unknown_imports": len(deps.unknown),
         "scope": policy["scope"],
+        "responsibility_behavior_summary": behavior.summary_document(),
+        "responsibility_behavior": behavior.to_document(),
         "semantic_architecture_summary": ontology.summary_document(),
         "semantic_architecture": ontology.to_document(),
         "limitations": [
@@ -78,6 +86,14 @@ def main() -> int:
         f"assessments={len(ontology.assessments)} "
         f"violations={sum(a.status == 'VIOLATION' for a in ontology.assessments)} "
         f"status={ontology.status}",
+        flush=True,
+    )
+    print(
+        f"RESPONSIBILITY_BEHAVIOR status={behavior.status} "
+        f"observations={len(behavior.observations)} "
+        f"role_conflicts={sum(p.status == 'ROLE_CONFLICT_REVIEW' for p in behavior.placements)} "
+        f"role_compatible_observations={sum(p.status == 'ROLE_COMPATIBLE_OBSERVATION' for p in behavior.placements)} "
+        f"scanned_calls={behavior.scanned_call_sites}",
         flush=True,
     )
     return 1 if (

@@ -1,0 +1,73 @@
+{
+  "policy_id": "codeqa.responsibility-behavior.v0.1",
+  "schema_version": "0.1",
+  "scope": "src/codeqa",
+  "catalog": [
+    {
+      "module": "ast",
+      "symbol": "parse",
+      "kind": "AST_SOURCE_INTERPRETATION_SYNTAX"
+    },
+    {
+      "module": "ast",
+      "symbol": "walk",
+      "kind": "AST_SOURCE_INTERPRETATION_SYNTAX"
+    },
+    {
+      "module": "subprocess",
+      "symbol": "run",
+      "kind": "PROCESS_INVOCATION_SYNTAX"
+    },
+    {
+      "module": "subprocess",
+      "symbol": "Popen",
+      "kind": "PROCESS_INVOCATION_SYNTAX"
+    },
+    {
+      "module": "subprocess",
+      "symbol": "check_output",
+      "kind": "PROCESS_INVOCATION_SYNTAX"
+    }
+  ],
+  "roles": {
+    "core": {
+      "forbidden": [
+        "AST_SOURCE_INTERPRETATION_SYNTAX",
+        "PROCESS_INVOCATION_SYNTAX"
+      ]
+    },
+    "adapters": {
+      "forbidden": [
+        "PROCESS_INVOCATION_SYNTAX"
+      ]
+    },
+    "evaluation": {
+      "forbidden": [
+        "AST_SOURCE_INTERPRETATION_SYNTAX",
+        "PROCESS_INVOCATION_SYNTAX"
+      ]
+    },
+    "pipeline": {
+      "forbidden": [
+        "AST_SOURCE_INTERPRETATION_SYNTAX",
+        "PROCESS_INVOCATION_SYNTAX"
+      ]
+    },
+    "governance": {
+      "forbidden": [
+        "AST_SOURCE_INTERPRETATION_SYNTAX"
+      ]
+    },
+    "infrastructure": {
+      "forbidden": [
+        "AST_SOURCE_INTERPRETATION_SYNTAX"
+      ]
+    }
+  },
+  "limitations": [
+    "Recognizes only explicitly cataloged API signatures from unique unshadowed top-level import syntax.",
+    "Observed calls are NOT proof of execution or runtime library identity.",
+    "Absence of observation is NOT evidence that a behavior does not occur.",
+    "Only direct calls inside Python function/method bodies; nested lambdas and dynamic dispatch are not covered."
+  ]
+}

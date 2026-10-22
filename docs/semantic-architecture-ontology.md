@@ -51,3 +51,11 @@ different. The resulting projection is RETROSPECTIVE and NOT proof that
 the old source met the architecture policy at its original date.
 Narrow subsystem constraints, subprocess behavior and approved operational
 exceptions remain solely with the native moose Architecture Guard.
+
+## Companion Behavior Layer (non-scoring)
+
+`Responsibility & Behavior v0.1` adds a separate limited API-call syntax
+report that links direct function Node IDs, exact evidence IDs and declared
+role exclusions. It does not change the Semantic Architecture v0.1 contract
+or certify its `behavior_vs_responsibility` unassessed dimension.
+See [Responsibility & Behavior](responsibility-behavior.md).
