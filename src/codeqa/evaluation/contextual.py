@@ -10,7 +10,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from codeqa.adapters.python_context import FunctionSyntaxContext
+from codeqa.core.function_context import FunctionSyntaxContext
 from codeqa.evaluation.mechanical import MechanicalReport
 from codeqa.core.symbols import SymbolCallReport
 

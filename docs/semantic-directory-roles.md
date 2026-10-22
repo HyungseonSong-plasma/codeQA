@@ -15,9 +15,12 @@ algorithmic responsibility, dynamic imports, reexports and runtime dependency
 injection cannot be proven from these inputs. Use the evidence index and
 human review for those claims.
 
-Current approved *review item* is `evaluation/contextual.py` importing
-`adapters/python_context.py`; it should be retired only after a
-language-neutral context contract is verified to preserve legacy findings.
-A new `evaluation → adapters` edge remains a violation.
+The previous `evaluation/contextual.py → adapters/python_context.py` edge
+was eliminated by moving the immutable `FunctionSyntaxContext` transport
+record to `core/function_context.py`. Both the Python Adapter and pure
+Evaluation now depend on Core. There are **no remaining transitional
+exceptions** in this policy; any new `evaluation → adapters` edge is a
+`VIOLATION`. Absence of observed forbidden imports is reported as
+`NOT_EVALUATED`, not proof that directory semantics are fully aligned.
 
 No CCG 0.1 schema, Mechanical rule or frozen top-level layout is changed.

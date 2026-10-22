@@ -102,3 +102,15 @@ The Python Adapter holds parsed ASTs and caller-owned file-local caches.
 Core now includes language-neutral evidence identifiers, while the Pipeline
 composes CCG, static dependencies, linked evidence, QA and optional impact
 without re-parsing or adding AST knowledge to Core.
+
+## Context ownership and retired evaluation → adapter exception
+
+`core/function_context.py` owns the immutable, language-neutral
+`FunctionSyntaxContext` transport record. `adapters/python_context.py`
+creates the record from Python AST facts and `evaluation/contextual.py`
+evaluates its primitive fields without importing the Python Adapter.
+`pipeline/python.py` composes the two. The former transitional
+`evaluation/contextual.py → adapters/python_context.py` exception has
+been removed from the role policy. This is an internal type relocation;
+the serialized function-context keys, CCG v0.1, Mechanical findings and
+review status are intentionally unchanged.

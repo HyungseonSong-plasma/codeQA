@@ -78,8 +78,20 @@ class SemanticRoleTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluate_semantic_layout([], [], bad)
 
-    def test_repository_exact_preexisting_exception_is_reviewed(self):
-        """Freeze only current observed exceptions, not the whole layout."""
+    def test_retired_exception_does_not_authorize_a_new_boundary_violation(self):
+        import copy
+        policy = copy.deepcopy(self.policy)
+        policy["exceptions"] = []
+        report = evaluate_semantic_layout(
+            self.paths,
+            [("src/qa/core/legacy.py", "src/qa/api/entry.py")],
+            policy,
+        )
+        self.assertEqual(report.status, "VIOLATION")
+        self.assertEqual([f.code for f in report.findings], ["FORBIDDEN_ROLE_DEPENDENCY"])
+
+    def test_repository_role_boundary_is_clean_after_migration(self):
+        """No exceptions or forbidden evaluation-to-adapter links remain."""
         import json
         policy = json.loads(
             (ROOT / "profiles/semantic-directory-roles-v0.1.json").read_text()
@@ -95,15 +107,12 @@ class SemanticRoleTests(unittest.TestCase):
         deps = extract_parsed_dependencies(parsed, snapshot_id="HEAD")
         pairs = [(e.source_path, e.target_path) for e in deps.edges]
         result = evaluate_semantic_layout(all_paths, pairs, policy)
-        unexpected = [f for f in result.findings
-                      if f.code != "DECLARED_TRANSITIONAL_EDGE"]
-        self.assertEqual(unexpected, [], unexpected)
-        self.assertEqual(
-            [(f.source, f.target) for f in result.findings],
-            [("src/codeqa/evaluation/contextual.py",
-              "src/codeqa/adapters/python_context.py")],
-        )
-        self.assertEqual(result.status, "REVIEW_REQUIRED")
+        self.assertEqual(policy["exceptions"], [])
+        self.assertEqual(result.findings, ())
+        # No forbidden role edge is observed. Overall semantics are still
+        # NOT_EVALUATED because import correspondence does not prove that
+        # the implementation honors its declared responsibility.
+        self.assertEqual(result.status, "NOT_EVALUATED")
 
 
 if __name__ == "__main__":

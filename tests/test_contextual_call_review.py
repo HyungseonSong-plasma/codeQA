@@ -26,6 +26,35 @@ class ContextualCallReviewTests(unittest.TestCase):
             mechanical_profile=self.profile,
         )
 
+    def test_context_record_is_core_owned_and_preserves_serialized_fields(self):
+        from dataclasses import fields
+        from codeqa.core.function_context import FunctionSyntaxContext
+        from codeqa.adapters.python_context import extract_function_context
+        from codeqa.adapters.python_snapshot import parse_python_snapshot
+        from codeqa.evaluation.contextual import evaluate_call_context
+        parsed = parse_python_snapshot({
+            "src/pkg/demo.py": "def f():\n    pl.col('x').sum().alias('y')\n"
+        })
+        observed = extract_function_context(parsed)
+        self.assertEqual(len(observed), 1)
+        self.assertIs(type(observed[0]), FunctionSyntaxContext)
+        self.assertEqual(
+            tuple(field.name for field in fields(FunctionSyntaxContext)),
+            ("node_id", "call_sites", "name_calls", "attribute_calls",
+             "chained_attribute_calls", "other_calls", "distinct_callee_syntax",
+             "frequent_callee_syntax", "declared_import_namespace_hints",
+             "branch_constructs", "loop_constructs", "try_constructs",
+             "raise_statements", "return_statements",
+             "call_expression_nesting_max", "interpretation"),
+        )
+        data = observed[0].to_document()
+        self.assertEqual(data["call_sites"], 3)
+        self.assertEqual(data["chained_attribute_calls"], 2)
+        self.assertEqual(data["interpretation"], "SYNTAX_ONLY")
+        import json
+        json.dumps(data)
+        self.assertTrue(callable(evaluate_call_context))
+
     def test_fluent_polars_shaped_expressions_keep_original_call_warning(self):
         body = "def compute():\n"
         body += "".join(
