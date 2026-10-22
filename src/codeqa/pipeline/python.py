@@ -14,13 +14,14 @@ from typing import Any, Mapping
 from codeqa.adapters.python import adapt_parsed_python
 from codeqa.adapters.python_dependencies import extract_parsed_dependencies
 from codeqa.adapters.python_evidence import build_python_evidence
-from codeqa.adapters.python_context import FunctionSyntaxContext, extract_function_context
+from codeqa.adapters.python_context import extract_function_context
 from codeqa.adapters.python_symbols import extract_symbol_call_candidates
 from codeqa.adapters.python_snapshot import (
     PythonAnalysisCache, parse_python_snapshot,
 )
 from codeqa.core import DependencyGraph, Graph
 from codeqa.core.evidence import EvidenceIndex
+from codeqa.core.function_context import FunctionSyntaxContext
 from codeqa.core.symbols import SymbolCallReport
 from codeqa.evaluation.impact import ImpactReport, analyze_change_impact
 from codeqa.evaluation.contextual import ContextualReviewReport, evaluate_call_context

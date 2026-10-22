@@ -78,3 +78,12 @@ unshadowed Import bindings into unique undecorated module-level functions
 qualify, with an exact source-witness ID. These candidates annotate existing
 call warnings but cannot remove them. See
 [cross-module symbol evidence](cross-module-symbol-evidence.md).
+
+## Language-neutral context boundary
+
+The `FunctionSyntaxContext` immutable record is now defined under
+`core/function_context.py`, instead of the Python Adapter. The Adapter
+still owns AST traversal and populates the same fields; the Evaluation
+layer reads the Core record and has no Python Adapter dependency.
+`to_document()` retains the existing field names and values, and this
+does not alter the non-scoring rule or verified target semantics.

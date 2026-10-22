@@ -56,12 +56,5 @@
       ]
     }
   },
-  "exceptions": [
-    {
-      "source": "src/codeqa/evaluation/contextual.py",
-      "target": "src/codeqa/adapters/python_context.py",
-      "status": "TRANSITIONAL_REVIEW",
-      "rationale": "Existing typed AST-derived contextual data; migrate to a language-neutral context record before retiring exception."
-    }
-  ]
+  "exceptions": []
 }
