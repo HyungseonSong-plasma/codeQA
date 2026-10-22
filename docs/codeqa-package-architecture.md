@@ -90,3 +90,10 @@ semantic validator delegates coverage, node, edge, location and diagnostic
 checks to pure functions while preserving issue code and ordering. The Python
 adapter delegates single-file parsing/extraction to `_extract_file`, with
 the outer adapter retaining cross-file accounting and final Core validation.
+
+A language-neutral companion dependency evidence model lives in
+`core/dependency.py`; Python-specific syntax correspondence is extracted by
+`adapters/python_dependencies.py` and pure reverse-import impact traversal
+lives in `evaluation/impact.py`. `pipeline/python.py` composes them.
+The CCG v0.1 exchange schema is unchanged; static import correspondence is
+not added to CCG's `resolved` edges without proven target identity.

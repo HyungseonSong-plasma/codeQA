@@ -117,3 +117,11 @@ snapshot** checks that CCG extraction and previous heuristic findings have
 not silently changed with analyzer-only refactoring. Call-site observations,
 resolved target identities, unresolved calls and unknown external dependencies
 are reported separately. See [self-audit](docs/self-audit.md).
+
+## Static dependency and change impact analysis
+
+`analyze_python` now includes a separate static dependency graph.
+`codeqa.evaluation.impact.analyze_change_impact` reports potential
+reverse-import direct/transitive impact paths, witnesses and unknowns.
+This is **observed potential static impact**, not proof of runtime coupling,
+a complete impact bound or safe exclusion of tests. See [Dependency and Impact v0.1](docs/dependency-impact.md).
