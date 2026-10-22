@@ -1,0 +1,67 @@
+{
+  "policy_id": "codeqa.semantic-directory-roles.v0.1",
+  "schema_version": 1,
+  "scope": "src/codeqa",
+  "roles": {
+    "core": {
+      "responsibility": "Language-neutral immutable models, data contracts and invariants",
+      "forbidden_imports": [
+        "adapters",
+        "evaluation",
+        "pipeline",
+        "governance",
+        "infrastructure"
+      ]
+    },
+    "adapters": {
+      "responsibility": "Language-specific Python parsing, syntax/lexical evidence and cross-module candidates",
+      "forbidden_imports": [
+        "evaluation",
+        "pipeline",
+        "governance",
+        "infrastructure"
+      ]
+    },
+    "evaluation": {
+      "responsibility": "Pure analysis of language-neutral facts, non-runtime decisions and impact candidates",
+      "forbidden_imports": [
+        "adapters",
+        "pipeline",
+        "governance",
+        "infrastructure"
+      ]
+    },
+    "pipeline": {
+      "responsibility": "Compose adapters, core and evaluators; no GitHub orchestration",
+      "forbidden_imports": [
+        "governance"
+      ]
+    },
+    "governance": {
+      "responsibility": "Frozen-policy and repository integrity validation",
+      "forbidden_imports": [
+        "adapters",
+        "evaluation",
+        "pipeline"
+      ]
+    },
+    "infrastructure": {
+      "responsibility": "Git and resource access without knowledge of domain or evaluators",
+      "forbidden_imports": [
+        "core",
+        "adapters",
+        "evaluation",
+        "pipeline",
+        "governance"
+      ]
+    }
+  },
+  "exceptions": [
+    {
+      "source": "src/codeqa/evaluation/contextual.py",
+      "target": "src/codeqa/adapters/python_context.py",
+      "status": "TRANSITIONAL_REVIEW",
+      "rationale": "Existing typed AST-derived contextual data; migrate to a language-neutral context record before retiring exception."
+    }
+  ]
+}
