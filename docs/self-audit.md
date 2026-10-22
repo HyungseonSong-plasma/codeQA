@@ -62,3 +62,9 @@ matching module import is present. Impact rankings describe **observed potential
 runtime impact bound: conditional imports may never execute, while dynamic
 imports and injected dependencies can be missed. Rankings are not quality
 scores or a safe basis for excluding tests.
+
+The self-audit shares an opt-in PythonAnalysisCache across its three source
+scopes, reporting parsed/reused AST and CCG extraction counts. These are work
+counters, not wall-clock benchmarks. Reports include a unified summary and
+shared-evidence coverage; the frozen-input historical graph/verdict baseline
+continues to be checked.

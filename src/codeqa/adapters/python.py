@@ -7,12 +7,14 @@ Coverage status describes parse coverage, not semantic completeness.
 from __future__ import annotations
 
 import ast
+from copy import deepcopy
 from collections.abc import Mapping
 from typing import Any
 
 from codeqa.core import Graph, parse_graph
 
 from .lexical import ModuleBindings
+from .python_snapshot import ParsedSnapshot, PythonAnalysisCache, parse_python_snapshot
 
 
 _PROVENANCE = {"producer": "python-ast", "method": "syntax"}
@@ -153,49 +155,45 @@ def _extract_file(path: str, source: str) -> _Extract:
     return result
 
 
-def adapt_python_sources(
-    sources: Mapping[str, str],
-    *,
-    snapshot_id: str,
-    schema: Mapping[str, Any],
+def adapt_parsed_python(
+    parsed: ParsedSnapshot, *, snapshot_id: str, schema: Mapping[str, Any],
+    cache: PythonAnalysisCache | None = None,
+    stats: dict[str, int] | None = None,
 ) -> Graph:
-    """Produce a Core-validated graph from a pinned mapping of source paths.
-
-    The caller owns immutable snapshot acquisition. Syntax errors and unsupported
-    extensions remain explicit unprocessed entries; they never become PASS.
-    """
-    if not isinstance(sources, Mapping) or not all(
-        isinstance(p, str) and isinstance(text, str) for p, text in sources.items()
-    ):
-        raise TypeError("sources must map relative paths to Python source strings")
+    """Extract CCG facts from already-parsed syntax; no second ast.parse."""
     if not isinstance(snapshot_id, str) or not snapshot_id:
         raise ValueError("snapshot_id must identify an immutable input snapshot")
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
-    diagnostics: list[dict[str, Any]] = []
-    analyzed: list[str] = []
-    unprocessed: list[dict[str, str]] = []
+    for item in parsed.files:
+        assert item.tree is not None
+        key = (item.path, item.digest)
+        if cache is not None and key in cache.graph_facts:
+            cached_nodes, cached_edges = cache.graph_facts[key]
+            cache.graph_facts.move_to_end(key)
+            if stats is not None:
+                stats["reused"] += 1
+        else:
+            result = _Extract(item.path, item.tree)
+            result.visit(item.tree)
+            cached_nodes = tuple(result.nodes)
+            cached_edges = tuple(result.edges)
+            if cache is not None:
+                cache.graph_facts[key] = (cached_nodes, cached_edges)
+                if len(cache.graph_facts) > cache.max_entries:
+                    cache.graph_facts.popitem(last=False)
+            if stats is not None:
+                stats["extracted"] += 1
+        # No references to mutable internal cache dictionaries leave the
+        # per-snapshot construction; public Graph objects are immutable.
+        nodes.extend(deepcopy(cached_nodes))
+        edges.extend(deepcopy(cached_edges))
 
-    for path in sorted(sources):
-        if not path.endswith(".py"):
-            unprocessed.append({"path": path, "reason": "unsupported_extension"})
-            continue
-        try:
-            result = _extract_file(path, sources[path])
-        except SyntaxError as exc:
-            unprocessed.append({"path": path, "reason": "syntax_error"})
-            diagnostics.append({
-                "severity": "error",
-                "code": "PYTHON_SYNTAX_ERROR",
-                "message": exc.msg,
-                "path": path,
-            })
-            continue
-        nodes.extend(result.nodes)
-        edges.extend(result.edges)
-        analyzed.append(path)
-
+    analyzed = list(parsed.analyzed_paths)
+    unprocessed = [
+        {"path": path, "reason": reason} for path, reason in parsed.unprocessed
+    ]
     coverage = {
         "status": "partial" if analyzed and unprocessed
                   else "complete" if analyzed and not unprocessed else "none",
@@ -203,10 +201,16 @@ def adapt_python_sources(
         "unprocessed": unprocessed,
     }
     return parse_graph({
-        "schema_version": "0.1",
-        "snapshot": {"id": snapshot_id},
-        "nodes": nodes,
-        "edges": edges,
-        "coverage": coverage,
-        "diagnostics": diagnostics,
+        "schema_version": "0.1", "snapshot": {"id": snapshot_id},
+        "nodes": nodes, "edges": edges, "coverage": coverage,
+        "diagnostics": list(parsed.diagnostics),
     }, schema)
+
+
+def adapt_python_sources(
+    sources: Mapping[str, str], *, snapshot_id: str, schema: Mapping[str, Any],
+) -> Graph:
+    """Backward-compatible standalone adapter, with exactly one parse per file."""
+    return adapt_parsed_python(
+        parse_python_snapshot(sources), snapshot_id=snapshot_id, schema=schema,
+    )

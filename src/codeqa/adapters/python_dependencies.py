@@ -10,6 +10,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 
 from codeqa.core.dependency import DependencyGraph, StaticDependency, UnknownDependency
+from .python_snapshot import ParsedSnapshot, parse_python_snapshot
 
 
 def _module_name(path: str) -> tuple[str, bool] | None:
@@ -35,19 +36,18 @@ def _relative_name(module: str, package: bool, level: int, name: str | None) -> 
 
 
 def _index_sources(
-    sources: Mapping[str, str], paths: tuple[str, ...],
+    parsed_snapshot: ParsedSnapshot,
 ) -> tuple[dict[str, tuple[ast.Module, str | None, bool]], dict[str, tuple[str, ...]]]:
-    """Parse previously covered Python files and index unambiguous module names."""
+    """Index previously parsed ASTs without parsing them again."""
     parsed: dict[str, tuple[ast.Module, str | None, bool]] = {}
     index: dict[str, set[str]] = defaultdict(set)
-    for path in sorted(paths):
-        if path not in sources or not path.endswith(".py"):
-            raise ValueError(f"unsupported or missing analyzed Python path: {path}")
-        module = _module_name(path)
+    for item in parsed_snapshot.files:
+        assert item.tree is not None
+        module = _module_name(item.path)
         name, package = module if module is not None else (None, False)
-        parsed[path] = (ast.parse(sources[path], filename=path), name, package)
+        parsed[item.path] = (item.tree, name, package)
         if name is not None:
-            index[name].add(path)
+            index[name].add(item.path)
     return parsed, {name: tuple(sorted(paths)) for name, paths in index.items()}
 
 
@@ -130,15 +130,11 @@ def _observe_module(
     return edges, unknown
 
 
-def extract_python_dependencies(
-    sources: Mapping[str, str],
-    *,
-    snapshot_id: str,
-    analyzed_paths: tuple[str, ...],
-    unprocessed_paths: tuple[str, ...] = (),
+def extract_parsed_dependencies(
+    parsed_snapshot: ParsedSnapshot, *, snapshot_id: str,
 ) -> DependencyGraph:
-    """Build a reproducible companion dependency graph over CCG-covered files."""
-    parsed, known = _index_sources(sources, analyzed_paths)
+    """Reuse the single parsed snapshot and rebuild cross-module bindings."""
+    parsed, known = _index_sources(parsed_snapshot)
     edges: list[StaticDependency] = []
     unknown: list[UnknownDependency] = []
     for path, (tree, module, package) in sorted(parsed.items()):
@@ -148,8 +144,8 @@ def extract_python_dependencies(
 
     return DependencyGraph(
         snapshot_id=snapshot_id,
-        analyzed_paths=tuple(sorted(analyzed_paths)),
-        unprocessed_paths=tuple(sorted(unprocessed_paths)),
+        analyzed_paths=parsed_snapshot.analyzed_paths,
+        unprocessed_paths=tuple(path for path, _ in parsed_snapshot.unprocessed),
         edges=tuple(sorted(set(edges), key=lambda edge: (
             edge.source_path, edge.target_path, edge.line,
             edge.expression, edge.execution,
@@ -157,4 +153,26 @@ def extract_python_dependencies(
         unknown=tuple(sorted(unknown, key=lambda item: (
             item.source_path, item.line, item.expression, item.reason,
         ))),
+    )
+
+
+def extract_python_dependencies(
+    sources: Mapping[str, str], *, snapshot_id: str,
+    analyzed_paths: tuple[str, ...],
+    unprocessed_paths: tuple[str, ...] = (),
+) -> DependencyGraph:
+    """Standalone adapter: no reparse within this call, explicit CCG coverage."""
+    if any(p not in sources or not p.endswith(".py") for p in analyzed_paths):
+        raise ValueError("unsupported or missing analyzed Python path")
+    subset = {path: sources[path] for path in analyzed_paths}
+    parsed = parse_python_snapshot(subset)
+    if parsed.unprocessed:
+        raise ValueError("analyzed path has invalid Python syntax")
+    result = extract_parsed_dependencies(parsed, snapshot_id=snapshot_id)
+    return DependencyGraph(
+        snapshot_id=result.snapshot_id,
+        analyzed_paths=result.analyzed_paths,
+        unprocessed_paths=tuple(sorted(unprocessed_paths)),
+        edges=result.edges,
+        unknown=result.unknown,
     )
