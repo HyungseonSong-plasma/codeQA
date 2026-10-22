@@ -40,12 +40,15 @@ class MechanicalPipelineTests(unittest.TestCase):
         self.assertEqual(result.quality.unresolved_edges, 0)
         self.assertFalse(result.quality.findings)
 
-    def test_realistic_unknown_calls_are_review_required(self) -> None:
+    def test_unknown_calls_are_analysis_limitations_not_quality_findings(self) -> None:
         source = (ROOT / "fixtures/python/example.py").read_text(encoding="utf-8")
         result = self.analyze({"example.py": source})
-        self.assertEqual(result.quality.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.quality.status, "PASS")
+        self.assertEqual(result.quality.analysis_status, "LIMITED")
+        self.assertIn("unresolved_relationships", result.quality.analysis_limitations)
         self.assertEqual(result.quality.coverage_status, "complete")
         self.assertEqual(result.quality.unresolved_edges, 6)
+        self.assertFalse(result.quality.findings)
 
     def test_big_function_is_review_not_proven_failure(self) -> None:
         profile = {**self.profile, "max_function_lines": 2}
@@ -65,13 +68,15 @@ class MechanicalPipelineTests(unittest.TestCase):
         self.assertEqual(finding.principle, "P3")
         self.assertEqual(finding.observed, 2)
 
-    def test_partial_parse_cannot_pass(self) -> None:
+    def test_partial_parse_reports_separate_scope_limitations(self) -> None:
         result = self.analyze({
             "good.py": "def ok():\n    pass\n",
             "bad.py": "def broken(:",
         })
         self.assertEqual(result.graph.coverage.status, "partial")
-        self.assertEqual(result.quality.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.quality.status, "PASS")
+        self.assertEqual(result.quality.analysis_status, "LIMITED")
+        self.assertIn("incomplete_source_coverage", result.quality.analysis_limitations)
 
     def test_no_analyzed_sources_are_not_evaluated(self) -> None:
         self.assertEqual(self.analyze({}).quality.status, "NOT_EVALUATED")
@@ -82,7 +87,7 @@ class MechanicalPipelineTests(unittest.TestCase):
 
     def test_no_functions_is_explicitly_not_evaluated(self) -> None:
         result = self.analyze({"empty.py": "answer = 42\n"})
-        self.assertEqual(result.quality.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.quality.status, "NOT_EVALUATED")
         self.assertIn("no_function_or_method", result.quality.not_evaluated)
 
     def test_missing_function_span_evidence_cannot_pass(self) -> None:
@@ -95,8 +100,32 @@ class MechanicalPipelineTests(unittest.TestCase):
         from codeqa.core import parse_graph
         without_span = parse_graph(doc, self.schema)
         report = evaluate_mechanical(without_span, MechanicalProfile.from_mapping(self.profile))
-        self.assertEqual(report.status, "REVIEW_REQUIRED")
+        self.assertEqual(report.status, "NOT_EVALUATED")
+        self.assertEqual(report.analysis_status, "LIMITED")
         self.assertIn("function_span_without_location", report.not_evaluated)
+
+    def test_known_local_calls_do_not_create_analysis_uncertainty(self) -> None:
+        result = self.analyze({
+            "local.py": "def helper():\n    return 1\n\ndef run():\n    return helper()\n"
+        })
+        self.assertEqual(result.quality.status, "PASS")
+        self.assertEqual(result.quality.analysis_status, "COMPLETE")
+        self.assertEqual(result.quality.unresolved_edges, 0)
+        self.assertEqual(result.quality.analysis_limitations, ())
+
+    def test_threshold_finding_is_independent_of_unresolved_edges(self) -> None:
+        result = self.analyze(
+            {"mixed.py": "def many():\n    a()\n    b()\n"},
+            {**self.profile, "max_call_sites": 1},
+        )
+        self.assertEqual(result.quality.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.quality.analysis_status, "LIMITED")
+        self.assertTrue(result.quality.findings)
+
+    def test_empty_snapshot_marks_evidence_as_none(self) -> None:
+        quality = self.analyze({}).quality
+        self.assertEqual(quality.status, "NOT_EVALUATED")
+        self.assertEqual(quality.analysis_status, "NONE")
 
     def test_profile_rejects_unknown_or_invalid_fields(self) -> None:
         for value in (

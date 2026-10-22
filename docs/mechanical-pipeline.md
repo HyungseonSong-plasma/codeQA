@@ -29,16 +29,22 @@ performs GitHub mutation. External Samuel/David orchestration remains external.
 - **Outgoing call sites**: count syntax-observed call sites in function/method
   scopes against `max_call_sites`. It is a review heuristic related to P3
   (low coupling), **not** proof of excessive coupling.
-- **Missing information**: unresolved graph edges, partial parsing and missing
-  function-span evidence prevent a confident mechanical PASS.
-- **Coverage none** yields `NOT_EVALUATED`; with parsed input but no
-  functions, `not_evaluated` identifies the missing applicable scope.
+- **Quality `status`**: `REVIEW_REQUIRED` is produced only when a measured
+  threshold is exceeded. `PASS` means that the two v0.1 heuristics were
+  measured on *the analyzed subset* without a threshold finding.
+  `NOT_EVALUATED` means that no function was available or required function
+  evidence was missing. The evaluator never emits speculative `FAIL`.
+- **Independent `analysis_status`**: `COMPLETE`, `LIMITED` or `NONE`.
+  `LIMITED` covers unresolved relationships, partial parsing and missing
+  function evidence, with exact reasons in `analysis_limitations`.
+  `coverage_status` and `unresolved_edges` remain separately available.
+- **Non-equivalence**: `status=PASS` together with
+  `analysis_status=LIMITED` is allowed and **must not** be interpreted as
+  whole-repository approval. Even `analysis_status=COMPLETE` means complete
+  *for the currently modeled information*, not complete Python semantics.
 
-`PASS` means *only these v0.1 signals had adequate evidence and raised no
-review requirement*. It **does not** mean P1–P8 compliance or overall code
-quality approval. `REVIEW_REQUIRED` identifies uncertainty or threshold
-signals without claiming a defect. `FAIL` is reserved for future provable
-rules; this evaluator never invents it.
+Threshold signals still do not prove SRP or coupling defects. Full P1–P8
+evaluation and a stable external Quality Report Contract remain unimplemented.
 
 Policy values live in `profiles/` and are loaded through the logical
 `mechanical_profile` ID. The report is currently an **internal Python

@@ -12,6 +12,8 @@ from typing import Any
 
 from codeqa.core import Graph, parse_graph
 
+from .lexical import ModuleBindings
+
 
 _PROVENANCE = {"producer": "python-ast", "method": "syntax"}
 
@@ -27,8 +29,11 @@ def _location(path: str, node: ast.AST) -> dict[str, Any]:
 class _Extract(ast.NodeVisitor):
     """Extract only syntax that can be established without type inference."""
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, tree: ast.Module) -> None:
         self.path = path
+        self.bindings = ModuleBindings(tree, path)
+        self.function_stack: list[ast.FunctionDef | ast.AsyncFunctionDef | None] = []
+        self.dynamic_scope_depth = 0
         self.nodes: list[dict[str, Any]] = [{
             "id": f"file::{path}",
             "kind": "file",
@@ -39,12 +44,13 @@ class _Extract(ast.NodeVisitor):
         self.scopes: list[tuple[str, str, str]] = [(f"file::{path}", "", "file")]
 
     def _edge(self, kind: str, node: ast.AST, *, source: str | None = None,
-              target: str | None = None, hint: str | None = None) -> None:
+              target: str | None = None, hint: str | None = None,
+              method: str = "syntax") -> None:
         edge: dict[str, Any] = {
             "source": source or self.scopes[-1][0],
             "kind": kind,
             "resolution": "resolved" if target is not None else "unresolved",
-            "provenance": _PROVENANCE.copy(),
+            "provenance": {"producer": "python-ast", "method": method},
             "location": _location(self.path, node),
         }
         if target is not None:
@@ -69,10 +75,12 @@ class _Extract(ast.NodeVisitor):
             for base in node.bases:
                 self._edge("inherits", base, source=identifier, hint=ast.unparse(base))
         self.scopes.append((identifier, qualified, kind))
+        self.function_stack.append(node if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) else None)
         # v0.1 deliberately excludes signature/decorator expression traversal:
         # those expressions execute in a different lexical context.
         for child in node.body:
             self.visit(child)
+        self.function_stack.pop()
         self.scopes.pop()
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
@@ -96,10 +104,45 @@ class _Extract(ast.NodeVisitor):
             hint = f"{base}.{alias.name}" if base else alias.name
             self._edge("imports", node, hint=hint)
 
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        # Lambda scope and arguments are not yet modeled as CCG nodes.
+        # Do not borrow an enclosing function's bindings for this body.
+        return
+
     def visit_Call(self, node: ast.Call) -> None:
-        # ast.unparse is observed source syntax, NOT a resolved callee.
-        self._edge("calls", node, hint=ast.unparse(node.func))
+        # Only a direct module-level function body is eligible for local
+        # lexical resolution; calls in methods/nested definitions remain hints.
+        target = None
+        if (
+            len(self.scopes) == 2
+            and self.scopes[-1][2] == "function"
+            and self.dynamic_scope_depth == 0
+            and self.function_stack[-1] is not None
+        ):
+            target = self.bindings.target(node.func, self.function_stack[-1])
+        if target is not None:
+            self._edge("calls", node, target=target, method="lexical_module_binding")
+        else:
+            self._edge("calls", node, hint=ast.unparse(node.func))
         self.generic_visit(node)
+
+    def _comprehension(self, node: ast.AST) -> None:
+        # Comprehension iteration targets may shadow module names.
+        self.dynamic_scope_depth += 1
+        self.generic_visit(node)
+        self.dynamic_scope_depth -= 1
+
+    def visit_ListComp(self, node: ast.ListComp) -> None:
+        self._comprehension(node)
+
+    def visit_SetComp(self, node: ast.SetComp) -> None:
+        self._comprehension(node)
+
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        self._comprehension(node)
+
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+        self._comprehension(node)
 
 
 def adapt_python_sources(
@@ -141,7 +184,7 @@ def adapt_python_sources(
                 "path": path,
             })
             continue
-        result = _Extract(path)
+        result = _Extract(path, syntax)
         result.visit(syntax)
         nodes.extend(result.nodes)
         edges.extend(result.edges)

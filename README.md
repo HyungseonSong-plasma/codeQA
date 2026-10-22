@@ -60,7 +60,8 @@ python3 -m unittest discover -s tests -v
 Git snapshot reads use `codeqa.infrastructure.git.GitReader`; pure
 policy comparisons no longer invoke Git processes directly.
 
-CCG v0.1 graph modeling, schema and semantic validation are implemented and tested; language adapters and quality evaluation are not yet implemented.
+CCG v0.1, the conservative Python AST adapter and Mechanical QA v0.1
+pipeline are implemented and tested. Full P1–P8 quality certification is not.
 
 ## CCG graph contract
 
@@ -80,7 +81,9 @@ graph = parse_graph(document, schema)
 output = canonical_json(graph)
 ```
 
-No language adapter or semantic call resolution is implemented yet.
+Python AST extraction is available, including conservative source-local
+lexical function linking; runtime dispatch and cross-file resolution remain
+unimplemented.
 
 ## Python mechanical analysis pipeline
 
@@ -101,5 +104,7 @@ result = analyze_python(
     ccg_schema=resources.load_json("ccg_schema"),
     mechanical_profile=resources.load_json("mechanical_profile"),
 )
-print(result.quality.status)  # PASS for the limited mechanical signals only
+print(result.quality.status)           # Rule-level mechanical outcome only
+print(result.quality.analysis_status)  # Independent evidence limitations
+print(result.quality.analysis_limitations)
 ```

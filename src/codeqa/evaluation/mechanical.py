@@ -1,8 +1,9 @@
 """Conservative mechanical quality signals over an already validated CCG.
 
 No claim of full P1–P8 compliance: function length and outgoing call sites are
-review heuristics, not proven SRP/coupling violations. Unresolved facts remain
-explicit and prevent a confident mechanical PASS.
+review heuristics, not proven SRP/coupling violations. Quality findings
+and evidence limitations are reported separately; PASS applies only to the
+measured signals on available source facts.
 """
 from __future__ import annotations
 
@@ -47,6 +48,8 @@ class MechanicalFinding:
 @dataclass(frozen=True, slots=True)
 class MechanicalReport:
     status: str
+    analysis_status: str
+    analysis_limitations: tuple[str, ...]
     coverage_status: str
     profile_id: str
     function_count: int
@@ -98,20 +101,32 @@ def evaluate_mechanical(graph: Graph, profile: MechanicalProfile) -> MechanicalR
         missing_evidence.add("no_function_or_method")
 
     unresolved = sum(edge.resolution == "unresolved" for edge in graph.edges)
-    if graph.coverage.status == "none":
-        status = "NOT_EVALUATED"
-    elif (
-        graph.coverage.status != "complete"
-        or unresolved
-        or findings
-        or missing_evidence
-    ):
-        status = "REVIEW_REQUIRED"
-    else:
-        status = "PASS"  # Only the measured v0.1 signals, NOT overall code quality.
+    limitations: set[str] = set()
+    if graph.coverage.status != "complete":
+        limitations.add("incomplete_source_coverage")
+    if unresolved:
+        limitations.add("unresolved_relationships")
+    if missing_evidence:
+        limitations.add("incomplete_rule_evidence")
 
+    # A review signal is justified only by a measured threshold, not by an
+    # unresolved call/import. PASS covers measured rules on analyzed inputs;
+    # incomplete source/relationship analysis is surfaced independently.
+    if findings:
+        status = "REVIEW_REQUIRED"
+    elif graph.coverage.status == "none" or missing_evidence:
+        status = "NOT_EVALUATED"
+    else:
+        status = "PASS"
+
+    analysis_status = (
+        "NONE" if graph.coverage.status == "none"
+        else "LIMITED" if limitations else "COMPLETE"
+    )
     return MechanicalReport(
         status=status,
+        analysis_status=analysis_status,
+        analysis_limitations=tuple(sorted(limitations)),
         coverage_status=graph.coverage.status,
         profile_id=profile.profile_id,
         function_count=len(functions),
