@@ -27,6 +27,7 @@ class ContextualCallReview:
     distinct_resolved_targets: int
     unresolved_call_sites: int
     frequent_callee_syntax: tuple[tuple[str, int], ...]
+    declared_import_namespace_hints: tuple[tuple[str, str, int], ...]
     branch_constructs: int
     loop_constructs: int
     try_constructs: int
@@ -76,6 +77,8 @@ def evaluate_call_context(
             flags.append("CHAINED_ATTRIBUTE_SYNTAX")
         if ctx.call_sites >= 2 * max(1, ctx.distinct_callee_syntax):
             flags.append("REPEATED_CALLEE_SYNTAX")
+        if ctx.declared_import_namespace_hints:
+            flags.append("DECLARED_IMPORT_NAMESPACE_SYNTAX")
         if metric.unresolved_call_sites:
             flags.append("RUNTIME_TARGETS_UNVERIFIED")
         if ctx.branch_constructs or ctx.loop_constructs or ctx.try_constructs:
@@ -91,6 +94,7 @@ def evaluate_call_context(
             distinct_resolved_targets=metric.distinct_resolved_targets,
             unresolved_call_sites=metric.unresolved_call_sites,
             frequent_callee_syntax=ctx.frequent_callee_syntax,
+            declared_import_namespace_hints=ctx.declared_import_namespace_hints,
             branch_constructs=ctx.branch_constructs,
             loop_constructs=ctx.loop_constructs,
             try_constructs=ctx.try_constructs,

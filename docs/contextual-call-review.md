@@ -19,6 +19,10 @@ Per function, the same parsed Python AST now supplies `function_context`:
   verified Polars/fluent API or known runtime target.
 - `other_calls`, `distinct_callee_syntax`, and the eight most frequently
   observed callee expressions.
+- unique top-level declared import-namespace hints (e.g. `import polars as pl`
+  links the `pl` syntax root to the declared module name `polars`). Any
+  source-level assignment or argument shadowing suppresses the claim.
+  This proves a **declaration**, not loaded package identity or runtime binding.
 - counts of syntactic branch/loop/try/raise/return constructs and maximum
   nested-call depth. None of these are a verified cognitive complexity score.
 
@@ -33,6 +37,9 @@ callees. `CHAINED_ATTRIBUTE_SYNTAX` indicates >=3 chained calls.
 `REPEATED_CALLEE_SYNTAX` indicates call count at least twice the number
 of distinct syntactic callees. `RUNTIME_TARGETS_UNVERIFIED` and
 `CONTROL_FLOW_PRESENT` disclose separate uncertainty and control evidence.
+`DECLARED_IMPORT_NAMESPACE_SYNTAX` reports a unique unshadowed import
+declaration behind an observed call expression. It still cannot establish
+the runtime target or guarantee that an imported package actually loaded.
 
 ## Exact same-source before/after interpretation
 

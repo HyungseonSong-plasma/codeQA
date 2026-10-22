@@ -53,6 +53,23 @@ class ContextualCallReviewTests(unittest.TestCase):
         self.assertEqual(report.contextual_review.interpretation, "NON_SCORING_CONTEXT_ONLY")
         self.assertIsNone(report.quality.call_metrics[0].external_dependencies)
 
+    def test_declared_namespace_evidence_is_not_runtime_identity(self):
+        source = "import polars as pl\n\ndef compute():\n"
+        source += "".join('    value = pl.col("x").sum().alias("x")\n' for _ in range(7))
+        result = self.analyze(source)
+        item = result.contextual_review.reviews[0]
+        self.assertEqual(item.declared_import_namespace_hints, (("pl", "polars", 21),))
+        self.assertIn("DECLARED_IMPORT_NAMESPACE_SYNTAX", item.context_flags)
+        self.assertEqual(item.interpretation, "SYNTACTIC_TRIAGE_NOT_COUPLING_VERDICT")
+        self.assertEqual(result.quality.status, "REVIEW_REQUIRED")
+
+    def test_namespace_rebinding_prevents_unjustified_alias_claim(self):
+        source = "import polars as pl\npl = object()\n\ndef compute():\n"
+        source += "".join('    value = pl.col("x").sum().alias("x")\n' for _ in range(7))
+        item = self.analyze(source).contextual_review.reviews[0]
+        self.assertEqual(item.declared_import_namespace_hints, ())
+        self.assertNotIn("DECLARED_IMPORT_NAMESPACE_SYNTAX", item.context_flags)
+
     def test_direct_calls_with_branching_have_distinct_shape(self):
         source = "def helper(): pass\n"
         source += "def compute():\n    if True:\n"

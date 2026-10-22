@@ -24,6 +24,7 @@ class FunctionSyntaxContext:
     other_calls: int
     distinct_callee_syntax: int
     frequent_callee_syntax: tuple[tuple[str, int], ...]
+    declared_import_namespace_hints: tuple[tuple[str, str, int], ...]
     branch_constructs: int
     loop_constructs: int
     try_constructs: int
@@ -36,9 +37,39 @@ class FunctionSyntaxContext:
         return asdict(self)
 
 
+def _unique_import_aliases(tree: ast.Module) -> dict[str, str]:
+    """Top-level import declarations, conservatively excluding rebindings."""
+    candidates: dict[str, list[str]] = {}
+    for stmt in tree.body:
+        if not isinstance(stmt, ast.Import):
+            continue
+        for alias in stmt.names:
+            binding = alias.asname or alias.name.split(".")[0]
+            source = alias.name if alias.asname else alias.name.split(".")[0]
+            candidates.setdefault(binding, []).append(source)
+    shadowed = {
+        node.id for node in ast.walk(tree)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del))
+    }
+    shadowed.update(
+        node.arg for node in ast.walk(tree) if isinstance(node, ast.arg)
+    )
+    return {
+        name: modules[0] for name, modules in candidates.items()
+        if len(modules) == 1 and name not in shadowed
+    }
+
+
+def _root_name(expr: ast.expr) -> str | None:
+    while isinstance(expr, (ast.Attribute, ast.Call)):
+        expr = expr.value if isinstance(expr, ast.Attribute) else expr.func
+    return expr.id if isinstance(expr, ast.Name) else None
+
+
 class _ContextVisitor(ast.NodeVisitor):
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, aliases: dict[str, str]) -> None:
         self.path = path
+        self.aliases = aliases
         self.scopes: list[str] = []
         self.data: dict[str, dict[str, Any]] = {}
         self.active: list[str] = []
@@ -61,7 +92,7 @@ class _ContextVisitor(ast.NodeVisitor):
             self.call_depth = old_depth
         else:
             self.data[identifier] = {
-                "forms": Counter(), "hints": Counter(),
+                "forms": Counter(), "hints": Counter(), "aliases": Counter(),
                 "branches": 0, "loops": 0, "tries": 0,
                 "raises": 0, "returns": 0, "depth": 0,
             }
@@ -96,6 +127,9 @@ class _ContextVisitor(ast.NodeVisitor):
             shape = "other"
         data["forms"][shape] += 1
         data["hints"][ast.unparse(node.func)] += 1
+        root = _root_name(node.func)
+        if root is not None and root in self.aliases:
+            data["aliases"][(root, self.aliases[root])] += 1
         self.call_depth += 1
         data["depth"] = max(data["depth"], self.call_depth)
         self.generic_visit(node)
@@ -135,6 +169,14 @@ class _ContextVisitor(ast.NodeVisitor):
                 frequent_callee_syntax=tuple(sorted(
                     hints.items(), key=lambda item: (-item[1], item[0])
                 )[:8]),
+                declared_import_namespace_hints=tuple(
+                    (binding, module, count)
+                    for (binding, module), count in sorted(
+                        data["aliases"].items(), key=lambda entry: (
+                            -entry[1], entry[0][0], entry[0][1]
+                        ),
+                    )[:8]
+                ),
                 branch_constructs=data["branches"],
                 loop_constructs=data["loops"],
                 try_constructs=data["tries"],
@@ -149,7 +191,7 @@ def extract_function_context(parsed: ParsedSnapshot) -> tuple[FunctionSyntaxCont
     result: list[FunctionSyntaxContext] = []
     for item in parsed.files:
         assert item.tree is not None
-        visitor = _ContextVisitor(item.path)
+        visitor = _ContextVisitor(item.path, _unique_import_aliases(item.tree))
         visitor.visit(item.tree)
         result.extend(visitor.finish())
     return tuple(sorted(result, key=lambda observation: observation.node_id))
