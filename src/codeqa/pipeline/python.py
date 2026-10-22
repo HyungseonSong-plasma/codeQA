@@ -14,6 +14,7 @@ from typing import Any, Mapping
 from codeqa.adapters.python import adapt_parsed_python
 from codeqa.adapters.python_dependencies import extract_parsed_dependencies
 from codeqa.adapters.python_evidence import build_python_evidence
+from codeqa.adapters.python_behavior import extract_python_behavior_observations
 from codeqa.adapters.python_context import extract_function_context
 from codeqa.adapters.python_symbols import extract_symbol_call_candidates
 from codeqa.adapters.python_snapshot import (
@@ -21,10 +22,14 @@ from codeqa.adapters.python_snapshot import (
 )
 from codeqa.core import DependencyGraph, Graph
 from codeqa.core.evidence import EvidenceIndex
+from codeqa.core.behavior import ResponsibilityBehaviorReport
 from codeqa.core.function_context import FunctionSyntaxContext
 from codeqa.core.symbols import SymbolCallReport
 from codeqa.core.semantic_architecture import SemanticArchitecture
 from codeqa.evaluation.semantic_architecture import evaluate_semantic_architecture
+from codeqa.evaluation.responsibility_behavior import (
+    validate_behavior_policy, evaluate_responsibility_behavior,
+)
 from codeqa.evaluation.impact import ImpactReport, analyze_change_impact
 from codeqa.evaluation.contextual import ContextualReviewReport, evaluate_call_context
 from codeqa.evaluation.mechanical import (
@@ -60,6 +65,7 @@ class PythonAnalysis:
     efficiency: AnalysisEfficiency
     impact: ImpactReport | None = None
     semantic_architecture: SemanticArchitecture | None = None
+    responsibility_behavior: ResponsibilityBehaviorReport | None = None
 
     def summary_document(self) -> dict[str, Any]:
         """Common short summary; full details are separate named views."""
@@ -105,6 +111,11 @@ class PythonAnalysis:
                 "flags_by_kind": dict(self.contextual_review.flags_by_kind),
                 "meaning": "NON_SCORING_AST_OBSERVATIONS",
             },
+            "responsibility_behavior": (
+                self.responsibility_behavior.summary_document()
+                if self.responsibility_behavior is not None
+                else {"status": "NOT_REQUESTED"}
+            ),
             "semantic_architecture": (
                 self.semantic_architecture.summary_document()
                 if self.semantic_architecture is not None
@@ -134,6 +145,10 @@ class PythonAnalysis:
             "function_context": [entry.to_document() for entry in self.function_context],
             "contextual_review": self.contextual_review.to_document(),
             "symbol_calls": self.symbol_calls.to_document(),
+            "responsibility_behavior": (
+                self.responsibility_behavior.to_document()
+                if self.responsibility_behavior is not None else None
+            ),
             "semantic_architecture": (
                 self.semantic_architecture.to_document()
                 if self.semantic_architecture is not None else None
@@ -152,6 +167,7 @@ def analyze_python(
     cache: PythonAnalysisCache | None = None,
     changed_paths: Iterable[str] | None = None,
     semantic_policy: Mapping[str, Any] | None = None,
+    behavior_policy: Mapping[str, Any] | None = None,
 ) -> PythonAnalysis:
     """Produce QA views from ONE source parse, optionally reusing file-local work."""
     profile = MechanicalProfile.from_mapping(mechanical_profile)
@@ -173,6 +189,19 @@ def analyze_python(
         parsed, evidence, snapshot_id=snapshot_id,
     )
     contextual = evaluate_call_context(quality, function_context, symbol_calls)
+    responsibility_behavior = None
+    if behavior_policy is not None:
+        if semantic_policy is None:
+            raise ValueError("behavior analysis requires a declared role policy")
+        catalog = validate_behavior_policy(behavior_policy, semantic_policy)
+        observations, scanned, excluded = extract_python_behavior_observations(
+            parsed, evidence, catalog,
+        )
+        responsibility_behavior = evaluate_responsibility_behavior(
+            observations, snapshot_id=snapshot_id,
+            scanned_call_sites=scanned, excluded_by_reason=excluded,
+            role_policy=semantic_policy, behavior_policy=behavior_policy,
+        )
     semantic_architecture = (
         evaluate_semantic_architecture(graph, dependencies, evidence, semantic_policy)
         if semantic_policy is not None else None
@@ -197,4 +226,5 @@ def analyze_python(
         ),
         impact=impact,
         semantic_architecture=semantic_architecture,
+        responsibility_behavior=responsibility_behavior,
     )
