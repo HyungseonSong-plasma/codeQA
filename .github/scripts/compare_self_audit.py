@@ -172,7 +172,16 @@ def _source_structure(reader: GitReader, analysis: dict) -> dict:
         for source, target in imports
         if source.split(".")[1] != target.split(".")[1]
     ])
+    branch_points_by_module = {
+        path: sum(
+            score - 1
+            for key, score in functions.items()
+            if key.startswith(path + "::")
+        )
+        for path in sorted(trees)
+    }
     return {
+        "branch_points_by_module": branch_points_by_module,
         "branch_proxy": functions,
         "import_module_pairs": len(imports),
         "cross_package_import_pairs": len(cross_package),
@@ -211,6 +220,8 @@ def compare(before: dict, after: dict, reader: GitReader) -> dict:
                 v > analysis["profile"]["max_call_sites"] for v in sites
             ),
             "syntax_branch_proxy": structural["branch_distribution"],
+            "total_ast_branch_points": sum(structural["branch_points_by_module"].values()),
+            "branch_points_by_module": structural["branch_points_by_module"],
             "unique_import_module_pairs": structural["import_module_pairs"],
             "cross_package_import_pairs": structural["cross_package_import_pairs"],
             "cross_package_imports": structural["cross_package_imports"],
@@ -289,8 +300,17 @@ def main() -> None:
             f"max_calls={s['call_sites_per_function']['max']} "
             f"p90_calls={s['call_sites_per_function']['p90']} "
             f"max_branch_proxy={s['syntax_branch_proxy']['max']} "
+            f"total_branch_points={s['total_ast_branch_points']} "
             f"cross_package_import_pairs={s['cross_package_import_pairs']}"
         )
+    for path in (
+        "src/codeqa/core/validation.py",
+        "src/codeqa/evaluation/mechanical.py",
+        "src/codeqa/adapters/python.py",
+    ):
+        bpoints = result["before"]["branch_points_by_module"].get(path)
+        apoints = result["after"]["branch_points_by_module"].get(path)
+        print(f"MODULE_BRANCH {path}: {bpoints}->{apoints}")
     for name, record in result["focus"].items():
         print(
             f"FOCUS {name}: calls={record['before_calls']}->{record['after_calls']} "
