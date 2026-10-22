@@ -8,6 +8,9 @@ on:
       - 'src/codeqa/adapters/python_context.py'
       - 'src/codeqa/evaluation/contextual.py'
       - 'src/codeqa/pipeline/python.py'
+      - 'src/codeqa/adapters/python_symbols.py'
+      - 'src/codeqa/core/symbols.py'
+      - 'src/codeqa/evaluation/contextual.py'
   push:
     branches: [main]
     paths:

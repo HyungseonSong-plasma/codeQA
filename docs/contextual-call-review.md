@@ -69,3 +69,12 @@ context must be `unknown`/`NOT_EVALUATED` rather than guessed. Extend
 source evidence facts, version the report contract before public consumers,
 and require ground truth with positive and adversarial examples for each
 future semantic layer.
+
+## Static declaration candidates (companion, not proven dispatch)
+
+Source-grounded cross-module function candidates are now tracked separately
+from CCG resolved calls and library/DSL identification. Only explicit
+unshadowed Import bindings into unique undecorated module-level functions
+qualify, with an exact source-witness ID. These candidates annotate existing
+call warnings but cannot remove them. See
+[cross-module symbol evidence](cross-module-symbol-evidence.md).

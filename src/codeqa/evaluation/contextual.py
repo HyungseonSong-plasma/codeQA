@@ -12,6 +12,7 @@ from typing import Any
 
 from codeqa.adapters.python_context import FunctionSyntaxContext
 from codeqa.evaluation.mechanical import MechanicalReport
+from codeqa.core.symbols import SymbolCallReport
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +35,7 @@ class ContextualCallReview:
     raise_statements: int
     return_statements: int
     context_flags: tuple[str, ...]
+    cross_file_declaration_candidates: int = 0
     interpretation: str = "SYNTACTIC_TRIAGE_NOT_COUPLING_VERDICT"
 
     def to_document(self) -> dict[str, Any]:
@@ -56,10 +58,14 @@ class ContextualReviewReport:
 def evaluate_call_context(
     mechanical: MechanicalReport,
     contexts: tuple[FunctionSyntaxContext, ...],
+    symbol_calls: SymbolCallReport | None = None,
 ) -> ContextualReviewReport:
     """Overlay AST context onto unmodified call-site findings."""
     available = {item.node_id: item for item in contexts}
     metrics = {item.node_id: item for item in mechanical.call_metrics}
+    cross_file = Counter(
+        item.source_node_id for item in symbol_calls.candidates
+    ) if symbol_calls is not None else Counter()
     warnings = [
         item for item in mechanical.findings
         if item.rule_id == "outgoing_call_sites_review"
@@ -101,6 +107,7 @@ def evaluate_call_context(
             raise_statements=ctx.raise_statements,
             return_statements=ctx.return_statements,
             context_flags=tuple(flags),
+            cross_file_declaration_candidates=cross_file[warning.node_id],
         ))
     flags = Counter(flag for item in reviews for flag in item.context_flags)
     return ContextualReviewReport(
