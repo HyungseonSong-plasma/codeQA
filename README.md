@@ -132,3 +132,12 @@ The Python pipeline now parses each source once per analysis, supports opt-in
 content-addressed reuse, shares cross-report evidence references and provides
 a unified summary. Impact traversal is optional and only reports potential
 static Import paths. See [Efficient Evidence Pipeline](docs/efficient-evidence-pipeline.md).
+
+## Contextual Call Review
+
+Raw call-site warnings now have a non-scoring AST context overlay (call shape,
+repeated callee syntax, control flow, unresolved targets). No library identity,
+fluent semantics, runtime dependency or coupling score is inferred from source
+syntax. The pinned [moose-test-repo audit](.github/workflows/moose-test-audit.yml)
+compares the unchanged CCG/Mechanical baseline with the enriched report.
+See [contextual call review](docs/contextual-call-review.md).

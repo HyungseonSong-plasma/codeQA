@@ -42,6 +42,8 @@ def _scope(path: str) -> str:
 
 def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
     graph, quality, dep = analysis.graph, analysis.quality, analysis.dependencies
+    context = analysis.contextual_review
+    contextual_by_id = {item.node_id: item for item in context.reviews}
     findings = sorted(
         quality.findings,
         key=lambda f: (-(f.observed - f.threshold), f.node_id, f.rule_id),
@@ -106,6 +108,32 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
             "findings_by_rule": dict(sorted(Counter(f.rule_id for f in findings).items())),
             "top_findings": [asdict(f) for f in findings[:25]],
         },
+        "contextual_review": {
+            "rule": "outgoing_call_sites_review",
+            "scoring_effect": "NONE",
+            "call_site_findings": context.call_site_findings,
+            "context_available": context.context_available,
+            "context_unavailable": context.context_unavailable,
+            "flags_by_kind": dict(context.flags_by_kind),
+            "examples_by_call_volume": [
+                item.to_document() for item in sorted(
+                    context.reviews, key=lambda item: (-item.call_sites, item.node_id)
+                )[:30]
+            ],
+            "examples_by_chained_calls": [
+                item.to_document() for item in sorted(
+                    context.reviews, key=lambda item: (
+                        -item.chained_attribute_calls, -item.call_sites, item.node_id
+                    )
+                )[:15]
+            ],
+            "limitations": [
+                "AST attribute/chained calls cannot establish runtime callee identity.",
+                "Chained syntax does not prove Polars, a fluent DSL, or low coupling.",
+                "Repeated syntax is not equivalent to repeated runtime dependencies.",
+                "No automatic suppression or downgrade of P3 review findings.",
+            ],
+        },
         "dependencies": {
             "import_sites": len(dep.edges),
             "unique_pairs": len(pairs),
@@ -145,13 +173,29 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
         f"findings={len(findings)} status={quality.status} "
         f"analysis={quality.analysis_status} "
         f"imports={len(dep.edges)} unique_pairs={len(pairs)} "
-        f"unknown_imports={len(dep.unknown)}",
+        f"unknown_imports={len(dep.unknown)} "
+        f"call_warnings={context.call_site_findings} "
+        f"syntax_context={context.context_available} "
+        f"attribute_dominant={dict(context.flags_by_kind).get('ATTRIBUTE_SYNTAX_DOMINANT', 0)} "
+        f"chained={dict(context.flags_by_kind).get('CHAINED_ATTRIBUTE_SYNTAX', 0)}",
         flush=True,
     )
     for f in findings[:8]:
         print(
             f"  REVIEW {name}: {f.rule_id} node={f.node_id} "
             f"observed={f.observed} threshold={f.threshold}",
+            flush=True,
+        )
+    for item in sorted(
+        context.reviews, key=lambda r: (-r.chained_attribute_calls, -r.call_sites)
+    )[:6]:
+        print(
+            f"  CALL_CONTEXT {name}: node={item.node_id} "
+            f"calls={item.call_sites} names={item.name_calls} "
+            f"attributes={item.attribute_calls} chained={item.chained_attribute_calls} "
+            f"distinct_syntax={item.distinct_callee_syntax} "
+            f"unresolved={item.unresolved_call_sites} "
+            f"flags={','.join(item.context_flags)}",
             flush=True,
         )
     for item in top_impact[:8]:
@@ -234,10 +278,49 @@ def main() -> None:
             "Impact paths are STATIC_POTENTIAL_ONLY, not safe test-exclusion evidence.",
             "Archive and experiments do not imply active product execution.",
             "No analyzed target source, test, MOOSE runtime or fixture was executed.",
+            "Call contexts provide AST syntax shapes, not verified Polars/DSL/library identity.",
+            "The unchanged Mechanical v0.1 call-volume rule remains a non-defect review heuristic.",
         ],
         "scopes": results,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    baseline = {
+        "source_sha": "1977ad5559e5aa7a1c8d04c83735c15e007130d5",
+        "scopes": {
+            "product": [124, 616, 944, 7384, 6052, 148],
+            "tests": [51, 277, 328, 2353, 1891, 25],
+            "experiments": [257, 1703, 2039, 25243, 20537, 632],
+            "archive": [5, 64, 71, 1013, 721, 20],
+            "support": [50, 353, 405, 5005, 3777, 116],
+            "all_python": [487, 3013, 3787, 40998, 32978, 941],
+        },
+    }
+    if args.source_sha != baseline["source_sha"]:
+        raise ValueError("baseline source SHA mismatch")
+    for name, expected in baseline["scopes"].items():
+        entry = results[name]
+        actual = [
+            entry["source_files"], entry["quality"]["functions"],
+            entry["ccg_nodes"], entry["ccg_edges"],
+            entry["quality"]["unresolved_edges"], entry["quality"]["finding_count"],
+        ]
+        if actual != expected:
+            raise RuntimeError(
+                f"legacy mechanical/CCG baseline changed in {name}: "
+                f"expected={expected} actual={actual}"
+            )
+    report["legacy_comparison"] = {
+        "baseline_analyzer_sha": "18af590467bd489d78b0af1ea946e2e9c197bcab",
+        "source_sha": baseline["source_sha"],
+        "baseline_invariants": list(baseline["scopes"]),
+        "legacy_graph_and_heuristic_counts": "UNCHANGED",
+        "new_context_is_non_scoring": True,
+    }
+    print(
+        "EXTERNAL_CONTEXT_COMPARISON PASS: same source SHA; "
+        "all six scopes preserve legacy counts and verdict evidence",
+        flush=True,
+    )
     args.output.write_text(
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",

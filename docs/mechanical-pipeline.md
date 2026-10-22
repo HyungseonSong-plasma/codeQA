@@ -67,3 +67,12 @@ Each function or method now has `call_metrics` in the internal report:
 The added evidence is diagnostic only. It neither changes the threshold rule
 nor creates a new P3 coupling verdict. Existing `status` and
 `analysis_status` have identical meanings to the prior release.
+
+## Context-aware triage (without changing Mechanical v0.1)
+
+A separate `contextual_review` correlates the existing outgoing call-site
+findings with AST call shape (direct names, attributes, chained attributes),
+repeated syntax, control structures, and unresolved local call targets. The
+context does not modify the original finding count, threshold or status.
+Attribute/chained expressions are not proof of a DSL or Polars identity.
+See [contextual-call-review](contextual-call-review.md).
