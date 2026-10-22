@@ -11,9 +11,12 @@ src/
     │   ├── graph.py
     │   └── validation.py
     ├── adapters/
+    │   └── python.py
     ├── evaluation/
-    │   └── layout.py
+    │   ├── layout.py
+    │   └── mechanical.py
     ├── pipeline/
+    │   └── python.py
     ├── governance/
     │   └── frozen_policy.py
     └── infrastructure/
@@ -46,8 +49,10 @@ and the preexisting frozen-policy guard now lives in `governance/`.
 Imports in unit tests and the mandatory CI `layout` step use the new module names.
 This is a pre-public-API internal refactor; compatibility aliases are not added.
 
-`core/` now implements the CCG v0.1 model, schema validation and graph-wide
-integrity checks. `adapters/` and `pipeline/` remain implementation stubs.
+`core/` implements CCG v0.1 validation; `adapters/python.py` extracts
+conservative syntax facts; `evaluation/mechanical.py` measures only explicit
+review heuristics; `pipeline/python.py` composes them without filesystem,
+GitHub or external OS orchestration.
 
 The frozen top-level repository structure and its JSON layout policy stay unchanged.
 
@@ -68,3 +73,7 @@ A proper setuptools `src` package is now defined in `pyproject.toml`. Run
 
 The Core receives JSON Schema from its caller (e.g. through the outer Resource
 Registry); it never imports infrastructure or holds physical contract paths.
+
+Thresholds belong to the `mechanical_profile` logical resource in
+`profiles/`. Quality verdicts are currently internal report objects, not
+yet a stable, external Quality Contract.

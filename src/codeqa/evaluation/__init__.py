@@ -1,1 +1,1 @@
-"""Reusable, repository-neutral quality evaluators."""
+"""Repository-neutral evaluation and limited evidence-based mechanical QA."""
