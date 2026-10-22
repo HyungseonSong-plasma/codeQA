@@ -54,6 +54,12 @@ def analyze_checkout(root: Path, sha: str) -> dict:
             "ccg_edges": len(graph.edges),
             "node_kinds": dict(sorted(Counter(n.kind for n in graph.nodes).items())),
             "edge_kinds": dict(sorted(Counter(e.kind for e in graph.edges).items())),
+            "resolved_by_kind": dict(sorted(Counter(
+                e.kind for e in graph.edges if e.resolution == "resolved"
+            ).items())),
+            "unresolved_by_kind": dict(sorted(Counter(
+                e.kind for e in graph.edges if e.resolution == "unresolved"
+            ).items())),
             "coverage": graph.coverage.status,
             "diagnostics": [asdict(d) for d in graph.diagnostics],
             "quality": report.to_document(),
@@ -63,7 +69,9 @@ def analyze_checkout(root: Path, sha: str) -> dict:
             f"edges={len(graph.edges)} functions={report.function_count} "
             f"unresolved={report.unresolved_edges} "
             f"findings={len(report.findings)} coverage={graph.coverage.status} "
-            f"status={report.status}", flush=True,
+            f"status={report.status} analysis={report.analysis_status} "
+            f"limitations={','.join(report.analysis_limitations) or 'none'}",
+            flush=True,
         )
         for finding in report.findings:
             print(

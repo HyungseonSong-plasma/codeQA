@@ -11,7 +11,8 @@ src/
     │   ├── graph.py
     │   └── validation.py
     ├── adapters/
-    │   └── python.py
+    │   ├── python.py
+    │   └── lexical.py
     ├── evaluation/
     │   ├── layout.py
     │   └── mechanical.py
@@ -77,3 +78,8 @@ Registry); it never imports infrastructure or holds physical contract paths.
 Thresholds belong to the `mechanical_profile` logical resource in
 `profiles/`. Quality verdicts are currently internal report objects, not
 yet a stable, external Quality Contract.
+
+Local Python lexical linking is adapter-owned and never introduces
+language-specific AST objects into Core. The Mechanical Report separates
+observed heuristic `status` from `analysis_status` and explicit limitations;
+unresolved edges cannot by themselves trigger `REVIEW_REQUIRED`.
