@@ -5,6 +5,9 @@ on:
     paths:
       - '.github/scripts/external_python_audit.py'
       - '.github/workflows/moose-test-audit.yml'
+      - 'src/codeqa/adapters/python_context.py'
+      - 'src/codeqa/evaluation/contextual.py'
+      - 'src/codeqa/pipeline/python.py'
   push:
     branches: [main]
     paths:

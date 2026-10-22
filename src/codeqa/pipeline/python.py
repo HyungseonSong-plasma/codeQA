@@ -14,12 +14,14 @@ from typing import Any, Mapping
 from codeqa.adapters.python import adapt_parsed_python
 from codeqa.adapters.python_dependencies import extract_parsed_dependencies
 from codeqa.adapters.python_evidence import build_python_evidence
+from codeqa.adapters.python_context import FunctionSyntaxContext, extract_function_context
 from codeqa.adapters.python_snapshot import (
     PythonAnalysisCache, parse_python_snapshot,
 )
 from codeqa.core import DependencyGraph, Graph
 from codeqa.core.evidence import EvidenceIndex
 from codeqa.evaluation.impact import ImpactReport, analyze_change_impact
+from codeqa.evaluation.contextual import ContextualReviewReport, evaluate_call_context
 from codeqa.evaluation.mechanical import (
     MechanicalProfile, MechanicalReport, evaluate_mechanical,
 )
@@ -47,6 +49,8 @@ class PythonAnalysis:
     quality: MechanicalReport
     dependencies: DependencyGraph
     evidence: EvidenceIndex
+    function_context: tuple[FunctionSyntaxContext, ...]
+    contextual_review: ContextualReviewReport
     efficiency: AnalysisEfficiency
     impact: ImpactReport | None = None
 
@@ -81,6 +85,13 @@ class PythonAnalysis:
                     r.evidence_id is None for r in self.evidence.relations
                 ),
             },
+            "contextual_review": {
+                "call_site_findings": self.contextual_review.call_site_findings,
+                "context_available": self.contextual_review.context_available,
+                "context_unavailable": self.contextual_review.context_unavailable,
+                "flags_by_kind": dict(self.contextual_review.flags_by_kind),
+                "meaning": "NON_SCORING_AST_OBSERVATIONS",
+            },
             "efficiency": self.efficiency.to_document(),
             "impact": (
                 {
@@ -102,6 +113,8 @@ class PythonAnalysis:
             "quality": self.quality.to_document(),
             "dependencies": self.dependencies.to_document(),
             "evidence": self.evidence.to_document(),
+            "function_context": [entry.to_document() for entry in self.function_context],
+            "contextual_review": self.contextual_review.to_document(),
             "efficiency": self.efficiency.to_document(),
             "impact": self.impact.to_document() if self.impact is not None else None,
         }
@@ -130,13 +143,18 @@ def analyze_python(
     evidence = build_python_evidence(
         parsed, graph=graph, dependencies=dependencies,
     )
+    function_context = extract_function_context(parsed)
+    quality = evaluate_mechanical(graph, profile)
+    contextual = evaluate_call_context(quality, function_context)
     impact = (
         analyze_change_impact(dependencies, changed_paths)
         if changed_paths is not None else None
     )
     return PythonAnalysis(
         graph=graph,
-        quality=evaluate_mechanical(graph, profile),
+        quality=quality,
+        function_context=function_context,
+        contextual_review=contextual,
         dependencies=dependencies,
         evidence=evidence,
         efficiency=AnalysisEfficiency(
