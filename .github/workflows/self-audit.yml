@@ -42,6 +42,12 @@ jobs:
           python3 .github/scripts/verify_self_audit_baseline.py \
             fixtures/analysis/self-audit-baseline.json \
             self-audit-pinned-baseline.json
+      - name: Compare before and after with one identical analyzer
+        run: |
+          python3 .github/scripts/compare_self_audit.py \
+            --before self-audit-pinned-baseline.json \
+            --after self-audit-report.json \
+            --output self-audit-comparison.json
       - name: Store structured report
         if: always()
         uses: actions/upload-artifact@v4
@@ -50,4 +56,5 @@ jobs:
           path: |
             self-audit-report.json
             self-audit-pinned-baseline.json
+            self-audit-comparison.json
           if-no-files-found: warn
