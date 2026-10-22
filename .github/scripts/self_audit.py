@@ -60,6 +60,12 @@ def analyze_checkout(root: Path, sha: str) -> dict:
             "unresolved_by_kind": dict(sorted(Counter(
                 e.kind for e in graph.edges if e.resolution == "unresolved"
             ).items())),
+            "resolved_local_calls": sum(
+                e.kind == "calls"
+                and e.resolution == "resolved"
+                and e.provenance.method == "lexical_module_binding"
+                for e in graph.edges
+            ),
             "coverage": graph.coverage.status,
             "diagnostics": [asdict(d) for d in graph.diagnostics],
             "quality": report.to_document(),
@@ -71,6 +77,12 @@ def analyze_checkout(root: Path, sha: str) -> dict:
             f"findings={len(report.findings)} coverage={graph.coverage.status} "
             f"status={report.status} analysis={report.analysis_status} "
             f"limitations={','.join(report.analysis_limitations) or 'none'}",
+            flush=True,
+        )
+        print(
+            f"  RESOLUTION {name}: lexical_calls={results[name]['resolved_local_calls']} "
+            f"resolved_by_kind={results[name]['resolved_by_kind']} "
+            f"unresolved_by_kind={results[name]['unresolved_by_kind']}",
             flush=True,
         )
         for finding in report.findings:
