@@ -130,6 +130,21 @@ class PythonLocalResolutionTests(unittest.TestCase):
         )
         self.assertEqual(calls[0].resolution, "unresolved")
 
+    def test_wildcard_import_prevents_speculative_resolution(self) -> None:
+        _, calls = self.calls(
+            "from unknown_package import *\n"
+            "def helper(): pass\n"
+            "def caller(): helper()\n"
+        )
+        self.assertEqual(calls[0].resolution, "unresolved")
+
+    def test_async_top_level_definition_can_be_lexically_linked(self) -> None:
+        _, calls = self.calls(
+            "async def helper(): pass\n"
+            "async def caller(): await helper()\n"
+        )
+        self.assertEqual(calls[0].resolution, "resolved")
+
     def test_module_level_call_is_not_resolved_by_future_declaration(self) -> None:
         _, calls = self.calls("helper()\ndef helper(): pass\n")
         self.assertEqual(calls[0].resolution, "unresolved")
