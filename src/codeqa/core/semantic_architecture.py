@@ -17,7 +17,7 @@ ENTITY_KINDS = frozenset({
 RELATION_KINDS = frozenset({
     "owns_responsibility", "contains", "belongs_to_role", "defines",
     "calls", "imports", "prohibited_dependency", "observed_in",
-    "observed_target", "supported_by",
+    "observed_target", "supported_by", "constrains_source", "constrains_target",
 })
 ASSURANCES = frozenset({
     "POLICY_DECLARATION", "PATH_OBSERVATION", "CCG_OBSERVATION",
