@@ -23,6 +23,8 @@ from codeqa.core import DependencyGraph, Graph
 from codeqa.core.evidence import EvidenceIndex
 from codeqa.core.function_context import FunctionSyntaxContext
 from codeqa.core.symbols import SymbolCallReport
+from codeqa.core.semantic_architecture import SemanticArchitecture
+from codeqa.evaluation.semantic_architecture import evaluate_semantic_architecture
 from codeqa.evaluation.impact import ImpactReport, analyze_change_impact
 from codeqa.evaluation.contextual import ContextualReviewReport, evaluate_call_context
 from codeqa.evaluation.mechanical import (
@@ -57,6 +59,7 @@ class PythonAnalysis:
     symbol_calls: SymbolCallReport
     efficiency: AnalysisEfficiency
     impact: ImpactReport | None = None
+    semantic_architecture: SemanticArchitecture | None = None
 
     def summary_document(self) -> dict[str, Any]:
         """Common short summary; full details are separate named views."""
@@ -102,6 +105,11 @@ class PythonAnalysis:
                 "flags_by_kind": dict(self.contextual_review.flags_by_kind),
                 "meaning": "NON_SCORING_AST_OBSERVATIONS",
             },
+            "semantic_architecture": (
+                self.semantic_architecture.summary_document()
+                if self.semantic_architecture is not None
+                else {"status": "NOT_REQUESTED"}
+            ),
             "efficiency": self.efficiency.to_document(),
             "impact": (
                 {
@@ -126,6 +134,10 @@ class PythonAnalysis:
             "function_context": [entry.to_document() for entry in self.function_context],
             "contextual_review": self.contextual_review.to_document(),
             "symbol_calls": self.symbol_calls.to_document(),
+            "semantic_architecture": (
+                self.semantic_architecture.to_document()
+                if self.semantic_architecture is not None else None
+            ),
             "efficiency": self.efficiency.to_document(),
             "impact": self.impact.to_document() if self.impact is not None else None,
         }
@@ -139,6 +151,7 @@ def analyze_python(
     mechanical_profile: Mapping[str, Any],
     cache: PythonAnalysisCache | None = None,
     changed_paths: Iterable[str] | None = None,
+    semantic_policy: Mapping[str, Any] | None = None,
 ) -> PythonAnalysis:
     """Produce QA views from ONE source parse, optionally reusing file-local work."""
     profile = MechanicalProfile.from_mapping(mechanical_profile)
@@ -160,6 +173,10 @@ def analyze_python(
         parsed, evidence, snapshot_id=snapshot_id,
     )
     contextual = evaluate_call_context(quality, function_context, symbol_calls)
+    semantic_architecture = (
+        evaluate_semantic_architecture(graph, dependencies, evidence, semantic_policy)
+        if semantic_policy is not None else None
+    )
     impact = (
         analyze_change_impact(dependencies, changed_paths)
         if changed_paths is not None else None
@@ -179,4 +196,5 @@ def analyze_python(
             reused_extractions=stats["reused"],
         ),
         impact=impact,
+        semantic_architecture=semantic_architecture,
     )

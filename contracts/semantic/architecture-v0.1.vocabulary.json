@@ -1,0 +1,83 @@
+{
+  "schema_version": "0.1",
+  "title": "Semantic Architecture Ontology v0.1 (not RDF/OWL or domain inference)",
+  "entity_kinds": [
+    "DirectoryRole",
+    "Responsibility",
+    "SourceFile",
+    "CodeEntity",
+    "DependencyObservation",
+    "Evidence",
+    "Constraint"
+  ],
+  "relation_kinds": {
+    "owns_responsibility": [
+      "DirectoryRole",
+      "Responsibility"
+    ],
+    "contains": [
+      "DirectoryRole",
+      "SourceFile"
+    ],
+    "belongs_to_role": [
+      "CodeEntity",
+      "DirectoryRole"
+    ],
+    "defines": [
+      "CodeEntity",
+      "CodeEntity"
+    ],
+    "calls": [
+      "CodeEntity",
+      "CodeEntity"
+    ],
+    "imports": [
+      "SourceFile",
+      "SourceFile"
+    ],
+    "prohibited_dependency": [
+      "DirectoryRole",
+      "DirectoryRole"
+    ],
+    "observed_in": [
+      "DependencyObservation",
+      "SourceFile"
+    ],
+    "observed_target": [
+      "DependencyObservation",
+      "SourceFile"
+    ],
+    "supported_by": [
+      "DependencyObservation",
+      "Evidence"
+    ],
+    "constrains_source": [
+      "Constraint",
+      "DirectoryRole"
+    ],
+    "constrains_target": [
+      "Constraint",
+      "DirectoryRole"
+    ]
+  },
+  "assurances": [
+    "POLICY_DECLARATION",
+    "PATH_OBSERVATION",
+    "CCG_OBSERVATION",
+    "CCG_RESOLVED_LOCAL",
+    "STATIC_MODULE_PATH",
+    "SOURCE_WITNESS"
+  ],
+  "states": [
+    "VIOLATION",
+    "REVIEW_REQUIRED",
+    "NOT_EVALUATED"
+  ],
+  "unassessed_dimensions": [
+    "behavior_vs_responsibility",
+    "runtime_dependency_semantics",
+    "library_and_dsl_semantics",
+    "scientific_domain_contract",
+    "test_relevance"
+  ]
+}

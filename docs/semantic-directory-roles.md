@@ -24,3 +24,11 @@ exceptions** in this policy; any new `evaluation → adapters` edge is a
 `NOT_EVALUATED`, not proof that directory semantics are fully aligned.
 
 No CCG 0.1 schema, Mechanical rule or frozen top-level layout is changed.
+
+## Ontology v0.1 companion
+
+The language-neutral ontology enriches this exact role-policy evaluation
+with source-backed relationships and explicit normative versus observed
+assurance labels. The existing forbidden role checks stay authoritative;
+semantic alignment remains NOT_EVALUATED without verified behavior facts.
+See [Semantic Architecture Ontology](semantic-architecture-ontology.md).

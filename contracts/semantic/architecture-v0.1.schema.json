@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HyungseonSong-plasma/codeQA/contracts/semantic/architecture-v0.1.schema.json",
+  "title": "Semantic Architecture Ontology v0.1 evidence-based report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "policy_id",
+    "entities",
+    "relations",
+    "assessments",
+    "unassessed_dimensions",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entity"
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      }
+    },
+    "assessments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assessment"
+      }
+    },
+    "unassessed_dimensions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "behavior_vs_responsibility",
+          "runtime_dependency_semantics",
+          "library_and_dsl_semantics",
+          "scientific_domain_contract",
+          "test_relevance"
+        ]
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "VIOLATION",
+        "REVIEW_REQUIRED",
+        "NOT_EVALUATED"
+      ]
+    }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "DirectoryRole",
+            "Responsibility",
+            "SourceFile",
+            "CodeEntity",
+            "DependencyObservation",
+            "Evidence",
+            "Constraint"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "kind",
+        "target",
+        "assurance",
+        "evidence_id"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "owns_responsibility",
+            "contains",
+            "belongs_to_role",
+            "defines",
+            "calls",
+            "imports",
+            "prohibited_dependency",
+            "observed_in",
+            "observed_target",
+            "supported_by",
+            "constrains_source",
+            "constrains_target"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assurance": {
+          "enum": [
+            "POLICY_DECLARATION",
+            "PATH_OBSERVATION",
+            "CCG_OBSERVATION",
+            "CCG_RESOLVED_LOCAL",
+            "STATIC_MODULE_PATH",
+            "SOURCE_WITNESS"
+          ]
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "code",
+        "source",
+        "target",
+        "reason",
+        "evidence_id"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "VIOLATION",
+            "REVIEW_REQUIRED",
+            "NOT_EVALUATED"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

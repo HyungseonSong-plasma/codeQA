@@ -44,6 +44,7 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
     graph, quality, dep = analysis.graph, analysis.quality, analysis.dependencies
     context = analysis.contextual_review
     symbols = analysis.symbol_calls
+    semantic = analysis.semantic_architecture
     contextual_by_id = {item.node_id: item for item in context.reviews}
     findings = sorted(
         quality.findings,
@@ -87,6 +88,16 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
 
     data = {
         "scope": name,
+        "semantic_architecture": (
+            {
+                "summary": semantic.summary_document(),
+                "examples": [
+                    entry.__dict__ if hasattr(entry, "__dict__")
+                    else asdict(entry)
+                    for entry in semantic.assessments[:20]
+                ],
+            } if semantic is not None else {"status": "NOT_REQUESTED"}
+        ),
         "source_files": len(graph.coverage.analyzed_paths) + len(graph.coverage.unprocessed),
         "analyzed_paths_count": len(graph.coverage.analyzed_paths),
         "coverage": graph.coverage.status,
@@ -225,6 +236,16 @@ def _summarize(name: str, analysis, *, rank_impacts: bool = False) -> dict:
             f"target={item.target_node_id} assurance={item.assurance}",
             flush=True,
         )
+    if semantic is not None:
+        print(
+            f"  SEMANTIC_ARCHITECTURE {name}: "
+            f"status={semantic.status} entities={len(semantic.entities)} "
+            f"relations={len(semantic.relations)} "
+            f"assessments={len(semantic.assessments)} "
+            f"violations={sum(x.status == 'VIOLATION' for x in semantic.assessments)} "
+            f"retrospective=TRUE",
+            flush=True,
+        )
     for item in top_impact[:8]:
         print(
             f"  IMPACT {name}: source={item['changed_path']} "
@@ -267,6 +288,12 @@ def main() -> None:
         for name in ("product", "tests", "experiments", "archive", "support")
     }
     scoped_inputs["all_python"] = inputs
+    # This is a retrospective ROLE-WIDE subset of moose's later policy,
+    # not an assertion that narrower moose package-level rules were checked.
+    semantic_policy = json.loads(
+        (codeqa_root / "profiles/moose-test-directory-roles-subset-v0.1.json")
+        .read_text(encoding="utf-8")
+    )
     cache = PythonAnalysisCache(max_entries=1024)
     results = {}
     for name, sources in scoped_inputs.items():
@@ -277,6 +304,7 @@ def main() -> None:
             ccg_schema=schema,
             mechanical_profile=profile,
             cache=cache,
+            semantic_policy=semantic_policy if name in ("product", "all_python") else None,
         )
         results[name] = _summarize(
             name, analysis, rank_impacts=name in ("product", "all_python"),
@@ -287,6 +315,12 @@ def main() -> None:
         "analyzer_repo": "HyungseonSong-plasma/codeQA",
         "analyzer_sha": _head(codeqa_root),
         "profile": profile,
+        "retrospective_semantic_role_policy": {
+            "policy_id": semantic_policy["policy_id"],
+            "source_policy_commit": semantic_policy["source_policy_commit"],
+            "scope_note": semantic_policy["scope_note"],
+            "same_time_as_analyzed_source": False,
+        },
         "tracked_python_files": len(tracked),
         "readable_python_files": len(inputs),
         "decode_failed_paths": decoding_errors,
@@ -308,6 +342,8 @@ def main() -> None:
             "Call contexts provide AST syntax shapes, not verified Polars/DSL/library identity.",
             "The unchanged Mechanical v0.1 call-volume rule remains a non-defect review heuristic.",
             "Cross-file symbol candidates identify unambiguous source declarations but do not verify runtime dispatch.",
+            "Semantic role ontology is retrospective and covers only representable full-role constraints, not narrower moose guard rules.",
+            "No function behavior or scientific contract alignment inferred from directory or function names.",
         ],
         "scopes": results,
     }

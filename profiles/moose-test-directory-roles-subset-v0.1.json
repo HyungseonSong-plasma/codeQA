@@ -1,0 +1,79 @@
+{
+  "policy_id": "moose.semantic-directory-role-subset.v0.1",
+  "schema_version": 1,
+  "scope": "physics_harness",
+  "source_policy_commit": "2e14935e9bab03e684c4e01a35840d8e125802d9",
+  "source_policy_path": "docs/architecture/physics_directory_roles_v1.json",
+  "assessment_temporality": "RETROSPECTIVE_PINNED_SOURCE",
+  "scope_note": "Only role-wide forbidden imports representable without broadening moose's narrower subsystem rules. NOT a full translation of the physics guard.",
+  "roles": {
+    "specification": {
+      "responsibility": "User experiment schema and semantic compilation",
+      "forbidden_imports": []
+    },
+    "ontology": {
+      "responsibility": "Stable semantic state, identity and projections; no process execution or target lowering",
+      "forbidden_imports": []
+    },
+    "planning": {
+      "responsibility": "Solver-independent scientific policy synthesis",
+      "forbidden_imports": []
+    },
+    "execution": {
+      "responsibility": "Solver-independent plans and generic process mechanics",
+      "forbidden_imports": []
+    },
+    "adapters": {
+      "responsibility": "Solver-specific MOOSE/PETSc realization and decoding",
+      "forbidden_imports": []
+    },
+    "observation": {
+      "responsibility": "Source-faithful acquisition, extraction and normalization",
+      "forbidden_imports": []
+    },
+    "analysis": {
+      "responsibility": "Deterministic numerical derivation and aggregation",
+      "forbidden_imports": [
+        "cli",
+        "validation"
+      ]
+    },
+    "reasoning": {
+      "responsibility": "Backend-neutral diagnosis, with backend implementations in engines/",
+      "forbidden_imports": []
+    },
+    "validation": {
+      "responsibility": "Applicability and acceptance checks without acquisition or execution ownership",
+      "forbidden_imports": []
+    },
+    "provenance": {
+      "responsibility": "Source identity and lineage",
+      "forbidden_imports": []
+    },
+    "domains": {
+      "responsibility": "Scientific domain rules without target lowering or CLI",
+      "forbidden_imports": [
+        "cli"
+      ]
+    },
+    "application": {
+      "responsibility": "Thin orchestration of cross-domain capabilities",
+      "forbidden_imports": []
+    },
+    "cli": {
+      "responsibility": "Argument parsing, bounded routing, formatting and exit codes",
+      "forbidden_imports": []
+    },
+    "evidence": {
+      "responsibility": "Canonical evidence schemas, normalization, artifact tracking and storage",
+      "forbidden_imports": [
+        "analysis"
+      ]
+    },
+    "evaluation": {
+      "responsibility": "Normalized simulation statistical data records, without computing metrics",
+      "forbidden_imports": []
+    }
+  },
+  "exceptions": []
+}
