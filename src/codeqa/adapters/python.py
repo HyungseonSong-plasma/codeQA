@@ -145,6 +145,14 @@ class _Extract(ast.NodeVisitor):
         self._comprehension(node)
 
 
+def _extract_file(path: str, source: str) -> _Extract:
+    """Parse and extract one file; the caller owns cross-file coverage accounting."""
+    syntax = ast.parse(source, filename=path)
+    result = _Extract(path, syntax)
+    result.visit(syntax)
+    return result
+
+
 def adapt_python_sources(
     sources: Mapping[str, str],
     *,
@@ -174,7 +182,7 @@ def adapt_python_sources(
             unprocessed.append({"path": path, "reason": "unsupported_extension"})
             continue
         try:
-            syntax = ast.parse(sources[path], filename=path)
+            result = _extract_file(path, sources[path])
         except SyntaxError as exc:
             unprocessed.append({"path": path, "reason": "syntax_error"})
             diagnostics.append({
@@ -184,8 +192,6 @@ def adapt_python_sources(
                 "path": path,
             })
             continue
-        result = _Extract(path, syntax)
-        result.visit(syntax)
         nodes.extend(result.nodes)
         edges.extend(result.edges)
         analyzed.append(path)

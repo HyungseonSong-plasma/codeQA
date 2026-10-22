@@ -6,6 +6,7 @@ import argparse
 from collections import Counter
 from dataclasses import asdict
 import json
+import re
 from pathlib import Path
 import subprocess
 
@@ -17,7 +18,22 @@ from codeqa.pipeline.python import analyze_python
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def analyze_checkout(root: Path, sha: str) -> dict:
+def _paths_at_revision(root: Path, source_sha: str) -> list[str]:
+    """List Python blobs from a frozen source tree, not the analyzer checkout."""
+    if not re.fullmatch(r"[0-9a-f]{40}", source_sha):
+        raise ValueError("source revision must be a full lowercase commit SHA")
+    result = subprocess.run(
+        ["git", "ls-tree", "-r", "-z", "--name-only", source_sha],
+        cwd=root, check=True, capture_output=True,
+    )
+    return sorted(
+        item.decode("utf-8")
+        for item in result.stdout.split(b"\x00")
+        if item and item.endswith(b".py")
+    )
+
+
+def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dict:
     """Group product and test sources, retaining reproducible graph evidence."""
     actual_head = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=root, check=True,
@@ -33,8 +49,9 @@ def analyze_checkout(root: Path, sha: str) -> dict:
     registry = ResourceRegistry(root)
     schema = registry.load_json("ccg_schema")
     profile = registry.load_json("mechanical_profile")
-    paths = sorted(p for p in reader.tracked_paths() if p.endswith(".py"))
-    sources = {path: reader.read_file(sha, path).decode("utf-8") for path in paths}
+    source_sha = source_sha or sha
+    paths = _paths_at_revision(root, source_sha)
+    sources = {path: reader.read_file(source_sha, path).decode("utf-8") for path in paths}
     groups = {
         "production": {p: v for p, v in sources.items() if p.startswith("src/codeqa/")},
         "tests": {p: v for p, v in sources.items() if p.startswith("tests/")},
@@ -93,7 +110,8 @@ def analyze_checkout(root: Path, sha: str) -> dict:
             )
 
     return {
-        "snapshot_sha": sha,
+        "snapshot_sha": source_sha,
+        "analyzer_sha": sha,
         "profile": profile,
         "limitations": (
             "Mechanical QA v0.1 evaluates only two review heuristics. "
@@ -106,9 +124,10 @@ def analyze_checkout(root: Path, sha: str) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sha", required=True, help="Pinned full Git commit SHA")
+    parser.add_argument("--source-sha", help="Optional pinned input tree; defaults to --sha")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    data = analyze_checkout(ROOT, args.sha)
+    data = analyze_checkout(ROOT, args.sha, source_sha=args.source_sha)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

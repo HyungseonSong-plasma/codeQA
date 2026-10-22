@@ -34,3 +34,20 @@ python3 .github/scripts/self_audit.py \
   --sha "$(git rev-parse HEAD)" \
   --output self-audit-report.json
 ```
+
+## Refactor regression with fixed source SHA
+
+The workflow also analyzes the immutable pre-refactor source tree at
+`6a6676e70ed60f440cfc00a878f24ef6ee2b91a5` using the **currently
+checked-out analyzer code**. This is separate from analyzing current HEAD.
+`fixtures/analysis/self-audit-baseline.json` stores counts and verdict facts
+observed by the original analyzer on that exact source snapshot (from the
+historical main self-audit workflow). The regression checker requires
+identical file, node, edge, unresolved-reference, review-finding and
+lexical-link counts on that frozen input.
+
+This isolates an analyzer refactor from changes in the subject repository.
+It does not claim that fewer current-HEAD findings imply higher quality.
+New non-scoring `call_metrics` are intentionally omitted from the historical
+baseline because they did not exist in the earlier analyzer. Both current
+and frozen-source reports are uploaded as artifacts.

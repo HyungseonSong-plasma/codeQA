@@ -83,3 +83,10 @@ Local Python lexical linking is adapter-owned and never introduces
 language-specific AST objects into Core. The Mechanical Report separates
 observed heuristic `status` from `analysis_status` and explicit limitations;
 unresolved edges cannot by themselves trigger `REVIEW_REQUIRED`.
+
+Mechanical QA separates rule measurements (`_measure_rules`), evidence
+limitations (`_assess_evidence`), and limited verdict formation. The Core
+semantic validator delegates coverage, node, edge, location and diagnostic
+checks to pure functions while preserving issue code and ordering. The Python
+adapter delegates single-file parsing/extraction to `_extract_file`, with
+the outer adapter retaining cross-file accounting and final Core validation.

@@ -1,0 +1,43 @@
+{
+  "node_kinds": {
+    "file": 1,
+    "function": 2
+  },
+  "edge_kinds": {
+    "defines": 2,
+    "calls": 3
+  },
+  "source": "def::case.py::caller@4:0",
+  "resolved_target": "def::case.py::helper@1:0",
+  "call_resolutions": [
+    {
+      "resolution": "resolved",
+      "target": "def::case.py::helper@1:0",
+      "line": 5
+    },
+    {
+      "resolution": "resolved",
+      "target": "def::case.py::helper@1:0",
+      "line": 6
+    },
+    {
+      "resolution": "unresolved",
+      "target_hint": "external",
+      "line": 7
+    }
+  ],
+  "call_metrics": {
+    "call_sites": 3,
+    "distinct_resolved_targets": 1,
+    "unresolved_call_sites": 1,
+    "distinct_unresolved_hints": 1,
+    "external_dependencies": null
+  },
+  "verdict": {
+    "status": "PASS",
+    "analysis_status": "LIMITED",
+    "analysis_limitations": [
+      "unresolved_relationships"
+    ]
+  }
+}
