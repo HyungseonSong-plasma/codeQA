@@ -93,6 +93,11 @@ class ModuleBindings:
             if isinstance(item, ast.Global)
             for name in item.names
         }
+        star_import = any(
+            isinstance(item, ast.ImportFrom) and any(a.name == "*" for a in item.names)
+            for item in ast.walk(tree)
+        )
+        self._locals: dict[int, set[str]] = {}
         self.targets = {
             item.name: f"def::{path}::{item.name}@{item.lineno}:{item.col_offset}"
             for item in tree.body
@@ -100,6 +105,7 @@ class ModuleBindings:
             and not item.decorator_list
             and counts[item.name] == 1
             and item.name not in globals_declared
+            and not star_import
         }
 
     def target(
@@ -107,6 +113,9 @@ class ModuleBindings:
     ) -> str | None:
         if not isinstance(callee, ast.Name):
             return None
-        if callee.id in _local_bindings(caller):
+        key = id(caller)
+        if key not in self._locals:
+            self._locals[key] = _local_bindings(caller)
+        if callee.id in self._locals[key]:
             return None
         return self.targets.get(callee.id)
