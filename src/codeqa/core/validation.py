@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Callable
 import json
 from typing import Any, Mapping
 
@@ -40,15 +41,8 @@ def _safe_path(path: str) -> bool:
     )
 
 
-def validate_semantics(graph: Graph) -> tuple[GraphIssue, ...]:
-    """Check graph-wide invariants not expressible by the v0.1 JSON Schema.
-
-    Assumes input has passed the supplied JSON Schema through parse_graph.
-    """
-    issues: list[GraphIssue] = []
-    def add(code: str, path: str, message: str) -> None:
-        issues.append(GraphIssue(code, path, message))
-
+def _validate_coverage(graph: Graph, add: Callable[[str, str, str], None]) -> set[str]:
+    """Check path accounting before testing facts against the covered files."""
     analyzed = set(graph.coverage.analyzed_paths)
     unprocessed = graph.coverage.unprocessed
     for index, path in enumerate(graph.coverage.analyzed_paths):
@@ -75,42 +69,76 @@ def validate_semantics(graph: Graph) -> tuple[GraphIssue, ...]:
         add("coverage_status", "coverage/status", "none cannot contain extracted facts")
     if status == "partial" and (not analyzed or not unprocessed):
         add("coverage_status", "coverage/status", "partial requires analyzed and unprocessed paths")
+    return analyzed
 
-    def location(loc: SourceLocation | None, field: str, *, fact: bool = False) -> None:
-        if loc is None:
-            return
-        if not _safe_path(loc.path):
-            add("invalid_path", f"{field}/path", "not a relative POSIX path")
-        if loc.end_line < loc.start_line:
-            add("invalid_span", field, "end_line precedes start_line")
-        if (
-            loc.start_line == loc.end_line
-            and loc.start_column is not None and loc.end_column is not None
-            and loc.end_column < loc.start_column
-        ):
-            add("invalid_span", field, "end_column precedes start_column")
-        if fact and loc.path not in analyzed:
-            add("uncovered_fact", f"{field}/path", "fact path was not analyzed")
 
+def _validate_location(
+    loc: SourceLocation | None, field: str, analyzed: set[str],
+    add: Callable[[str, str, str], None], *, fact: bool = False,
+) -> None:
+    if loc is None:
+        return
+    if not _safe_path(loc.path):
+        add("invalid_path", f"{field}/path", "not a relative POSIX path")
+    if loc.end_line < loc.start_line:
+        add("invalid_span", field, "end_line precedes start_line")
+    if (
+        loc.start_line == loc.end_line
+        and loc.start_column is not None and loc.end_column is not None
+        and loc.end_column < loc.start_column
+    ):
+        add("invalid_span", field, "end_column precedes start_column")
+    if fact and loc.path not in analyzed:
+        add("uncovered_fact", f"{field}/path", "fact path was not analyzed")
+
+
+def _validate_nodes(
+    graph: Graph, analyzed: set[str], add: Callable[[str, str, str], None],
+) -> set[str]:
     node_ids: set[str] = set()
-    for i, node in enumerate(graph.nodes):
+    for index, node in enumerate(graph.nodes):
         if node.id in node_ids:
-            add("duplicate_node_id", f"nodes/{i}/id", "node ID must be unique")
+            add("duplicate_node_id", f"nodes/{index}/id", "node ID must be unique")
         node_ids.add(node.id)
-        location(node.location, f"nodes/{i}/location", fact=True)
+        _validate_location(node.location, f"nodes/{index}/location", analyzed, add, fact=True)
+    return node_ids
 
-    for i, edge in enumerate(graph.edges):
+
+def _validate_edges(
+    graph: Graph, node_ids: set[str], analyzed: set[str],
+    add: Callable[[str, str, str], None],
+) -> None:
+    for index, edge in enumerate(graph.edges):
         if edge.source not in node_ids:
-            add("missing_source", f"edges/{i}/source", "edge source is not a node")
+            add("missing_source", f"edges/{index}/source", "edge source is not a node")
         if edge.resolution == "resolved" and edge.target not in node_ids:
-            add("missing_target", f"edges/{i}/target", "resolved target is not a node")
-        location(edge.location, f"edges/{i}/location", fact=True)
+            add("missing_target", f"edges/{index}/target", "resolved target is not a node")
+        _validate_location(edge.location, f"edges/{index}/location", analyzed, add, fact=True)
 
-    for i, diag in enumerate(graph.diagnostics):
-        location(diag.location, f"diagnostics/{i}/location")
-        if diag.path is not None and not _safe_path(diag.path):
-            add("invalid_path", f"diagnostics/{i}/path", "not a relative POSIX path")
 
+def _validate_diagnostics(
+    graph: Graph, analyzed: set[str], add: Callable[[str, str, str], None],
+) -> None:
+    for index, diagnostic in enumerate(graph.diagnostics):
+        _validate_location(diagnostic.location, f"diagnostics/{index}/location", analyzed, add)
+        if diagnostic.path is not None and not _safe_path(diagnostic.path):
+            add("invalid_path", f"diagnostics/{index}/path", "not a relative POSIX path")
+
+
+def validate_semantics(graph: Graph) -> tuple[GraphIssue, ...]:
+    """Check graph-wide invariants in the original stable issue order.
+
+    Assumes input has passed the supplied JSON Schema through parse_graph.
+    """
+    issues: list[GraphIssue] = []
+
+    def add(code: str, path: str, message: str) -> None:
+        issues.append(GraphIssue(code, path, message))
+
+    analyzed = _validate_coverage(graph, add)
+    node_ids = _validate_nodes(graph, analyzed, add)
+    _validate_edges(graph, node_ids, analyzed, add)
+    _validate_diagnostics(graph, analyzed, add)
     return tuple(issues)
 
 

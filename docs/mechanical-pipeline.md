@@ -49,3 +49,21 @@ evaluation and a stable external Quality Report Contract remain unimplemented.
 Policy values live in `profiles/` and are loaded through the logical
 `mechanical_profile` ID. The report is currently an **internal Python
 structure**, not yet a versioned external Quality Report Contract.
+
+## Distinct call evidence (non-scoring)
+
+Each function or method now has `call_metrics` in the internal report:
+
+- `call_sites`: all syntactically observed call expressions (the existing
+  `max_call_sites` rule retains its original threshold and meaning).
+- `distinct_resolved_targets`: unique CCG target IDs backed by a resolved
+  call edge. Multiple calls to one target count once.
+- `unresolved_call_sites`: call expressions without a verified target.
+- `distinct_unresolved_hints`: distinct observed callee expressions, which
+  are **not** proven dependency identities.
+- `external_dependencies`: `null` until cross-module identity can be
+  established safely; do not read `null` as zero external dependencies.
+
+The added evidence is diagnostic only. It neither changes the threshold rule
+nor creates a new P3 coupling verdict. Existing `status` and
+`analysis_status` have identical meanings to the prior release.

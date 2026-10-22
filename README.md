@@ -108,3 +108,12 @@ print(result.quality.status)           # Rule-level mechanical outcome only
 print(result.quality.analysis_status)  # Independent evidence limitations
 print(result.quality.analysis_limitations)
 ```
+
+## Reproducible QA self-audit
+
+The [self-audit workflow](.github/workflows/self-audit.yml) executes codeQA on
+its own immutable Git snapshot. A second analysis of a **fixed pre-refactor
+snapshot** checks that CCG extraction and previous heuristic findings have
+not silently changed with analyzer-only refactoring. Call-site observations,
+resolved target identities, unresolved calls and unknown external dependencies
+are reported separately. See [self-audit](docs/self-audit.md).

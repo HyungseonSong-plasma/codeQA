@@ -1,0 +1,47 @@
+{
+  "snapshot_sha": "6a6676e70ed60f440cfc00a878f24ef6ee2b91a5",
+  "scopes": {
+    "production": {
+      "source_files": 17,
+      "ccg_nodes": 108,
+      "ccg_edges": 537,
+      "coverage": "complete",
+      "quality": {
+        "function_count": 67,
+        "unresolved_edges": 436,
+        "status": "REVIEW_REQUIRED",
+        "analysis_status": "LIMITED",
+        "finding_count": 7
+      },
+      "resolved_local_calls": 10
+    },
+    "tests": {
+      "source_files": 10,
+      "ccg_nodes": 139,
+      "ccg_edges": 713,
+      "coverage": "complete",
+      "quality": {
+        "function_count": 119,
+        "unresolved_edges": 584,
+        "status": "REVIEW_REQUIRED",
+        "analysis_status": "LIMITED",
+        "finding_count": 6
+      },
+      "resolved_local_calls": 0
+    },
+    "all_python": {
+      "source_files": 29,
+      "ccg_nodes": 254,
+      "ccg_edges": 1334,
+      "coverage": "complete",
+      "quality": {
+        "function_count": 190,
+        "unresolved_edges": 1098,
+        "status": "REVIEW_REQUIRED",
+        "analysis_status": "LIMITED",
+        "finding_count": 15
+      },
+      "resolved_local_calls": 11
+    }
+  }
+}
