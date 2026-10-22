@@ -59,7 +59,7 @@ class DependencyImpactTests(unittest.TestCase):
         )
         self.assertNotIn("src/demo/core.py", {item.path for item in report.affected})
         self.assertEqual(len({item.path for item in report.affected}), len(report.affected))
-        self.assertEqual(report.confidence, "STATIC_LOWER_BOUND")
+        self.assertEqual(report.confidence, "STATIC_POTENTIAL_ONLY")
 
     def test_duplicate_imports_are_distinct_evidence_but_not_double_counted_impact(self) -> None:
         sources = dict(self.fixture["sources"])
@@ -147,7 +147,7 @@ class DependencyImpactTests(unittest.TestCase):
         self.assertEqual(result.graph.coverage.status, "partial")
         self.assertEqual(report.unprocessed_paths, ("README.md", "src/demo/broken.py"))
         self.assertEqual(report.untracked_changed_paths, ("README.md", "src/demo/broken.py"))
-        self.assertEqual(report.confidence, "STATIC_LOWER_BOUND")
+        self.assertEqual(report.confidence, "STATIC_POTENTIAL_ONLY")
 
     def test_invalid_or_empty_change_request_fails_closed(self) -> None:
         deps = self.analyze().dependencies

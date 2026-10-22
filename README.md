@@ -123,5 +123,5 @@ are reported separately. See [self-audit](docs/self-audit.md).
 `analyze_python` now includes a separate static dependency graph.
 `codeqa.evaluation.impact.analyze_change_impact` reports potential
 reverse-import direct/transitive impact paths, witnesses and unknowns.
-This is a **static lower bound**, not a proof of actual runtime coupling or
-complete impact. See [Dependency and Impact v0.1](docs/dependency-impact.md).
+This is **observed potential static impact**, not proof of runtime coupling,
+a complete impact bound or safe exclusion of tests. See [Dependency and Impact v0.1](docs/dependency-impact.md).

@@ -58,6 +58,7 @@ The self-audit now records observed source-to-target import pairs,
 conditional/nested import observations, unknown imports by reason, and
 ranked static reverse-import impact examples for product Python sources.
 For `all_python`, dependent tests can be included when a statically
-matching module import is present. Impact rankings are **lower bounds**:
-dynamic imports, out-of-snapshot dependencies, test fixtures and runtime
-dispatch are not exhaustively mapped. Rankings are not quality scores.
+matching module import is present. Impact rankings describe **observed potential static paths**, not an exact
+runtime impact bound: conditional imports may never execute, while dynamic
+imports and injected dependencies can be missed. Rankings are not quality
+scores or a safe basis for excluding tests.

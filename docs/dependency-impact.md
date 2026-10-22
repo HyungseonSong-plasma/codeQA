@@ -50,9 +50,12 @@ reads Git, filesystem trees, or performs external orchestration.**
 The pure `analyze_change_impact()` walks **reverse static import links**,
 reporting direct dependents and transitive dependents with shortest witness
 chains. Multiple changed paths are seeded together; cycles are safe. A result
-is always marked `STATIC_LOWER_BOUND`: listed files have observed static
-paths to the changed files, while unlisted files **cannot be certified
-unaffected**. This is not a test selection safety guarantee.
+is marked `STATIC_POTENTIAL_ONLY`: listed files have observed potential
+import paths to changed files, **not proof that runtime propagation occurs**.
+Conditional imports may never execute; dynamic dependencies may be missed.
+The result is neither an exact lower nor an exact upper bound on runtime
+impact. Unlisted files **cannot be certified unaffected**, and the output
+must not be used as a safe test-selection filter.
 
 `unknown_dependency_sources`, `untracked_changed_paths`, and
 `unprocessed_paths` disclose limits instead of silently declaring safety.

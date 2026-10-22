@@ -117,7 +117,7 @@ def analyze_checkout(root: Path, sha: str, source_sha: str | None = None) -> dic
                     item.source_path for item in dependencies.unknown
                 }),
                 "impact_ranking": impact_ranking[:8],
-                "confidence": "STATIC_LOWER_BOUND",
+                "confidence": "STATIC_POTENTIAL_ONLY",
             },
             "coverage": graph.coverage.status,
             "diagnostics": [asdict(d) for d in graph.diagnostics],

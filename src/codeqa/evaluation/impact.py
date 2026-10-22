@@ -1,7 +1,8 @@
 """Pure reverse-dependency impact traversal on statically observed imports.
 
-Impact is a lower bound for imports explicitly mapped to analyzed source
-files, never a claim of complete runtime or behavioral change propagation.
+The result contains syntax-observed potential import propagation, not an
+exact lower or upper bound on runtime behavior. Conditional imports may never
+execute; dynamic imports may create unseen dependencies.
 """
 from __future__ import annotations
 
@@ -27,7 +28,7 @@ class ImpactReport:
     untracked_changed_paths: tuple[str, ...]
     unknown_dependency_sources: tuple[str, ...]
     unprocessed_paths: tuple[str, ...]
-    confidence: str = "STATIC_LOWER_BOUND"
+    confidence: str = "STATIC_POTENTIAL_ONLY"
 
     @property
     def direct_dependents(self) -> tuple[str, ...]:
