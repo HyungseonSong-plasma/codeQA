@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "baseline_snapshot_id",
+    "candidate_snapshot_id",
+    "renames"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "baseline_snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "renames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "before",
+          "after",
+          "before_sha256",
+          "after_sha256"
+        ],
+        "properties": {
+          "before": {
+            "type": "string",
+            "minLength": 1
+          },
+          "after": {
+            "type": "string",
+            "minLength": 1
+          },
+          "before_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "after_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
