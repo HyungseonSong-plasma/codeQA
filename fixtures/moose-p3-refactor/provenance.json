@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1",
+  "source_repository": "HyungseonSong-plasma/moose-test-repo",
+  "source_path": "physics_harness/analysis/field_comparison.py",
+  "analysis_scope": "pinned single production file; not repository",
+  "sources": [
+    {
+      "arm": "base",
+      "commit_sha": "69be07aab3e5815a1670f7308deb6caf6b49bc79",
+      "git_blob_sha": "9e815abff011ab73e746569bb2398fc4ccfc8b17",
+      "fixture": "fixtures/moose-p3-refactor/base.py.txt"
+    },
+    {
+      "arm": "blind",
+      "commit_sha": "9343dfd8a62f51886b1bf80e73f9887076fcd8d9",
+      "git_blob_sha": "ae544ee073d63165646b6aa19a875253f5061285",
+      "fixture": "fixtures/moose-p3-refactor/blind.py.txt"
+    },
+    {
+      "arm": "guided",
+      "commit_sha": "d8e8d5e2d5154d907953699644263b1dba681be6",
+      "git_blob_sha": "beb48b3ee42023ea0f9f569136444f220c02e283",
+      "fixture": "fixtures/moose-p3-refactor/guided.py.txt"
+    }
+  ],
+  "observed_p3": {
+    "parent_call_sites": {
+      "base": 19,
+      "blind": 17,
+      "guided": 12
+    },
+    "explicit_cohort_call_sites": {
+      "base": 19,
+      "blind": 19,
+      "guided": 20
+    },
+    "trigger_threshold_exclusive": 12
+  },
+  "prior_experiment_run": "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/39958533417"
+}
