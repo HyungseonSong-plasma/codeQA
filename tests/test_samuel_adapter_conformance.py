@@ -23,7 +23,7 @@ MANIFEST = ROOT / "fixtures/samuel/provenance.json"
 
 
 def git_blob_sha(content: bytes) -> str:
-    return sha1(f"blob {len(content)}\\0".encode("ascii") + content).hexdigest()
+    return sha1(f"blob {len(content)}\0".encode("ascii") + content).hexdigest()
 
 
 class SamuelPinnedConformance(unittest.TestCase):
@@ -71,7 +71,7 @@ class SamuelPinnedConformance(unittest.TestCase):
                 with self.subTest(file=spec["path"], symbol=expected["name"]):
                     line = source_lines[expected["line"]-1]
                     self.assertTrue(
-                        re.match(rf"^(class|(?:async )?def) {re.escape(expected['name'])}\\b", line),
+                        re.match(rf"^(class|(?:async )?def) {re.escape(expected['name'])}\b", line),
                         line,
                     )
                     matched = [node for node in graph.nodes
@@ -110,11 +110,11 @@ class SamuelPinnedConformance(unittest.TestCase):
 
     def test_adversarial_import_async_decorator_and_dynamic_calls(self):
         source = (
-            "from .pkg import thing as renamed\\n"
-            "import another as alias\\n"
-            "if flag:\\n    from . import *\\n"
-            "@deco(lambda: not_extracted())\\n"
-            "async def task():\\n    return getattr(obj, 'fn')()\\n"
+            "from .pkg import thing as renamed\n"
+            "import another as alias\n"
+            "if flag:\n    from . import *\n"
+            "@deco(lambda: not_extracted())\n"
+            "async def task():\n    return getattr(obj, 'fn')()\n"
         )
         graph = self.graph({"sub/odd name.py": source})
         self.assertEqual(graph.coverage.status, "complete")
@@ -130,7 +130,7 @@ class SamuelPinnedConformance(unittest.TestCase):
                             for e in graph.edges))
 
     def test_partial_none_coverage_and_unsafe_paths_fail_closed(self):
-        broken = {"okay.py": "def good(): pass\\n", "broken.py": "def (",
+        broken = {"okay.py": "def good(): pass\n", "broken.py": "def (",
                   "foreign.rs": "fn main() {}"}
         graph = self.graph(broken)
         self.assertEqual(graph.coverage.status, "partial")
@@ -138,7 +138,7 @@ class SamuelPinnedConformance(unittest.TestCase):
         self.assertEqual({(u.path, u.reason) for u in graph.coverage.unprocessed},
                          {("broken.py", "syntax_error"), ("foreign.rs", "unsupported_extension")})
         self.assertEqual(self.graph({"bad.py": "def ("}).coverage.status, "none")
-        for path in ("../escape.py", "/absolute.py", "x\\\\y.py"):
+        for path in ("../escape.py", "/absolute.py", "x\\y.py"):
             with self.subTest(path=path):
                 with self.assertRaises(GraphValidationError):
                     self.graph({path: "x()"})
