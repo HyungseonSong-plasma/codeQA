@@ -1,0 +1,56 @@
+name: Extended Python naming coverage conformance
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/adapters/python_naming_coverage_v02.py'
+      - 'src/codeqa/core/naming_coverage_v02.py'
+      - 'src/codeqa/evaluation/naming_coverage_v02.py'
+      - 'profiles/python-naming-coverage-v0.2.json'
+      - 'contracts/qa/python-naming-coverage-v0.2.schema.json'
+      - 'docs/naming-coverage-v02.md'
+      - 'tests/test_naming_coverage_v02.py'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-coverage-v02.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/codeqa/adapters/python_naming_coverage_v02.py'
+      - 'src/codeqa/core/naming_coverage_v02.py'
+      - 'src/codeqa/evaluation/naming_coverage_v02.py'
+      - 'profiles/python-naming-coverage-v0.2.json'
+      - 'contracts/qa/python-naming-coverage-v0.2.schema.json'
+      - 'docs/naming-coverage-v02.md'
+      - 'tests/test_naming_coverage_v02.py'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-coverage-v02.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extended-coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ef6359131f0cd952ed43674274ffe0453c6bf2a9
+          path: reference
+          persist-credentials: false
+      - name: Verify exact pinned codeQA syntax specimen
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C reference rev-parse HEAD)" = "ef6359131f0cd952ed43674274ffe0453c6bf2a9"
+          cmp reference/src/codeqa/adapters/python_snapshot.py               codeqa/fixtures/naming-codeqa/python_snapshot.py.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - run: python3 -m unittest discover -s codeqa/tests -p test_naming_coverage_v02.py -v

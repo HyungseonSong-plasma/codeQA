@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:python-naming-coverage:v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "profile_id",
+    "profile_fingerprint",
+    "coverage",
+    "evaluated",
+    "uncertain",
+    "excluded",
+    "counts_by_kind",
+    "findings",
+    "uncertainty",
+    "status",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_id": {
+      "const": "codeqa.naming.python.coverage.v0.2"
+    },
+    "profile_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "coverage": {
+      "enum": [
+        "none",
+        "partial",
+        "complete"
+      ]
+    },
+    "evaluated": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "uncertain": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "excluded": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "counts_by_kind": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "enum": [
+              "module_constant",
+              "class_constant",
+              "instance_attribute"
+            ]
+          },
+          {
+            "type": "integer",
+            "minimum": 0
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2,
+        "items": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "owner",
+          "name",
+          "kind",
+          "line",
+          "column",
+          "status",
+          "expected_style",
+          "applied_rule",
+          "explanation",
+          "exception_origin"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "module_constant",
+              "class_constant",
+              "instance_attribute"
+            ]
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "enum": [
+              "REVIEW_REQUIRED",
+              "CONFORMANT_WITH_APPLIED_RULE",
+              "EXEMPT_BY_DECLARED_CONTRACT",
+              "EXEMPT_BY_POLICY",
+              "NOT_EVALUATED"
+            ]
+          },
+          "expected_style": {
+            "enum": [
+              "snake_case",
+              "UPPER_SNAKE_CASE",
+              "off"
+            ]
+          },
+          "applied_rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exception_origin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "owner",
+          "line",
+          "category",
+          "reason"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "REVIEW_REQUIRED",
+        "NOT_EVALUATED",
+        "NO_VIOLATIONS_OBSERVED"
+      ]
+    },
+    "interpretation": {
+      "const": "EXTENDED_DECLARATION_STYLE_ONLY_NOT_COMPLETE_PYTHON_OR_RUNTIME_CONTRACTS"
+    }
+  }
+}
