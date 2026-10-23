@@ -15,7 +15,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from codeqa.core import Graph
-from codeqa.evaluation.mechanical import MechanicalProfile, MechanicalReport
+from codeqa.evaluation.mechanical import MechanicalProfile, MechanicalReport, evaluate_mechanical
 
 
 class QaResultContractError(ValueError):
@@ -180,6 +180,8 @@ def mechanical_to_qa_result(
         _fail("profile identity does not match the measured report")
     if report.coverage_status != graph.coverage.status:
         _fail("report coverage does not match the CCG")
+    if evaluate_mechanical(graph, profile) != report:
+        _fail("report does not match the supplied graph and complete profile settings")
     functions = sorted(
         (n for n in graph.nodes if n.kind in ("function", "method")),
         key=lambda n: n.id,
