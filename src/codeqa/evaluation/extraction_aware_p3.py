@@ -179,6 +179,13 @@ def _arm(
     ))
     if evidence.source_sha256 != source_digests:
         raise ExtractionP3Error("Adapter call witness source digests differ from supplied bytes")
+    nodes = {
+        node.id: node for node in graph.nodes
+        if node.kind in ("function", "method")
+    }
+    if (len(nodes) != len(report.call_metrics)
+            or set(nodes) != {metric.node_id for metric in report.call_metrics}):
+        raise ExtractionP3Error("Mechanical metrics cannot be matched to all CCG functions")
     witnesses: dict[str, list[P3CallWitness]] = {}
     for node_id, calls in evidence.calls:
         if node_id in witnesses or node_id not in nodes:
