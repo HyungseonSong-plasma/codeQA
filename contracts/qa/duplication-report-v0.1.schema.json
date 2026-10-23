@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:duplication:v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshot_id",
+    "profile_id",
+    "profile_fingerprint",
+    "coverage_status",
+    "analyzed_paths",
+    "unprocessed",
+    "eligible_blocks",
+    "evaluated_tokens",
+    "duplicate_excess_tokens",
+    "observed_duplicate_fraction",
+    "groups",
+    "not_evaluated",
+    "status",
+    "schema_version",
+    "interpretation"
+  ],
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "coverage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "none"
+      ]
+    },
+    "analyzed_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unprocessed": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "items": false,
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "eligible_blocks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evaluated_tokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_excess_tokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observed_duplicate_fraction": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fingerprint",
+          "token_count_per_block",
+          "blocks"
+        ],
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "token_count_per_block": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "blocks": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node_id",
+                "path",
+                "start_line",
+                "end_line",
+                "token_count",
+                "fingerprint",
+                "producer"
+              ],
+              "properties": {
+                "node_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "start_line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "end_line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "token_count": {
+                  "type": "integer",
+                  "minimum": 2
+                },
+                "fingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "producer": {
+                  "const": "python-token-block-v0.1"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "not_evaluated": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "status": {
+      "enum": [
+        "OBSERVED_DUPLICATION",
+        "NO_DUPLICATES_OBSERVED",
+        "NOT_EVALUATED"
+      ]
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "interpretation": {
+      "const": "NORMALIZED_TOKEN_SIMILARITY_NOT_BEHAVIOR_OR_P6_VERDICT"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "profile_id": "python-token-duplicates-v0.1",
+  "schema_version": "0.1",
+  "min_block_tokens": 8,
+  "normalize_identifiers": false,
+  "normalize_literals": false,
+  "excluded_prefixes": [
+    "generated/",
+    "vendor/"
+  ]
+}
