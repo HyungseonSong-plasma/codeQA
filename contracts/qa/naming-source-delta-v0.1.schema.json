@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:naming-source-delta:v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "baseline_snapshot_id",
+    "candidate_snapshot_id",
+    "profile_fingerprint",
+    "status",
+    "reasons",
+    "baseline_symbol_count",
+    "candidate_symbol_count",
+    "baseline_unresolved",
+    "candidate_unresolved",
+    "baseline_reviews",
+    "candidate_reviews",
+    "observations",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "baseline_snapshot_id": {
+      "type": "string",
+      "pattern": "^git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[a-f0-9]{40}$"
+    },
+    "candidate_snapshot_id": {
+      "type": "string",
+      "pattern": "^git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[a-f0-9]{40}$"
+    },
+    "profile_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "status": {
+      "enum": [
+        "COMPARABLE_STATIC_DECLARATIONS",
+        "NOT_COMPARABLE"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "baseline_symbol_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_symbol_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "baseline_unresolved": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_unresolved": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "baseline_reviews": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_reviews": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "kind",
+          "before_owner",
+          "before_name",
+          "after_owner",
+          "after_name",
+          "relationship",
+          "before_status",
+          "after_status",
+          "review_status_change"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "before_owner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "before_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "after_owner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "after_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relationship": {
+            "enum": [
+              "MATCHED",
+              "RENAMED_DECLARED",
+              "ADDED",
+              "REMOVED"
+            ]
+          },
+          "before_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "after_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_status_change": {
+            "enum": [
+              "INTRODUCED_REVIEW",
+              "RESOLVED_REVIEW",
+              "NO_MEASURED_REVIEW_STATUS_CHANGE",
+              "ADDED_WITH_REVIEW"
+            ]
+          }
+        }
+      }
+    },
+    "interpretation": {
+      "const": "DESCRIPTIVE_NAMING_CHANGE_NOT_PROVEN_DESIGN_OR_INTERFACE_IMPROVEMENT"
+    }
+  }
+}
