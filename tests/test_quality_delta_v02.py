@@ -228,8 +228,8 @@ class QualityDeltaV02Tests(unittest.TestCase):
             "exceptions": [],
         }
         sources = {
-            "src/pkg/core/mod.py": "from pkg.api import entry\\n",
-            "src/pkg/api/__init__.py": "entry = 1\\n",
+            "src/pkg/core/mod.py": "from pkg.api import entry\n",
+            "src/pkg/api/__init__.py": "entry = 1\n",
         }
         sha = PIN_A
         snapshot_id = f"git:{REPO}@{sha}"
