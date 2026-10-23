@@ -39,9 +39,18 @@ class _Declarations(ast.NodeVisitor):
 
     def _add(self, node: ast.AST, name: str, kind: str, relation: str = "LOCAL",
              detail: str = "", contract_name: str | None = None) -> None:
+        column = node.col_offset
+        if isinstance(node, ast.AsyncFunctionDef):
+            column += len("async def ")
+        elif isinstance(node, ast.FunctionDef):
+            column += len("def ")
+        elif isinstance(node, ast.ClassDef):
+            column += len("class ")
+        elif isinstance(node, ast.alias) and node.asname == name:
+            column = node.end_col_offset - len(name.encode("utf-8"))
         self.entries.append(NamingSymbol(
             self.path, ".".join(self.scope), name, kind,
-            node.lineno, node.col_offset, relation, contract_name, detail,
+            node.lineno, column, relation, contract_name, detail,
         ))
 
     def _override_intent(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
@@ -115,10 +124,10 @@ class _Declarations(ast.NodeVisitor):
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
             if alias.asname:
-                self._add(node, alias.asname, "import_alias",
+                self._add(alias, alias.asname, "import_alias",
                           detail=f"external={alias.name}")
             else:
-                self._add(node, alias.name.split(".")[0], "import_alias",
+                self._add(alias, alias.name.split(".")[0], "import_alias",
                           relation="IMPORTED_ORIGINAL", detail=alias.name)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
@@ -127,10 +136,10 @@ class _Declarations(ast.NodeVisitor):
                 continue
             name = alias.asname or alias.name
             if alias.asname:
-                self._add(node, name, "import_alias",
+                self._add(alias, name, "import_alias",
                           detail=f"external={node.module}.{alias.name}")
             else:
-                self._add(node, name, "import_alias",
+                self._add(alias, name, "import_alias",
                           relation="IMPORTED_ORIGINAL",
                           detail=f"{node.module}.{alias.name}")
 
