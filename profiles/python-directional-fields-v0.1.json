@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "profile_id": "codeqa.naming.directional-fields.v0.1",
+  "schema_path": "fixtures/naming-dto/field-contract.json",
+  "schema_sha256": "548148b4825ea347fcb6c4dc35f96189eb494c3da9c1be75bf235af15c61bbf7",
+  "provider": "example_api",
+  "revision": "v1",
+  "bindings": [
+    {
+      "path": "src/models.py",
+      "owner": "UserDTO",
+      "field": "user_id",
+      "schema_model": "UserDTO"
+    },
+    {
+      "path": "src/models.py",
+      "owner": "LegacyRow",
+      "field": "user_id",
+      "schema_model": "LegacyRow"
+    }
+  ]
+}
