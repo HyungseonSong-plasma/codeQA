@@ -84,17 +84,17 @@ class StatementSimilarityTests(unittest.TestCase):
 
     def test_different_comparison_operators_not_same_pattern(self):
         s=("def f(a,b):\n"
-           "    if a < 0:\n        raise ValueError('a')\n"
-           "    if b > 0:\n        raise ValueError('b')\n")
+           "    if a < 0 or a == 0:\n        raise ValueError('a')\n"
+           "    if b > 0 or b == 0:\n        raise ValueError('b')\n")
         _,r=self.analyze({"a.py":s},{**self.profile_json,"min_statement_tokens":12})
         self.assertEqual(r.status,"NO_REPEATS_OBSERVED")
 
     def test_comments_whitespace_do_not_change_ast_pattern(self):
         s=("def f(a,b):\n"
-           "    if a < 0:\n"
+           "    if a < 0 or a == 0:\n"
            "        # doc\n        raise ValueError('a')\n"
            "\n"
-           "    if b < 0: # same operation\n"
+           "    if b < 0 or b == 0: # same operation\n"
            "        raise ValueError('b')\n")
         _,r=self.analyze({"a.py":s},{**self.profile_json,"min_statement_tokens":12})
         self.assertEqual(len(r.groups),1)
@@ -103,10 +103,10 @@ class StatementSimilarityTests(unittest.TestCase):
     def test_nested_scopes_are_not_grouped_with_outer_function(self):
         source=(
             "def outer(x):\n"
-            "    if x < 0: raise ValueError('x')\n"
+            "    if x < 0 or x == 0: raise ValueError('x')\n"
             "    def inner(y,z):\n"
-            "        if y < 0: raise ValueError('y')\n"
-            "        if z < 0: raise ValueError('z')\n"
+            "        if y < 0 or y == 0: raise ValueError('y')\n"
+            "        if z < 0 or z == 0: raise ValueError('z')\n"
         )
         _,r=self.analyze({"a.py":source},{**self.profile_json,"min_statement_tokens":12})
         self.assertEqual(len(r.groups),1)
@@ -115,10 +115,10 @@ class StatementSimilarityTests(unittest.TestCase):
 
     def test_unprocessed_and_generated_sources_preserve_evidence_limitations(self):
         source={
-            "src/main.py":"def f(a,b):\n    if a < 0: raise ValueError('a')\n"
-                          "    if b < 0: raise ValueError('b')\n",
-            "vendor/lib.py":"def copied(a,b):\n    if a < 0: raise ValueError('a')\n"
-                          "    if b < 0: raise ValueError('b')\n",
+            "src/main.py":"def f(a,b):\n    if a < 0 or a == 0: raise ValueError('a')\n"
+                          "    if b < 0 or b == 0: raise ValueError('b')\n",
+            "vendor/lib.py":"def copied(a,b):\n    if a < 0 or a == 0: raise ValueError('a')\n"
+                          "    if b < 0 or b == 0: raise ValueError('b')\n",
             "broken.py":"def (",
             "foreign.rs":"fn main() {}",
         }
