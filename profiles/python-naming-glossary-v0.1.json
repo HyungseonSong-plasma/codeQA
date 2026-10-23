@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "profile_id": "codeqa.naming.glossary.v0.1",
+  "include_prefixes": [
+    "src/"
+  ],
+  "terms": [
+    {
+      "canonical": "time_step",
+      "aliases": [
+        "timestep"
+      ],
+      "kinds": [
+        "function",
+        "method",
+        "parameter",
+        "field"
+      ]
+    },
+    {
+      "canonical": "node_id",
+      "aliases": [
+        "nodeid"
+      ],
+      "kinds": [
+        "function",
+        "method",
+        "parameter",
+        "field"
+      ]
+    }
+  ]
+}
