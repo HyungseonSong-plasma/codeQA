@@ -4,8 +4,8 @@ Versioned, language-independent exchange contracts live here:
 
 - [`ccg/`](ccg/README.md): canonical source-code facts, graph structure,
   provenance, resolution and coverage (v0.1 initially).
-- `adapter/` (planned): language-adapter input/output and capability reporting.
-- `quality/` (planned): findings, evidence, coverage and verdicts.
+- [adapters/](adapters/capability-v0.1.schema.json): language-adapter capabilities (v0.1).
+- [qa/](qa/README.md): result, metric provenance, coverage and delta (v0.1).
 - `profile/` (planned): schemas for valid evaluation configurations.
 
 Contract schemas define what data **may look like**. Concrete repository

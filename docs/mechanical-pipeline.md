@@ -76,3 +76,13 @@ repeated syntax, control structures, and unresolved local call targets. The
 context does not modify the original finding count, threshold or status.
 Attribute/chained expressions are not proof of a DSL or Polars identity.
 See [contextual-call-review](contextual-call-review.md).
+
+## Opt-in public QA Result v0.1
+
+`MechanicalReport.to_document()` and `PythonAnalysis.to_document()` remain
+internal backward-compatible views. For an external versioned result,
+call `mechanical_to_qa_result(result.graph, result.quality,
+MechanicalProfile.from_mapping(profile), schema=resources.load_json("qa_result_schema"))`.
+The result provides grounded measurements, explicit unsupported principles
+and separate evidence coverage. Only P1/P3 Mechanical heuristics are mapped.
+See [QA Result v0.1](contracts/qa-result-0.1.md).
