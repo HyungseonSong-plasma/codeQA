@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:delta:v0.2",
+  "title": "codeQA evidence-aware quality delta v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "baseline_snapshot_id",
+    "candidate_snapshot_id",
+    "status",
+    "reasons",
+    "rule_deltas",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "baseline_snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "COMPARABLE",
+        "PARTIAL",
+        "NOT_COMPARABLE"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "rule_deltas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule_id",
+          "status",
+          "reasons",
+          "metric",
+          "denominator",
+          "baseline_sum",
+          "candidate_sum",
+          "sum_delta",
+          "baseline_reviews",
+          "candidate_reviews",
+          "review_delta",
+          "observations"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "COMPARABLE",
+              "NOT_COMPARABLE"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "metric": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "unit"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "denominator": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "value"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "baseline_sum": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "candidate_sum": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "sum_delta": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "baseline_reviews": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "candidate_reviews": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "review_delta": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "subject_key",
+                "change",
+                "baseline_value",
+                "candidate_value",
+                "value_delta",
+                "baseline_review_required",
+                "candidate_review_required"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "subject_key": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "change": {
+                  "enum": [
+                    "MATCHED",
+                    "ADDED",
+                    "REMOVED"
+                  ]
+                },
+                "baseline_value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "candidate_value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "value_delta": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "baseline_review_required": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "candidate_review_required": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "interpretation": {
+      "const": "DESCRIPTIVE_METRIC_CHANGES_NOT_PROVEN_REGRESSIONS"
+    }
+  }
+}
