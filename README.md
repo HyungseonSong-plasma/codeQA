@@ -175,3 +175,11 @@ infer actual runtime behavior or certifiable semantic alignment. See
 Optional imported-API syntax observations and evidence-backed role conflict
 **review**, with no runtime side-effect inference or automatic semantic PASS.
 See [Responsibility & Behavior](docs/responsibility-behavior.md).
+
+## Language Adapter capability contract v0.1
+
+Issue #29 defines the versioned cross-language adapter capability declaration
+(`adapter_capability_schema`) and a checked Python AST support profile
+(`python_adapter_capability`). See
+[Language Adapter contract](docs/contracts/language-adapter-0.1.md).
+This is a declaration of syntax-extraction support, never code-quality PASS.
