@@ -59,7 +59,14 @@ class ComplexityReport:
     interpretation: str = "HEURISTIC_SYNTAX_PROXY_NOT_P6_VERDICT"
 
     def to_document(self) -> dict[str, Any]:
-        return asdict(self)
+        def json_value(value: Any) -> Any:
+            if isinstance(value, (tuple, list)):
+                return [json_value(v) for v in value]
+            if isinstance(value, dict):
+                return {k: json_value(v) for k, v in value.items()}
+            return value
+
+        return json_value(asdict(self))
 
 
 def evaluate_complexity(
