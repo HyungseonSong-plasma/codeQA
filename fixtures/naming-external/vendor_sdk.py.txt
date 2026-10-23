@@ -1,0 +1,5 @@
+class ExternalBase:
+    def do_something_Special(self, value):
+        return value
+    def another_API(self):
+        return None

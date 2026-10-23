@@ -1,0 +1,43 @@
+name: Pinned external naming ancestry conformance
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/core/naming_ancestor.py'
+      - 'src/codeqa/adapters/python_naming_ancestor.py'
+      - 'src/codeqa/evaluation/naming_ancestor.py'
+      - 'tests/test_naming_ancestor.py'
+      - 'profiles/python-pinned-ancestor-v0.1.json'
+      - 'contracts/qa/pinned-ancestor-v0.1.schema.json'
+      - 'fixtures/naming-external/**'
+      - 'docs/naming-external-ancestor.md'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-external-ancestor.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/codeqa/core/naming_ancestor.py'
+      - 'src/codeqa/adapters/python_naming_ancestor.py'
+      - 'src/codeqa/evaluation/naming_ancestor.py'
+      - 'tests/test_naming_ancestor.py'
+      - 'profiles/python-pinned-ancestor-v0.1.json'
+      - 'contracts/qa/pinned-ancestor-v0.1.schema.json'
+      - 'fixtures/naming-external/**'
+      - 'docs/naming-external-ancestor.md'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-external-ancestor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-ancestor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install --disable-pip-version-check -e .
+      - run: python3 -m unittest discover -s tests -p test_naming_ancestor.py -v
