@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "snapshot": {
+    "repository": "HyungseonSong-plasma/moose-test-repo",
+    "commit_sha": "1977ad5559e5aa7a1c8d04c83735c15e007130d5"
+  },
+  "discovery": {
+    "method": "caller_explicit_path_inventory",
+    "inventory_complete": false
+  },
+  "files": [
+    {
+      "path": "ci/guards/physics_dependency_guard.py",
+      "language": "python",
+      "selection": "included",
+      "category": "test"
+    },
+    {
+      "path": "physics_app/src/base/PhysicsApp.C",
+      "language": "cpp",
+      "selection": "included",
+      "category": "product"
+    },
+    {
+      "path": "README.md",
+      "language": "other",
+      "selection": "excluded",
+      "category": "other",
+      "exclusion_reason": "caller_excluded_documentation"
+    }
+  ]
+}

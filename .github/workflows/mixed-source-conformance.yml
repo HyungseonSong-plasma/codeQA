@@ -1,0 +1,57 @@
+name: Mixed-language source coverage — pinned MOOSE evidence
+
+on:
+  pull_request:
+    paths:
+      - 'fixtures/mixed/**'
+      - 'tests/test_mixed_source_coverage.py'
+      - 'docs/mixed-source-coverage.md'
+      - 'contracts/adapters/source-selection-v0.1.schema.json'
+      - '.github/workflows/mixed-source-conformance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'fixtures/mixed/**'
+      - 'tests/test_mixed_source_coverage.py'
+      - 'docs/mixed-source-coverage.md'
+      - 'contracts/adapters/source-selection-v0.1.schema.json'
+      - '.github/workflows/mixed-source-conformance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mixed-source-conformance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact codeQA revision
+        uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - name: Checkout pinned external MOOSE source
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 1977ad5559e5aa7a1c8d04c83735c15e007130d5
+          path: moose
+          persist-credentials: false
+      - name: Verify immutable commit and byte-identical source samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C moose rev-parse HEAD)" = "1977ad5559e5aa7a1c8d04c83735c15e007130d5"
+          cmp "moose/ci/guards/physics_dependency_guard.py" \
+              "codeqa/fixtures/mixed/python/physics_dependency_guard.py.txt"
+          cmp "moose/physics_app/src/base/PhysicsApp.C" \
+              "codeqa/fixtures/mixed/cpp/PhysicsApp.C.txt"
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install codeQA only
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Run caller selection and mixed-language coverage conformance
+        run: python3 -m unittest discover -s codeqa/tests -p test_mixed_source_coverage.py -v
