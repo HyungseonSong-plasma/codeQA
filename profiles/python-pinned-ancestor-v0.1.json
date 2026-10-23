@@ -1,0 +1,12 @@
+{
+  "schema_version": "0.1",
+  "profile_id": "codeqa.naming.pinned-ancestor.v0.1",
+  "providers": [
+    {
+      "qualified_class": "vendor_sdk.ExternalBase",
+      "source_path": "fixtures/naming-external/vendor_sdk.py.txt",
+      "source_sha256": "3061eede28ee837916604b0338528b718b94dccdf31b16844b74164140dd7be4",
+      "revision": "frozen-v1"
+    }
+  ]
+}

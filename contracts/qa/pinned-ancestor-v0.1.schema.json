@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:pinned-ancestor:v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "profile_fingerprint",
+    "findings",
+    "matched_direct_declarations",
+    "absent_in_pinned_declarations",
+    "status",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "owner",
+          "name",
+          "line",
+          "column",
+          "ancestor",
+          "ancestor_source_sha256",
+          "ancestor_declaration_line",
+          "verdict",
+          "limitation"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ancestor": {
+            "type": "string"
+          },
+          "ancestor_source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "ancestor_declaration_line": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "verdict": {
+            "enum": [
+              "EXEMPT_BY_PINNED_DECLARATION",
+              "NOT_EVALUATED"
+            ]
+          },
+          "limitation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "matched_direct_declarations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "absent_in_pinned_declarations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "OBSERVED_PINNED_NAMES",
+        "PARTIAL",
+        "NOT_EVALUATED"
+      ]
+    },
+    "interpretation": {
+      "const": "EXACT_PINNED_NAME_NOT_SIGNATURE_RUNTIME_OR_MRO_PROOF"
+    }
+  }
+}
