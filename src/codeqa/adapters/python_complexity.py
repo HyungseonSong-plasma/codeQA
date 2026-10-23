@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import ast
 
-from codeqa.core.complexity import ControlFlowObservation
+from codeqa.core.complexity import ControlFlowObservation, BodyComplexityEvidence
 from .python_snapshot import ParsedSnapshot
 
 
@@ -95,10 +95,12 @@ class _Decisions(ast.NodeVisitor):
 
 
 class _Declarations(ast.NodeVisitor):
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, *, body_only: bool = False) -> None:
         self.path = path
+        self.body_only = body_only
         self.scope: list[str] = []
         self.results: list[ControlFlowObservation] = []
+        self.ignored_declarations: list[tuple[str, tuple[str, ...]]] = []
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self.scope.append(node.name)
@@ -112,8 +114,9 @@ class _Declarations(ast.NodeVisitor):
         counter = _Decisions()
         for child in node.body:
             counter.visit(child)
+        ignored: set[str] = set()
         if node.decorator_list:
-            counter.limitations.add("decorators_not_evaluated")
+            ignored.add("decorators_excluded_from_body_scope")
         arguments = node.args
         if (arguments.defaults or any(x is not None for x in arguments.kw_defaults)
                 or node.returns is not None
@@ -121,7 +124,17 @@ class _Declarations(ast.NodeVisitor):
                        (*arguments.posonlyargs, *arguments.args,
                         *arguments.kwonlyargs, *( [arguments.vararg] if arguments.vararg else []),
                         *( [arguments.kwarg] if arguments.kwarg else [])))):
-            counter.limitations.add("signature_expressions_not_evaluated")
+            ignored.add("signature_expressions_excluded_from_body_scope")
+        if self.body_only:
+            if ignored:
+                self.ignored_declarations.append((identifier, tuple(sorted(ignored))))
+        else:
+            for tag in ignored:
+                counter.limitations.add({
+                    "decorators_excluded_from_body_scope": "decorators_not_evaluated",
+                    "signature_expressions_excluded_from_body_scope":
+                        "signature_expressions_not_evaluated",
+                }[tag])
         limited = bool(counter.limitations)
         self.results.append(ControlFlowObservation(
             node_id=identifier, path=self.path,
@@ -131,6 +144,10 @@ class _Declarations(ast.NodeVisitor):
             branch_nesting_max=None if limited else counter.max_depth,
             limitations=tuple(sorted(counter.limitations)),
             status="NOT_EVALUATED" if limited else "MEASURED",
+            producer="python-ast-body-complexity-v0.2" if self.body_only
+                     else "python-ast-complexity-v0.1",
+            method="bounded_body_ast_syntax_no_annotation_execution" if self.body_only
+                   else "bounded_python_ast_syntax",
         ))
         self.scope.append(node.name)
         for child in node.body:
@@ -152,3 +169,29 @@ def extract_python_complexity(
         visitor.visit(item.tree)
         results.extend(visitor.results)
     return tuple(sorted(results, key=lambda x: x.node_id))
+
+
+def extract_python_body_complexity(
+    parsed: ParsedSnapshot,
+) -> BodyComplexityEvidence:
+    """Opt-in body-only analysis. Decorators/signatures are not traversed.
+
+    Ignoring declaration expressions is a *declared scope exclusion*, not
+    permission to count unknown lambda/type-alias bodies as complexity zero.
+    Reuses the caller's parsed snapshot; never evaluates Python expressions.
+    """
+    results: list[ControlFlowObservation] = []
+    ignored: list[tuple[str, tuple[str, ...]]] = []
+    for item in parsed.files:
+        if item.tree is None:
+            raise ValueError("analyzed ParsedFile must contain AST")
+        collector = _Declarations(item.path, body_only=True)
+        collector.visit(item.tree)
+        results.extend(collector.results)
+        ignored.extend(collector.ignored_declarations)
+    return BodyComplexityEvidence(
+        observations=tuple(sorted(results, key=lambda x: x.node_id)),
+        ignored_declarations=tuple(sorted(ignored)),
+        unprocessed=tuple(sorted(parsed.unprocessed)),
+        producer="python-ast-body-complexity-v0.2",
+    )
