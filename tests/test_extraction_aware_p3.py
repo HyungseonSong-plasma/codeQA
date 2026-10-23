@@ -16,6 +16,7 @@ import unittest
 from jsonschema import Draft202012Validator
 
 from codeqa.adapters import adapt_python_sources
+from codeqa.adapters.python_p3_witness import extract_python_p3_call_evidence
 from codeqa.core import Graph, parse_graph, GraphValidationError
 from codeqa.evaluation.extraction_aware_p3 import (
     ExtractionP3Error, ExtractionP3Profile, ExtractionSpec, compare_extraction_aware_p3,
@@ -67,7 +68,8 @@ class ExtractionAwareP3Tests(unittest.TestCase):
         a, am, ax = baseline
         b, bm, bx = candidate
         result = compare_extraction_aware_p3(
-            a, am, ax, b, bm, bx,
+            a, am, ax, extract_python_p3_call_evidence(ax),
+            b, bm, bx, extract_python_p3_call_evidence(bx),
             spec=spec or ExtractionSpec(
                 SOURCE_PATH, "compare_named_scalars", "compare_named_scalars",
                 after_helpers=("_compare_scalar_row",),
@@ -160,8 +162,8 @@ class ExtractionAwareP3Tests(unittest.TestCase):
         self.assertEqual(r.status, "REVIEW_TRIGGER_REDISTRIBUTION")
         self.assertEqual(r.parent_call_delta, -1)
         self.assertEqual(r.cohort_call_delta, 1)
-        self.assertEqual([w.expression for w in r.relocated_exact_syntax],
-                         sorted(["alpha()", "gamma()"]))
+        self.assertEqual({w.expression for w in r.relocated_exact_syntax},
+                         {"alpha()", "gamma()"})
         self.assertEqual({w.before_line for w in r.relocated_exact_syntax}, {2,4})
         self.assertEqual({w.after_line for w in r.relocated_exact_syntax}, {5,6})
 
@@ -274,6 +276,21 @@ class ExtractionAwareP3Tests(unittest.TestCase):
         call["target"]="invented:external_target"
         with self.assertRaises(GraphValidationError):
             parse_graph(doc,self.ccg_schema)
+
+    def test_modified_source_cannot_reuse_old_pinned_call_evidence(self):
+        a,b,mp,ep=self.synthetic(
+            "def main():\n    a()\n    b()\n    c()\n",
+            "def main():\n    return helper()\n"
+            "def helper():\n    a()\n    b()\n    c()\n")
+        original_evidence = extract_python_p3_call_evidence(b[2])
+        altered = {"a.py": b[2]["a.py"].replace("    b()", "    x()")}
+        with self.assertRaises(ExtractionP3Error):
+            compare_extraction_aware_p3(
+                a[0], a[1], a[2], extract_python_p3_call_evidence(a[2]),
+                b[0], b[1], altered, original_evidence,
+                spec=ExtractionSpec("a.py", "main", "main", after_helpers=("helper",)),
+                profile=ep, mechanical_profile=mp,
+            )
 
     def test_source_bytes_tampering_is_detected_against_ast_call_locations(self):
         a,b,mp,ep=self.synthetic(
