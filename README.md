@@ -190,3 +190,11 @@ Issue #24 validates the original pinned Samuel conformance requirement with
 byte-identical controller sources, selected ground-truth CCG nodes/edges,
 negative syntax cases and a dedicated CI cross-check. See
 [Samuel Adapter Conformance](docs/samuel-adapter-conformance.md).
+
+## QA Result and Quality Delta v0.1
+
+Issue #28 introduces versioned public schemas `qa_result_schema` and
+`qa_delta_schema`, a source-grounded opt-in Mechanical result converter
+and strict compatibility checks for descriptive review-count deltas.
+Old Python reports and CCG v0.1 remain unchanged. See
+[QA Result and Delta](docs/contracts/qa-result-0.1.md).
