@@ -206,6 +206,15 @@ def evaluate_naming(
                 not isinstance(symbol.name, str) or not symbol.name or
                 not isinstance(symbol.detail, str)):
             raise NamingContractError("invalid or duplicate declaration witness")
+        if symbol.kind != "module":
+            lines = sources[symbol.path].splitlines()
+            if (symbol.line > len(lines)
+                    or not lines[symbol.line - 1].encode("utf-8")[
+                        symbol.column:
+                    ].startswith(symbol.name.encode("utf-8"))):
+                raise NamingContractError(
+                    "identifier source position does not match original UTF-8 bytes"
+                )
         seen.add(identity)
         if any(symbol.path.startswith(p) for p in profile.excluded_prefixes):
             skipped += 1
@@ -237,6 +246,6 @@ def evaluate_naming(
         ))),
         limitations=tuple(limitations),
         status="REVIEW_REQUIRED" if reviews else
-               "NOT_EVALUATED" if unknowns or evidence.unprocessed or not findings else
+               "NOT_EVALUATED" if unknowns or evidence.unprocessed or skipped or not findings else
                "NO_VIOLATIONS_OBSERVED",
     )
