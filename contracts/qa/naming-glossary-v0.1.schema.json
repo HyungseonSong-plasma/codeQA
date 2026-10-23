@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:naming-glossary:v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "glossary_fingerprint",
+    "findings",
+    "inspected_local_declarations",
+    "suppressed_external_or_unknown",
+    "status",
+    "limitations",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "glossary_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "owner",
+          "name",
+          "kind",
+          "line",
+          "column",
+          "canonical_term",
+          "observed_term",
+          "status",
+          "reason"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "canonical_term": {
+            "type": "string"
+          },
+          "observed_term": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "CANONICAL_TERM_OBSERVED",
+              "NON_CANONICAL_TERM_REVIEW"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "inspected_local_declarations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "suppressed_external_or_unknown": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "REVIEW_TERMINOLOGY",
+        "NOT_EVALUATED",
+        "NO_NONCANONICAL_TERMS_OBSERVED"
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "interpretation": {
+      "const": "EXPLICIT_LEXICAL_TERMS_NOT_INFERRED_SEMANTIC_EQUALITY_OR_RENAME"
+    }
+  }
+}
