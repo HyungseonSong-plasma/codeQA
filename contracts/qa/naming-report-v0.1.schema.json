@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:naming:v0.1",
+  "title": "Opt-in Python naming declaration evidence v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "profile_id",
+    "profile_fingerprint",
+    "analyzed_paths",
+    "unprocessed",
+    "coverage_status",
+    "eligible_declarations",
+    "checked_declarations",
+    "excluded_declarations",
+    "unresolved_declarations",
+    "findings",
+    "limitations",
+    "status",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_id": {
+      "const": "codeqa.naming.python.safe.v0.1"
+    },
+    "profile_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "analyzed_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unprocessed": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": false,
+        "prefixItems": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "string",
+            "minLength": 1
+          }
+        ]
+      }
+    },
+    "coverage_status": {
+      "enum": [
+        "none",
+        "partial",
+        "complete"
+      ]
+    },
+    "eligible_declarations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "checked_declarations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "excluded_declarations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unresolved_declarations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "owner",
+          "name",
+          "kind",
+          "line",
+          "column",
+          "status",
+          "rule_id",
+          "expected",
+          "reason",
+          "evidence_relation",
+          "contract"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "module",
+              "class",
+              "function",
+              "method",
+              "parameter",
+              "field",
+              "import_alias"
+            ]
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "enum": [
+              "CONFORMANT_WITH_APPLIED_RULE",
+              "REVIEW_REQUIRED",
+              "EXEMPT_BY_POLICY",
+              "EXEMPT_BY_INTERFACE_CONTRACT",
+              "EXEMPT_BY_DECLARED_CONTRACT",
+              "NOT_EVALUATED"
+            ]
+          },
+          "rule_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "enum": [
+              "snake_case",
+              "PascalCase",
+              "UPPER_SNAKE_CASE",
+              "off"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_relation": {
+            "enum": [
+              "LOCAL",
+              "IMPORTED_ORIGINAL",
+              "LOCAL_OVERRIDE_MATCH",
+              "INVALID_OVERRIDE_INTENT",
+              "EXTERNAL_BASE_UNRESOLVED",
+              "DECORATED_EXTERNAL_UNRESOLVED",
+              "DTO_DIRECT_FIELD_UNRESOLVED",
+              "DTO_FIELD_ALIAS_DECLARED",
+              "DTO_FIELD_MAPPING_UNRESOLVED"
+            ]
+          },
+          "contract": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "status": {
+      "enum": [
+        "REVIEW_REQUIRED",
+        "NOT_EVALUATED",
+        "NO_VIOLATIONS_OBSERVED"
+      ]
+    },
+    "interpretation": {
+      "const": "DECLARATION_NAME_STYLE_NOT_INTERFACE_OR_SEMANTIC_CORRECTNESS"
+    }
+  }
+}
