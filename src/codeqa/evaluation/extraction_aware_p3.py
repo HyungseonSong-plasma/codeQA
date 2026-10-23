@@ -6,7 +6,6 @@ callee, infers an extraction automatically, or executes target source.
 """
 from __future__ import annotations
 
-import ast
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
@@ -14,7 +13,7 @@ from hashlib import sha256
 import re
 from typing import Any
 
-from codeqa.adapters.python_snapshot import parse_python_snapshot
+from codeqa.core.p3_witness import P3CallEvidence, P3CallWitness
 from codeqa.core import Graph
 from codeqa.evaluation.mechanical import MechanicalProfile, MechanicalReport
 
@@ -85,17 +84,6 @@ class ExtractionSpec:
 
 
 @dataclass(frozen=True, slots=True)
-class CallWitness:
-    """Exact AST Call syntax from one source location and lexical owner."""
-
-    owner: str
-    path: str
-    line: int
-    expression: str
-    syntax_sha256: str
-
-
-@dataclass(frozen=True, slots=True)
 class ExactSyntaxRelocation:
     """Same AST text at different lexical owners; no runtime move assertion."""
 
@@ -153,67 +141,11 @@ class ExtractionP3Comparison:
         return serial(asdict(self))
 
 
-class _Calls(ast.NodeVisitor):
-    def __init__(self, path: str, owner: str) -> None:
-        self.path = path
-        self.owner = owner
-        self.items: list[CallWitness] = []
-
-    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        return  # Nested function's calls are attributed to its own declaration.
-
-    visit_AsyncFunctionDef = visit_FunctionDef
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        return
-
-    def visit_Lambda(self, node: ast.Lambda) -> None:
-        return  # CCG v0.1 excludes the lambda's separate execution scope.
-
-    def visit_Call(self, node: ast.Call) -> None:
-        syntax = ast.dump(node, include_attributes=False)
-        self.items.append(CallWitness(
-            owner=self.owner, path=self.path, line=node.lineno,
-            expression=ast.unparse(node),
-            syntax_sha256=sha256(syntax.encode("utf-8")).hexdigest(),
-        ))
-        self.generic_visit(node)
-
-
-class _Functions(ast.NodeVisitor):
-    def __init__(self, path: str) -> None:
-        self.path = path
-        self.prefix: list[str] = []
-        self.witnesses: dict[str, list[CallWitness]] = {}
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self.prefix.append(node.name)
-        for statement in node.body:
-            self.visit(statement)
-        self.prefix.pop()
-
-    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        qualified = ".".join((*self.prefix, node.name))
-        if qualified in self.witnesses:
-            raise ExtractionP3Error("ambiguous duplicate lexical declaration: " + qualified)
-        witness = _Calls(self.path, qualified)
-        for statement in node.body:
-            witness.visit(statement)
-        self.witnesses[qualified] = sorted(
-            witness.items, key=lambda x: (x.syntax_sha256, x.line, x.expression)
-        )
-        self.prefix.append(node.name)
-        for statement in node.body:
-            self.visit(statement)
-        self.prefix.pop()
-
-    visit_AsyncFunctionDef = visit_FunctionDef
-
-
 def _arm(
     graph: Graph,
     report: MechanicalReport,
     sources: Mapping[str, str],
+    evidence: P3CallEvidence,
     profile: ExtractionP3Profile,
     spec: ExtractionSpec,
     *,
@@ -234,35 +166,37 @@ def _arm(
                        for p, value in sources.items())
             or spec.path not in selected):
         raise ExtractionP3Error("caller source selection or target coverage mismatch")
-    parsed = parse_python_snapshot(sources)
-    if (parsed.analyzed_paths != selected
-            or tuple(sorted(p for p, _ in parsed.unprocessed)) != unprocessed):
-        raise ExtractionP3Error("source bytes do not reproduce declared CCG parse coverage")
-    nodes = {
-        node.id: node for node in graph.nodes
-        if node.kind in ("function", "method")
-    }
-    if len(nodes) != len(report.call_metrics) or set(nodes) != {
-        metric.node_id for metric in report.call_metrics
-    }:
-        raise ExtractionP3Error("Mechanical per-function metrics cannot be matched to CCG nodes")
-    witnesses: dict[str, list[CallWitness]] = {}
-    for item in parsed.files:
-        assert item.tree is not None
-        visitor = _Functions(item.path)
-        visitor.visit(item.tree)
-        for qualified, calls in visitor.witnesses.items():
-            matching = [
-                node for node in nodes.values()
-                if node.id.startswith(f"def::{item.path}::{qualified}@")
-            ]
-            if len(matching) != 1:
-                raise ExtractionP3Error("AST declaration is missing or ambiguous in CCG")
-            if matching[0].location is None or matching[0].location.path != item.path:
-                raise ExtractionP3Error("CCG declaration is missing source provenance")
-            witnesses[matching[0].id] = calls
+    if not isinstance(evidence, P3CallEvidence) or evidence.producer != "python-ast-p3-v0.1":
+        raise ExtractionP3Error("missing supported Adapter-owned call witnesses")
+    if (evidence.analyzed_paths != selected or
+            evidence.unprocessed != tuple(sorted(
+                (item.path, item.reason) for item in graph.coverage.unprocessed
+            ))):
+        raise ExtractionP3Error("Python Adapter call evidence coverage differs from CCG")
+    source_digests = tuple(sorted(
+        (path, sha256(content.encode("utf-8")).hexdigest())
+        for path, content in sources.items()
+    ))
+    if evidence.source_sha256 != source_digests:
+        raise ExtractionP3Error("Adapter call witness source digests differ from supplied bytes")
+    witnesses: dict[str, list[P3CallWitness]] = {}
+    for node_id, calls in evidence.calls:
+        if node_id in witnesses or node_id not in nodes:
+            raise ExtractionP3Error("duplicate or non-CCG function in call evidence")
+        node = nodes[node_id]
+        if node.location is None:
+            raise ExtractionP3Error("CCG function lacks source location")
+        for witness in calls:
+            if (witness.node_id != node_id or witness.path != node.location.path
+                    or witness.line < node.location.start_line
+                    or witness.line > node.location.end_line
+                    or not node_id.startswith(
+                        f"def::{witness.path}::{witness.owner}@"
+                    )):
+                raise ExtractionP3Error("call witness disagrees with CCG lexical owner")
+        witnesses[node_id] = list(calls)
     if set(witnesses) != set(nodes):
-        raise ExtractionP3Error("AST/CCG functions missing or extra")
+        raise ExtractionP3Error("Adapter/CCG function evidence incomplete")
     by_metrics = {metric.node_id: metric for metric in report.call_metrics}
     for node_id, calls in witnesses.items():
         source_edges = [
@@ -273,6 +207,16 @@ def _arm(
                            for e in source_edges if e.location) !=
                    Counter((c.path, c.line) for c in calls)):
             raise ExtractionP3Error("AST Call locations do not agree with CCG source evidence")
+        ast_hints = Counter((c.path, c.line, c.callee_spelling) for c in calls)
+        for edge in source_edges:
+            if edge.resolution != "unresolved":
+                continue
+            if edge.location is None:
+                raise ExtractionP3Error("unresolved CCG call missing source location")
+            hint = (edge.location.path, edge.location.start_line, edge.target_hint)
+            if ast_hints[hint] <= 0:
+                raise ExtractionP3Error("unresolved target hint invented or moved")
+            ast_hints[hint] -= 1
     total = sum(x.call_sites for x in report.call_metrics)
     unresolved = sum(x.unresolved_call_sites for x in report.call_metrics)
     if (total != sum(e.kind == "calls" and e.source in nodes for e in graph.edges)
@@ -321,9 +265,11 @@ def compare_extraction_aware_p3(
     before_graph: Graph,
     before_report: MechanicalReport,
     before_sources: Mapping[str, str],
+    before_call_evidence: P3CallEvidence,
     after_graph: Graph,
     after_report: MechanicalReport,
     after_sources: Mapping[str, str],
+    after_call_evidence: P3CallEvidence,
     *,
     spec: ExtractionSpec,
     profile: ExtractionP3Profile,
@@ -354,10 +300,10 @@ def compare_extraction_aware_p3(
                 for p in before_sources if p != spec.path)):
         raise ExtractionP3Error("experiment includes unscoped edits in other files")
     first, before_witnesses = _arm(
-        before_graph, before_report, before_sources, profile, spec, before=True
+        before_graph, before_report, before_sources, before_call_evidence, profile, spec, before=True
     )
     last, after_witnesses = _arm(
-        after_graph, after_report, after_sources, profile, spec, before=False
+        after_graph, after_report, after_sources, after_call_evidence, profile, spec, before=False
     )
 
     pre_calls = before_witnesses[spec.before_parent]
