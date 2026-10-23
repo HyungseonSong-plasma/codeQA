@@ -25,8 +25,10 @@ from codeqa.evaluation.quality_delta_v02 import (
     validate_metric_snapshot,
 )
 from codeqa.evaluation.quality_delta_companions import (
-    complexity_metric_rules, dependency_metric_rule, duplication_metric_rule,
+    architecture_metric_rule, complexity_metric_rules,
+    dependency_metric_rule, duplication_metric_rule,
 )
+from codeqa.evaluation.architecture_rules import evaluate_declared_architecture_rules
 from codeqa.infrastructure.resources import ResourceRegistry
 from codeqa.pipeline.python import analyze_python
 
@@ -205,6 +207,63 @@ class QualityDeltaV02Tests(unittest.TestCase):
         self.assertTrue(all(rule["status"] == "COMPARABLE" for rule in result["rule_deltas"]))
         self.assertEqual(next(x for x in result["rule_deltas"]
                               if x["rule_id"] == "normalized_duplicate_fraction")["sum_delta"], 0)
+
+    def test_real_architecture_policy_companion_preserves_source_witness(self):
+        policy = {
+            "schema_version": "0.1", "policy_id": "fixture.roles",
+            "revision": "2026-10-23", "scope": "src/pkg",
+            "effective_from": "2026-01-01",
+            "temporality": "CONTEMPORANEOUS",
+            "scope_inventory_complete": True,
+            "roles": {
+                "core": {
+                    "responsibility": "facts", "allowed_imports": ["core"],
+                    "forbidden_imports": ["api"],
+                },
+                "api": {
+                    "responsibility": "api",
+                    "allowed_imports": ["api", "core"], "forbidden_imports": [],
+                },
+            },
+            "exceptions": [],
+        }
+        sources = {
+            "src/pkg/core/mod.py": "from pkg.api import entry\\n",
+            "src/pkg/api/__init__.py": "entry = 1\\n",
+        }
+        sha = PIN_A
+        snapshot_id = f"git:{REPO}@{sha}"
+        analysis = analyze_python(
+            sources, snapshot_id=snapshot_id,
+            ccg_schema=self.ccg, mechanical_profile=self.mechanical,
+        )
+        rule_schema = (ROOT / "contracts/semantic/declared-rule-policy-v0.1.schema.json")
+        import json
+        report = evaluate_declared_architecture_rules(
+            analysis.graph, analysis.dependencies, policy,
+            schema=json.loads(rule_schema.read_text(encoding="utf-8")),
+            source_as_of="2026-10-23",
+        )
+        companion = architecture_metric_rule(
+            report, policy, analyzed_paths=analysis.graph.coverage.analyzed_paths,
+        )
+        self.assertEqual(companion["evidence_status"], "MEASURED")
+        self.assertEqual(companion["observations"][0]["value"], 1)
+        self.assertEqual(companion["observations"][0]["path"], "src/pkg/core/mod.py")
+        qa = mechanical_to_qa_result(
+            analysis.graph, analysis.quality,
+            MechanicalProfile.from_mapping(self.mechanical),
+            schema=self.old_result_schema,
+        )
+        snapshot = metric_snapshot_from_qa_result(
+            qa, sources, repository=REPO, commit_sha=sha,
+            result_schema=self.old_result_schema,
+            snapshot_schema=self.snapshot_schema, companions=(companion,),
+        )
+        self.assertIn("declared_policy_violation_witnesses",
+                      {rule["id"] for rule in snapshot["rules"]})
+        self.assertNotIn("P4",
+                         {x["id"] for x in snapshot["unsupported_principles"]})
 
     def test_one_unsupported_or_incomplete_companion_remains_not_comparable(self):
         source = {"x.py": "def f():\n    return 1\n"}
