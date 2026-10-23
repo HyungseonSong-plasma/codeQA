@@ -247,7 +247,7 @@ class QaResultContractTests(unittest.TestCase):
         with self.assertRaises(QaResultContractError):
             mechanical_to_qa_result(
                 analysis.graph, analysis.quality,
-                MechanicalProfile.from_mapping({**self.profile, "profile_id": "wrong"}),
+                MechanicalProfile(profile_id="wrong", max_function_lines=80, max_call_sites=12),
                 schema=self.result_schema,
             )
         graph = analysis.graph.to_document()
