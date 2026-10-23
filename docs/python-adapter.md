@@ -40,3 +40,12 @@ correspondence model and a reverse-impact query. See
 [Dependency and Impact v0.1](dependency-impact.md). A module-path match
 is **not** the same as CCG `resolved` runtime symbol identity, so existing
 CCG `imports` edges remain unresolved.
+
+## Versioned declared capabilities
+
+The portable v0.1 contract is described in
+[Language Adapter capability/conformance](contracts/language-adapter-0.1.md),
+with registered resources `adapter_capability_schema` and
+`python_adapter_capability`. These declare exactly the implemented parser
+options/coverage and explicitly distinguish partial and NOT_EVALUATED features.
+This declaration is not a quality verdict.

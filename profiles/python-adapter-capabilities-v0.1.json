@@ -1,0 +1,136 @@
+{
+  "schema_version": "0.1",
+  "adapter": {
+    "id": "python-ast-v01",
+    "version": "0.1.0",
+    "language": "python",
+    "parser": {
+      "name": "python-stdlib-ast",
+      "version": "Python 3.12 stdlib",
+      "execution": "syntax_only"
+    }
+  },
+  "input": {
+    "format": "path_to_utf8_source_mapping",
+    "snapshot_identity": "caller_supplied_immutable_id",
+    "acquisition": "caller_supplied",
+    "selection": "caller_supplied_paths_only",
+    "extensions": [
+      ".py"
+    ],
+    "configuration": {
+      "supported": [
+        "optional_caller_owned_ast_cache"
+      ],
+      "unsupported": [
+        "built_in_include_exclude_globs",
+        "caller_selectable_ast_feature_version",
+        "external_parser_plugin"
+      ]
+    }
+  },
+  "output": {
+    "graph_contract": "CCG:0.1",
+    "node_kinds": [
+      "file",
+      "class",
+      "function",
+      "method"
+    ],
+    "edge_kinds": [
+      "defines",
+      "imports",
+      "inherits",
+      "calls"
+    ],
+    "coverage_statuses": [
+      "complete",
+      "partial",
+      "none"
+    ],
+    "resolution_statuses": [
+      "resolved",
+      "unresolved"
+    ],
+    "stable_on_identical_input": true
+  },
+  "features": [
+    {
+      "name": "class_function_method_definition",
+      "status": "SUPPORTED",
+      "evidence": "AST ClassDef, FunctionDef, AsyncFunctionDef; lexical IDs and defines edges"
+    },
+    {
+      "name": "source_locations",
+      "status": "SUPPORTED",
+      "evidence": "1-based AST source line intervals; optional columns are not output"
+    },
+    {
+      "name": "import_syntax",
+      "status": "SUPPORTED",
+      "evidence": "Import and ImportFrom produce source-backed unresolved imports hints"
+    },
+    {
+      "name": "nested_definitions",
+      "status": "SUPPORTED",
+      "evidence": "Nested functions are recorded under lexical defines parent; calls remain conservative"
+    },
+    {
+      "name": "async_definitions",
+      "status": "SUPPORTED",
+      "evidence": "AsyncFunctionDef emits function/method definitions without await semantics"
+    },
+    {
+      "name": "decorator_expressions",
+      "status": "NOT_EVALUATED",
+      "evidence": "Decorator expressions are deliberately not traversed"
+    },
+    {
+      "name": "signature_expression_calls",
+      "status": "NOT_EVALUATED",
+      "evidence": "Default values and annotations are not traversed for expression calls"
+    },
+    {
+      "name": "lambda_body_calls",
+      "status": "NOT_EVALUATED",
+      "evidence": "Lambda bodies are deliberately skipped"
+    },
+    {
+      "name": "local_lexical_calls",
+      "status": "PARTIAL",
+      "evidence": "Resolve only unique undecorated and unshadowed module-level functions"
+    },
+    {
+      "name": "cross_module_call_targets",
+      "status": "NOT_EVALUATED",
+      "evidence": "Cross-module declaration candidates are separate non-CCG companion evidence"
+    },
+    {
+      "name": "dynamic_runtime_dispatch",
+      "status": "NOT_EVALUATED",
+      "evidence": "No imports or execution of analyzed modules; attributes are not resolved"
+    },
+    {
+      "name": "parser_failures",
+      "status": "SUPPORTED",
+      "evidence": "SyntaxError recorded in unprocessed coverage and explicit diagnostic"
+    },
+    {
+      "name": "relative_import_alias_syntax",
+      "status": "SUPPORTED",
+      "evidence": "ImportFrom hints retain relative dots and imported name, not runtime identity"
+    },
+    {
+      "name": "conditional_and_star_import_resolution",
+      "status": "NOT_EVALUATED",
+      "evidence": "Source import syntax observed but runtime identity and conditional binding not resolved"
+    }
+  ],
+  "limitations": [
+    "Complete coverage means all supplied Python paths parsed; semantic completeness not implied.",
+    "Caller is responsible for obtaining and pinning the complete intended repository snapshot.",
+    "No built-in glob includes/excludes: absent paths are not enumerated or assessed.",
+    "Imports and dynamic calls retain unresolved hints rather than fabricated targets.",
+    "Method dispatch, decorators, function signature calls and lambda bodies are not comprehensively modeled."
+  ]
+}
