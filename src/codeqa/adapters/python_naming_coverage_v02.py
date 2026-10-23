@@ -109,6 +109,11 @@ class _Extra(ast.NodeVisitor):
                     a.asname or a.name.split(".")[0] for a in statement.names
                     if a.name in ("typing", "typing_extensions"))
         self.ambiguous_final_roots=candidate_final_roots-set(self.imports)
+        # Star imports can install or replace arbitrary module bindings.
+        # Never treat a Final annotation as statically bound in that scope.
+        self.has_wildcard_import=any(
+            isinstance(node,ast.ImportFrom) and any(a.name=="*" for a in node.names)
+            for node in ast.walk(tree))
         self.scope: list[str]=[]
         self.classes: list[ast.ClassDef]=[]
         self.class_binding_roots: list[set[str]]=[]
@@ -130,8 +135,25 @@ class _Extra(ast.NodeVisitor):
             self.unknown(annotation,"annotation_binding",
                          "module_scope_rebinds_imported_Final_alias")
             return False
-        name=".".join((self.imports.get(first,first),*rest))
-        if name not in ("typing.Final","typing_extensions.Final"):
+        resolved=".".join((self.imports.get(first,first),*rest))
+        supported=("typing.Final","typing_extensions.Final")
+        # The qualified spelling alone cannot witness an imported provider.
+        # In particular, bare 'typing.Final' is not a resolved annotation
+        # unless the module name was explicitly imported and stayed unique.
+        potential=(resolved in supported or name in supported or name=="Final")
+        if self.has_wildcard_import and potential:
+            self.unknown(annotation,"annotation_binding",
+                         "wildcard_import_may_shadow_Final_binding")
+            return False
+        if name in supported and first not in self.imports:
+            self.unknown(annotation,"annotation_binding",
+                         "unverified_typing_namespace_binding")
+            return False
+        if name=="Final" and first not in self.imports:
+            self.unknown(annotation,"annotation_binding",
+                         "unverified_unqualified_Final_binding")
+            return False
+        if resolved not in supported:
             return False
         if self.class_binding_roots and first in self.class_binding_roots[-1]:
             self.unknown(annotation,"annotation_binding",
