@@ -21,3 +21,14 @@ class ControlFlowObservation:
 
     def to_document(self) -> dict[str, Any]:
         return asdict(self)
+
+
+
+@dataclass(frozen=True, slots=True)
+class BodyComplexityEvidence:
+    """Opt-in v0.2 body-only facts with separate declaration exclusions."""
+
+    observations: tuple[ControlFlowObservation, ...]
+    ignored_declarations: tuple[tuple[str, tuple[str, ...]], ...]
+    unprocessed: tuple[tuple[str, str], ...]
+    producer: str = "python-ast-body-complexity-v0.2"
