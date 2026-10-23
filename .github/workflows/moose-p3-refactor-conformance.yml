@@ -1,0 +1,81 @@
+name: MOOSE pinned P3 extraction-review conformance
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/extraction_aware_p3.py'
+      - 'tests/test_extraction_aware_p3.py'
+      - 'contracts/qa/extraction-p3-v0.1.schema.json'
+      - 'profiles/extraction-p3-v0.1.json'
+      - 'fixtures/moose-p3-refactor/**'
+      - 'docs/extraction-aware-p3.md'
+      - '.github/workflows/moose-p3-refactor-conformance.yml'
+      - 'pyproject.toml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/codeqa/evaluation/extraction_aware_p3.py'
+      - 'tests/test_extraction_aware_p3.py'
+      - 'contracts/qa/extraction-p3-v0.1.schema.json'
+      - 'profiles/extraction-p3-v0.1.json'
+      - 'fixtures/moose-p3-refactor/**'
+      - 'docs/extraction-aware-p3.md'
+      - '.github/workflows/moose-p3-refactor-conformance.yml'
+      - 'pyproject.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-extraction-p3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact codeQA revision
+        uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - name: Checkout immutable MOOSE base
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 69be07aab3e5815a1670f7308deb6caf6b49bc79
+          path: baseline
+          persist-credentials: false
+      - name: Checkout immutable Blind revision
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 9343dfd8a62f51886b1bf80e73f9887076fcd8d9
+          path: blind
+          persist-credentials: false
+      - name: Checkout immutable Guided revision
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: d8e8d5e2d5154d907953699644263b1dba681be6
+          path: guided
+          persist-credentials: false
+      - name: Cross-repository exact-SHA/source-byte verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='physics_harness/analysis/field_comparison.py'
+          for info in \
+            'baseline 69be07aab3e5815a1670f7308deb6caf6b49bc79 base' \
+            'blind 9343dfd8a62f51886b1bf80e73f9887076fcd8d9 blind' \
+            'guided d8e8d5e2d5154d907953699644263b1dba681be6 guided'
+          do
+            read -r dir sha label <<< "$info"
+            test "$(git -C "$dir" rev-parse HEAD)" = "$sha"
+            cmp "$dir/$expected" "codeqa/fixtures/moose-p3-refactor/$label.py.txt"
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install codeQA without running MOOSE code
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Run adversarial extraction P3 tests
+        run: python3 -m unittest discover -s codeqa/tests -p test_extraction_aware_p3.py -v

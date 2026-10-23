@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:extraction-p3:v0.1",
+  "title": "Opt-in extraction-aware P3 source-backed comparison",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "max_call_sites",
+    "path",
+    "before",
+    "after",
+    "parent_call_delta",
+    "cohort_call_delta",
+    "selected_scope_call_delta",
+    "selected_scope_review_delta",
+    "relocated_exact_syntax",
+    "status",
+    "limitations",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "profile_id": {
+      "const": "codeqa.p3.extraction.v0.1"
+    },
+    "max_call_sites": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "before": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "source_sha256",
+        "coverage_status",
+        "analysis_status",
+        "limitations",
+        "selected_file_count",
+        "function_count",
+        "selected_scope_calls",
+        "selected_scope_review_triggers",
+        "selected_scope_unresolved_calls",
+        "parent",
+        "parent_calls",
+        "parent_review",
+        "helpers",
+        "cohort_calls"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[a-f0-9]{40}$"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "coverage_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "none"
+          ]
+        },
+        "analysis_status": {
+          "enum": [
+            "COMPLETE",
+            "LIMITED",
+            "NONE"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "selected_file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "function_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_scope_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_scope_review_triggers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_scope_unresolved_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parent_review": {
+          "type": "boolean"
+        },
+        "helpers": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "prefixItems": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              }
+            ],
+            "items": false
+          }
+        },
+        "cohort_calls": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "after": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "source_sha256",
+        "coverage_status",
+        "analysis_status",
+        "limitations",
+        "selected_file_count",
+        "function_count",
+        "selected_scope_calls",
+        "selected_scope_review_triggers",
+        "selected_scope_unresolved_calls",
+        "parent",
+        "parent_calls",
+        "parent_review",
+        "helpers",
+        "cohort_calls"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[a-f0-9]{40}$"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "coverage_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "none"
+          ]
+        },
+        "analysis_status": {
+          "enum": [
+            "COMPLETE",
+            "LIMITED",
+            "NONE"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "selected_file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "function_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_scope_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_scope_review_triggers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_scope_unresolved_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parent_review": {
+          "type": "boolean"
+        },
+        "helpers": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "prefixItems": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              }
+            ],
+            "items": false
+          }
+        },
+        "cohort_calls": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "parent_call_delta": {
+      "type": "integer"
+    },
+    "cohort_call_delta": {
+      "type": "integer"
+    },
+    "selected_scope_call_delta": {
+      "type": "integer"
+    },
+    "selected_scope_review_delta": {
+      "type": "integer"
+    },
+    "relocated_exact_syntax": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "before_parent",
+          "before_line",
+          "after_helper",
+          "after_line",
+          "expression",
+          "syntax_sha256"
+        ],
+        "properties": {
+          "before_parent": {
+            "type": "string",
+            "minLength": 1
+          },
+          "before_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "after_helper": {
+            "type": "string",
+            "minLength": 1
+          },
+          "after_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expression": {
+            "type": "string",
+            "minLength": 1
+          },
+          "syntax_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "REVIEW_TRIGGER_REDISTRIBUTION",
+        "LOWER_STATIC_CALL_COUNT_OBSERVED",
+        "NO_THRESHOLD_REDISTRIBUTION",
+        "INSUFFICIENT_COVERAGE",
+        "UNCHANGED_SOURCE"
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "interpretation": {
+      "const": "FUNCTION_THRESHOLD_REDISTRIBUTION_NOT_PROVEN_DEPENDENCY_IMPROVEMENT"
+    }
+  }
+}
