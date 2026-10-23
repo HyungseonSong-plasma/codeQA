@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'src/codeqa/evaluation/extraction_aware_p3.py'
+      - 'src/codeqa/adapters/python_p3_witness.py'
+      - 'src/codeqa/core/p3_witness.py'
       - 'tests/test_extraction_aware_p3.py'
       - 'contracts/qa/extraction-p3-v0.1.schema.json'
       - 'profiles/extraction-p3-v0.1.json'
