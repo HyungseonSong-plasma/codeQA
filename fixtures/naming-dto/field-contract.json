@@ -1,0 +1,1 @@
+{"provider":"example_api","revision":"v1","models":{"UserDTO":{"user_id":{"input":"UserID","output":"userId"}},"LegacyRow":{"user_id":{"database":"USER_ID"}}}}

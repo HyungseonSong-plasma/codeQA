@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:directional-fields:v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "profile_fingerprint",
+    "findings",
+    "missing_source_contracts",
+    "status",
+    "limitations",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "owner",
+          "field",
+          "line",
+          "direction",
+          "internal_name",
+          "expected_external_name",
+          "declared_external_name",
+          "status",
+          "reason"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "direction": {
+            "enum": [
+              "input",
+              "output",
+              "database"
+            ]
+          },
+          "internal_name": {
+            "type": "string"
+          },
+          "expected_external_name": {
+            "type": "string"
+          },
+          "declared_external_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "NOT_EVALUATED",
+              "DECLARED_MATCH_NOT_RUNTIME_VERIFIED",
+              "DECLARED_MISMATCH",
+              "ALIAS_COLLISION"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "missing_source_contracts": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "items": false,
+        "prefixItems": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "status": {
+      "enum": [
+        "REVIEW_REQUIRED",
+        "NOT_EVALUATED",
+        "DECLARED_MAPPING_OBSERVED"
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "interpretation": {
+      "const": "DECLARED_DIRECTIONAL_MAPPING_NOT_EFFECTIVE_RUNTIME_SERIALIZATION_OR_DATABASE_PROOF"
+    }
+  }
+}
