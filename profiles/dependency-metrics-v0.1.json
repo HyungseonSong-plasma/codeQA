@@ -1,0 +1,6 @@
+{
+  "profile_id": "dependency-static-potential-v0.1",
+  "schema_version": "0.1",
+  "max_out_degree_review": 8,
+  "max_cycle_nodes_review": 1
+}
