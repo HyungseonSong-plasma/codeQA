@@ -1,0 +1,56 @@
+{
+  "schema_version": 2,
+  "source_repository": "HyungseonSong-plasma/chatgpt-operation",
+  "operating_system": {
+    "revision": "9b335e3fbb9c5e8e323e382daeec56fa25336822",
+    "expected_version": "Samuel",
+    "index": {
+      "path": "docs/operating_system/README.md",
+      "expected_blob_sha": "77448ab850a06c141b16976c1c75353e7224973d"
+    },
+    "essential_rules": {
+      "path": "docs/operating_system/ESSENTIAL_RULES.md",
+      "expected_blob_sha": "9d11cb64007964a6c1fdea91779a3b25618a5098"
+    }
+  },
+  "skills": [
+    {
+      "name": "session-bootstrap",
+      "load_on": [
+        "INIT"
+      ],
+      "revision": "9b335e3fbb9c5e8e323e382daeec56fa25336822",
+      "path": "skills/session-bootstrap/README.md",
+      "expected_blob_sha": "de554ce4ba3a73089a3539b4b8726cd89b340c46"
+    },
+    {
+      "name": "state-refresh",
+      "load_on": [
+        "INIT",
+        "SCHEDULED_CONTROLLER"
+      ],
+      "revision": "9b335e3fbb9c5e8e323e382daeec56fa25336822",
+      "path": "skills/state-refresh/README.md",
+      "expected_blob_sha": "4efe6135b93456f2cc9da31786967f5f6ac80033"
+    },
+    {
+      "name": "repository-mutation",
+      "load_on": [
+        "MUTATE",
+        "GITHUB_BRANCH_DELETE",
+        "GITHUB_MUTATION_CAPABILITY_VERDICT"
+      ],
+      "revision": "9b335e3fbb9c5e8e323e382daeec56fa25336822",
+      "path": "skills/repository-mutation/README.md",
+      "expected_blob_sha": "7c1805da3942da5a94c49556d9400ca378161142"
+    }
+  ],
+  "skill_catalog": {
+    "path": "skills/catalog.json",
+    "expected_blob_sha": "9bee98efd28235ccafdcffde18da06dcc0386702"
+  },
+  "capability_registry": {
+    "path": "skills/capability-registry.json",
+    "expected_blob_sha": "aa87d20fa68dc6e171ffd3240b4e4bc6d3bf28be"
+  }
+}
