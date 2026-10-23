@@ -136,6 +136,34 @@ class ExtendedCoverageTests(unittest.TestCase):
             with self.subTest(case=case),self.assertRaises(NamingCoverageError):
                 NamingCoveragePolicy.from_mapping(case)
 
+    def test_rebound_final_imports_abstain_instead_of_claiming_constant(self):
+        examples=[
+            ("from typing import Final as F\nF = list\nBadName: F[int] = 1\n",
+             "module_scope_rebinds_imported_Final_alias"),
+            ("import typing as tp\ntp, other = object(), None\nBadName: tp.Final[int] = 1\n",
+             "module_scope_rebinds_imported_Final_alias"),
+            ("from typing import Final as F\nclass C:\n    F = list\n    BadName: F[int] = 1\n",
+             "class_scope_shadows_imported_Final_alias"),
+            ("from typing import Final as F\nclass C:\n    if condition:\n        F = list\n    BadName: F[int] = 1\n",
+             "class_scope_shadows_imported_Final_alias"),
+        ]
+        for code, reason in examples:
+            with self.subTest(source=code):
+                _,ext,report=self.inspect({"src/module.py":code})
+                self.assertFalse(any(f.name=="BadName" for f in report.findings))
+                self.assertEqual(report.status,"NOT_EVALUATED")
+                self.assertTrue(any(
+                    u.category=="annotation_binding" and u.reason==reason
+                    for u in ext.uncertainty
+                ))
+
+    def test_nested_local_assignment_does_not_shadow_imported_final(self):
+        code=("from typing import Final as F\n"
+              "def helper():\n    F = list\n"
+              "BadName: F[int] = 1\n")
+        _,_,report=self.inspect({"src/module.py":code})
+        self.assertEqual(self.find(report,"BadName").status,"REVIEW_REQUIRED")
+
     def test_unicode_identifier_does_not_auto_normalize_or_claim_conformance(self):
         src={"src/unicode.py":"from typing import Final\nK: Final[str] = 'kelvin'\n"}
         _,_,report=self.inspect(src)
