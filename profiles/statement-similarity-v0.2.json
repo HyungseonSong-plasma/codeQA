@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.2",
+  "profile_id": "python-direct-statement-patterns-v0.2",
+  "min_statement_tokens": 18,
+  "normalize_identifiers": true,
+  "normalize_literals": true,
+  "statement_kinds": [
+    "if",
+    "for",
+    "while",
+    "try",
+    "with",
+    "match"
+  ],
+  "excluded_prefixes": [
+    "vendor/",
+    "generated/"
+  ]
+}
