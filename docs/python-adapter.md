@@ -49,3 +49,10 @@ with registered resources `adapter_capability_schema` and
 `python_adapter_capability`. These declare exactly the implemented parser
 options/coverage and explicitly distinguish partial and NOT_EVALUATED features.
 This declaration is not a quality verdict.
+
+## Pinned Samuel source conformance
+
+The accepted exact-SHA Samuel source fixture, selected source line/edge ground
+truth, coverage cases and byte-for-byte cross-repo CI are documented in
+[Samuel Adapter Conformance](samuel-adapter-conformance.md).
+The three frozen controller files are **data**, not executed imports.

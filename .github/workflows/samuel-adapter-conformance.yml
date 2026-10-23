@@ -1,0 +1,57 @@
+name: Samuel Python Adapter — pinned source conformance
+
+on:
+  pull_request:
+    paths:
+      - 'fixtures/samuel/**'
+      - 'tests/test_samuel_adapter_conformance.py'
+      - 'docs/samuel-adapter-conformance.md'
+      - 'docs/python-adapter.md'
+      - '.github/workflows/samuel-adapter-conformance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'fixtures/samuel/**'
+      - 'tests/test_samuel_adapter_conformance.py'
+      - 'docs/samuel-adapter-conformance.md'
+      - 'docs/python-adapter.md'
+      - '.github/workflows/samuel-adapter-conformance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  samuel-source-conformance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact codeQA revision
+        uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - name: Checkout pinned Samuel source
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/chatgpt-operation
+          ref: 9b335e3fbb9c5e8e323e382daeec56fa25336822
+          path: samuel
+          persist-credentials: false
+      - name: Verify three exact source byte copies independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in bootstrap action_lifecycle runtime; do
+            cmp "samuel/src/chatgpt_operation/controller/$name.py" \
+                "codeqa/fixtures/samuel/controller/$name.py.txt"
+          done
+          test "$(git -C samuel rev-parse HEAD)" = "9b335e3fbb9c5e8e323e382daeec56fa25336822"
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install codeQA only; never install Samuel source
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Run pinned Samuel ground truth and adversarial tests
+        run: python3 -m unittest discover -s codeqa/tests -p test_samuel_adapter_conformance.py -v

@@ -1,0 +1,1948 @@
+"""Production composition root for one Samuel controller cycle.
+
+The root owns deterministic state loading, admission lifecycle, work selection,
+reasoning preflight, and typed reasoning consumption. It returns write requests
+but never performs repository side effects itself.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
+import copy
+from typing import Any, Callable
+
+from .action_lifecycle import ActionLifecycle, DispatchIntent
+from .action_plan import ActionPlan, ExecutorKind
+from .bootstrap import BootstrapWork, select_controller_work
+from .command import ControllerCommand, ControllerCommandKind
+from .centralization import (
+    centralization_reasoning_contract,
+    load_manifest as load_centralization_manifest,
+)
+from .decisions import DecisionRegistry, GuardOutcome
+from .durable_state import (
+    can_rollover_state,
+    is_quiescent_unexecuted_state,
+    load_state_comment,
+    retire_quiescent_state,
+    state_write_request,
+)
+from .diagnostic import (
+    enqueue_suspended_action,
+    record_action_dispatch_intent,
+    record_corrective_dispatch_intent,
+    record_diagnostic_dispatch_intent,
+    record_evidence_dispatch_intent,
+)
+from .issue_ingestion import (
+    ADMISSION_LABEL,
+    ADMISSION_MARKER,
+    admit_issue,
+    decode_admission_ledger,
+    discover_admissible_issues,
+    encode_admission_ledger,
+    transition_issue_status,
+)
+from .issue_planning import plan_admitted_issue
+from .merge_recovery import (
+    conflict_main_file_snapshots,
+    conflict_recovery_branch_name,
+    conflict_recovery_branch_plan,
+    conflicted_workload_pull_requests,
+    rejected_merge_targets,
+)
+from .preflight import (
+    deterministic_completion_claim,
+    eligible_acceptance_criteria,
+    extract_acceptance_criteria,
+    integrated_acceptance_evidence,
+    is_observability_only_workload,
+    preflight_semantic_plan,
+)
+from .issue_reasoning import (
+    IssueReasoningProposal,
+    compile_guarded_action,
+)
+from .reasoning import ReasoningNodeError, ReasoningRequest, StructuredReasoningNode
+from .reasoning_consumption import (
+    ReasoningConsumption,
+    consume_reasoning_submission,
+)
+from .reasoning_provider import ReasoningProviderRegistry
+from .predispatch_recovery import (
+    record_predispatch_failure,
+    resolve_predispatch_failure,
+    unresolved_predispatch_failure,
+)
+from .research import ResearchState
+from .rollover_evidence import inherited_evidence_for_issue
+from .trusted_validation import (
+    record_trusted_validation_intent,
+    select_trusted_validation_work,
+)
+from chatgpt_operation.github.native_executor import (
+    NativeGitHubCommand,
+    native_github_reasoning_contract,
+)
+from chatgpt_operation.weekly_schedule import (
+    SCHEDULER_CAPABILITY,
+    existing_scheduler_surfaces,
+    scheduled_runtime_reasoning_contract,
+)
+from chatgpt_operation.repository.action_plan_adapter import to_repository_manifest
+from chatgpt_operation.repository.mutation import (
+    PolicyError,
+    authorize_manifest,
+    load_json as load_repository_json,
+    parse_policy,
+    repository_mutation_policy_reasoning_contract,
+    repository_mutation_reasoning_contract,
+)
+
+
+class ControllerCompositionError(ValueError):
+    pass
+
+
+class TriggerKind(str, Enum):
+    SCHEDULE = "schedule"
+    WORKFLOW_DISPATCH = "workflow_dispatch"
+    ISSUES = "issues"
+    PULL_REQUEST = "pull_request"
+    ISSUE_COMMENT = "issue_comment"
+    RETRY = "retry"
+    BOOTSTRAP = "bootstrap"
+
+
+@dataclass(frozen=True)
+class ControllerTrigger:
+    kind: TriggerKind
+    action: str = ""
+    head_sha: str = ""
+    ref: str = ""
+    executor_ref: str = ""
+    executor_head_sha: str = ""
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> "ControllerTrigger":
+        required = {
+            "kind", "action", "head_sha", "ref",
+            "executor_ref", "executor_head_sha",
+        }
+        if not isinstance(raw, dict) or set(raw) != required:
+            raise ControllerCompositionError("invalid controller trigger schema")
+        try:
+            kind = TriggerKind(raw["kind"])
+        except (TypeError, ValueError) as exc:
+            raise ControllerCompositionError("unsupported controller trigger") from exc
+        values: dict[str, str] = {}
+        for key in (
+            "action", "head_sha", "ref", "executor_ref", "executor_head_sha",
+        ):
+            value = raw[key]
+            if not isinstance(value, str):
+                raise ControllerCompositionError(f"trigger {key} must be a string")
+            values[key] = value
+        return cls(kind=kind, **values)
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "kind": self.kind.value,
+            "action": self.action,
+            "head_sha": self.head_sha,
+            "ref": self.ref,
+            "executor_ref": self.executor_ref,
+            "executor_head_sha": self.executor_head_sha,
+        }
+
+
+@dataclass(frozen=True)
+class ControllerCycle:
+    trigger: ControllerTrigger
+    selected_work: dict[str, Any]
+    issue_planning: dict[str, Any] | None
+    admission_write: dict[str, Any] | None = None
+    state_write: dict[str, Any] | None = None
+    execution_command: ControllerCommand | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": 4,
+            "trigger": self.trigger.to_dict(),
+            "selected_work": self.selected_work,
+            "issue_planning": self.issue_planning,
+            "admission_write": self.admission_write,
+            "state_write": self.state_write,
+            "execution_command": (
+                None if self.execution_command is None
+                else self.execution_command.to_dict()
+            ),
+        }
+
+
+def _admission_state(
+    comments: list[dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], int | None]:
+    matches = [
+        comment for comment in comments
+        if ADMISSION_MARKER in str(comment.get("body", ""))
+    ]
+    if len(matches) > 1:
+        raise ControllerCompositionError("multiple admission ledgers")
+    if not matches:
+        return {}, None
+    comment_id = matches[0].get("id")
+    if not isinstance(comment_id, int) or isinstance(comment_id, bool):
+        raise ControllerCompositionError("admission ledger comment id is invalid")
+    return decode_admission_ledger(str(matches[0]["body"])), comment_id
+
+
+def _admission_write(
+    comment_id: int | None,
+    work: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "method": "POST" if comment_id is None else "PATCH",
+        "comment_id": comment_id,
+        "body": encode_admission_ledger(work),
+    }
+
+
+def _selected_payload(selected: tuple[str, Any] | None) -> dict[str, Any]:
+    if selected is None:
+        return {"kind": "idle"}
+    kind, value = selected
+    if kind == "pending":
+        if not isinstance(value, BootstrapWork):
+            raise ControllerCompositionError("pending work has invalid type")
+        return {
+            "kind": "pending",
+            "work_id": value.work_id,
+            "workflow": value.workflow,
+            "ref": value.ref,
+        }
+    if not isinstance(value, dict):
+        raise ControllerCompositionError("selected work payload must be an object")
+    return {"kind": kind, **value}
+
+
+def _deterministic_terminal_close_plan(
+    state: ResearchState,
+    item: dict[str, Any],
+    repository_context: dict[str, Any] | None,
+) -> tuple[ActionPlan, dict[str, Any]] | None:
+    """Return a fail-closed close transaction when all acceptance work is integrated."""
+    issue_body=str(item.get("body") or "")
+    completion_claim=deterministic_completion_claim(issue_body,state)
+    if completion_claim is None:
+        return None
+
+    issue_number=item.get("issue_number")
+    if not isinstance(issue_number,int) or isinstance(issue_number,bool):
+        raise ControllerCompositionError(
+            "deterministic terminal close requires an integer issue_number"
+        )
+    repository=str((repository_context or {}).get("repository") or "").strip()
+    if "/" not in repository:
+        raise ControllerCompositionError(
+            "deterministic terminal close requires repository context"
+        )
+
+    plan=ActionPlan.from_dict({
+        "schema_version":1,
+        "research_id":state.research_id,
+        "stage":"execute",
+        "executor":"github_native",
+        "payload":{
+            "action":"close_issue",
+            "repository":repository,
+            "target":{"number":issue_number},
+            "preconditions":{"issue_state":"open"},
+            "desired_postcondition":{"issue_state":"closed"},
+        },
+        "expected_observation":(
+            f"Issue #{issue_number} is closed after every acceptance criterion "
+            "has verified integrated evidence."
+        ),
+    })
+    failure=preflight_semantic_plan(
+        plan=plan,
+        progress=None,
+        completion_claim=completion_claim,
+        issue_body=issue_body,
+        state=state,
+        repository_context=repository_context or {},
+    )
+    if failure is not None:
+        raise ControllerCompositionError(
+            "deterministic terminal close preflight failed: "
+            + failure.as_validation_error()
+        )
+    return plan,completion_claim
+
+
+def _initial_state(
+    work_id: str,
+    item: dict[str, Any],
+    *,
+    inherited_evidence: list[dict[str, Any]] | None = None,
+) -> ResearchState:
+    return ResearchState(
+        work_id,
+        str(item.get("title") or item.get("body") or work_id),
+        inherited_evidence=copy.deepcopy(inherited_evidence or []),
+    )
+
+
+def _owned_ready_pr_plan(
+    state: ResearchState,
+    repository_context: dict[str, Any] | None,
+) -> ActionPlan | None:
+    """Promote exactly one ready PR owned by the active workload into the action queue."""
+    if repository_context is None or not can_rollover_state(state):
+        return None
+    if any(
+        recovery.get("status") in {"open", "needs_evidence"}
+        for recovery in state.diagnostic_recoveries.values()
+    ):
+        return None
+
+    owned_branches: set[str] = set()
+    for item in state.action_queue.values():
+        plan_raw=item.get("plan")
+        if not isinstance(plan_raw,dict):
+            continue
+        payload=plan_raw.get("payload")
+        if not isinstance(payload,dict):
+            continue
+        target=payload.get("target")
+        if not isinstance(target,dict):
+            continue
+        branch=target.get("branch")
+        if isinstance(branch,str) and branch.startswith("samuel/"):
+            owned_branches.add(branch)
+        if payload.get("action")=="create_pr":
+            head=target.get("head")
+            if isinstance(head,str) and head.startswith("samuel/"):
+                owned_branches.add(head)
+
+    if not owned_branches:
+        return None
+
+    repository=str(repository_context.get("repository") or "").strip()
+    prs=repository_context.get("open_pull_requests",[])
+    if not repository or not isinstance(prs,list):
+        return None
+    candidates=[
+        item for item in prs
+        if isinstance(item,dict)
+        and item.get("state")=="open"
+        and not bool(item.get("draft"))
+        and item.get("ci_state")=="success"
+        and item.get("head_ref") in owned_branches
+        and (
+            item.get("number"),item.get("head_sha")
+        ) not in rejected_merge_targets(state)
+        and isinstance(item.get("number"),int)
+        and isinstance(item.get("head_sha"),str)
+        and item.get("head_sha")
+    ]
+    if len(candidates)>1:
+        raise ControllerCompositionError(
+            "multiple ready pull requests belong to active workload"
+        )
+    if not candidates:
+        return None
+
+    pr=candidates[0]
+    plan=ActionPlan.from_dict({
+        "schema_version":1,
+        "research_id":state.research_id,
+        "stage":"execute",
+        "executor":"github_native",
+        "payload":{
+            "action":"merge_pr",
+            "repository":repository,
+            "target":{
+                "number":pr["number"],
+                "expected_head_sha":pr["head_sha"],
+            },
+            "desired_postcondition":{"merged":True},
+        },
+        "expected_observation":(
+            f"Pull request #{pr['number']} is merged at exact head "
+            f"{pr['head_sha']} after native safety checks."
+        ),
+    })
+    NativeGitHubCommand.from_plan(plan)
+    existing=state.action_queue.get(plan.idempotency_key)
+    if existing is not None:
+        status=existing.get("status")
+        if status in {
+            ActionLifecycle.COMPLETE.value,
+            ActionLifecycle.REJECTED.value,
+            ActionLifecycle.SUSPENDED.value,
+        }:
+            return None
+        raise ControllerCompositionError(
+            "ready PR merge action already exists in non-terminal lifecycle"
+        )
+    return plan
+
+
+class SamuelController:
+    """Single deterministic root for selecting and preflighting one controller cycle."""
+
+    def __init__(
+        self,
+        *,
+        decisions: DecisionRegistry,
+        reasoning: ReasoningProviderRegistry | None = None,
+        reasoning_enabled: bool = True,
+        now: Callable[[], datetime] | None = None,
+    ):
+        self.decisions = decisions
+        self.reasoning = reasoning or ReasoningProviderRegistry()
+        self.reasoning_enabled = reasoning_enabled
+        self.now = now or (lambda: datetime.now(timezone.utc))
+
+    def _requested_at(self) -> str:
+        value = self.now()
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    @staticmethod
+    def _require_executor_identity(trigger: ControllerTrigger) -> tuple[str, str]:
+        if not trigger.executor_ref.strip() or not trigger.executor_head_sha.strip():
+            raise ControllerCompositionError(
+                "dispatch intent requires executor_ref and executor_head_sha"
+            )
+        return trigger.executor_ref.strip(), trigger.executor_head_sha.strip()
+
+    def _prepare_dispatch_intent(
+        self,
+        *,
+        trigger: ControllerTrigger,
+        comments: list[dict[str, Any]],
+        state: ResearchState,
+        payload: dict[str, Any],
+        admission_write: dict[str, Any] | None = None,
+        planning: dict[str, Any] | None = None,
+    ) -> ControllerCycle:
+        kind = payload.get("kind")
+        if kind not in {"action", "evidence", "diagnostic", "corrective"}:
+            return ControllerCycle(
+                trigger, payload, planning, admission_write, None
+            )
+        action_id = payload.get("action_id")
+        if not isinstance(action_id, str) or not action_id:
+            raise ControllerCompositionError("dispatch work has no action_id")
+        executor_ref, executor_head_sha = self._require_executor_identity(trigger)
+        proposed = copy.deepcopy(state)
+        requested_at = self._requested_at()
+        if kind == "action":
+            raw_plan = payload.get("plan")
+            if not isinstance(raw_plan, dict):
+                raise ControllerCompositionError("action work has no typed plan")
+            plan = ActionPlan.from_dict(raw_plan)
+            workflow = {
+                ExecutorKind.GITHUB_NATIVE: "samuel-native-github.yml",
+                ExecutorKind.REPOSITORY_MUTATION: "samuel-repository-mutation.yml",
+            }.get(plan.executor)
+            if workflow is None:
+                raise ControllerCompositionError(
+                    "production action executor is not supported: " + plan.executor.value
+                )
+            record_action_dispatch_intent(
+                proposed,
+                action_id,
+                workflow=workflow,
+                ref=executor_ref,
+                requested_at=requested_at,
+                expected_head_sha=executor_head_sha,
+            )
+        elif kind == "evidence":
+            record_evidence_dispatch_intent(
+                proposed,
+                action_id,
+                workflow="samuel-evidence-acquisition.yml",
+                ref=executor_ref,
+                requested_at=requested_at,
+                expected_head_sha=executor_head_sha,
+            )
+        elif kind == "diagnostic":
+            record_diagnostic_dispatch_intent(
+                proposed,
+                action_id,
+                workflow="samuel-diagnostic-recovery.yml",
+                ref=executor_ref,
+                requested_at=requested_at,
+                expected_head_sha=executor_head_sha,
+            )
+        else:
+            record_corrective_dispatch_intent(
+                proposed,
+                action_id,
+                workflow="samuel-native-github.yml",
+                ref=executor_ref,
+                requested_at=requested_at,
+                expected_head_sha=executor_head_sha,
+            )
+        command_kind = {
+            "action": ControllerCommandKind.DISPATCH_ACTION,
+            "evidence": ControllerCommandKind.DISPATCH_EVIDENCE,
+            "diagnostic": ControllerCommandKind.DISPATCH_DIAGNOSTIC,
+            "corrective": ControllerCommandKind.DISPATCH_CORRECTIVE,
+        }[kind]
+        command = ControllerCommand(
+            command_kind,
+            action_id,
+            proposed.research_id,
+            proposed.revision,
+        )
+        return ControllerCycle(
+            trigger,
+            payload,
+            planning,
+            admission_write,
+            state_write_request(comments, proposed),
+            command,
+        )
+
+    def _prepare_trusted_validation(
+        self,
+        *,
+        trigger: ControllerTrigger,
+        comments: list[dict[str, Any]],
+        state: ResearchState,
+        work: tuple[str, dict[str, Any]],
+        admission_write: dict[str, Any] | None,
+    ) -> ControllerCycle:
+        kind,payload=work
+        action_id=payload.get("action_id")
+        if not isinstance(action_id,str) or not action_id:
+            raise ControllerCompositionError(
+                "trusted validation work has no action_id"
+            )
+        if kind=="trusted_validation_wait":
+            return ControllerCycle(
+                trigger,
+                {
+                    "kind":"trusted_validation_wait",
+                    "action_id":action_id,
+                    "work_id":state.research_id,
+                },
+                None,
+                admission_write,
+                None,
+                None,
+            )
+        if kind=="trusted_validation_intent":
+            command=ControllerCommand(
+                ControllerCommandKind.RECONCILE_TRUSTED_VALIDATION,
+                action_id,
+                state.research_id,
+                state.revision,
+            )
+            return ControllerCycle(
+                trigger,
+                {
+                    "kind":"trusted_validation_intent",
+                    "action_id":action_id,
+                    "work_id":state.research_id,
+                },
+                None,
+                admission_write,
+                None,
+                command,
+            )
+        if kind!="trusted_validation":
+            raise ControllerCompositionError(
+                "unsupported trusted validation work kind"
+            )
+        pr=payload.get("pr")
+        if not isinstance(pr,dict):
+            raise ControllerCompositionError(
+                "trusted validation work has no PR snapshot"
+            )
+        executor_ref,executor_head_sha=self._require_executor_identity(trigger)
+        proposed=copy.deepcopy(state)
+        record_trusted_validation_intent(
+            proposed,
+            action_id,
+            pr_number=int(pr["number"]),
+            head_sha=str(pr["head_sha"]),
+            head_branch=str(pr["head_ref"]),
+            base_ref=str(pr["base_ref"]),
+            workflow="samuel-trusted-pr-validation.yml",
+            ref=executor_ref,
+            requested_at=self._requested_at(),
+            expected_head_sha=executor_head_sha,
+        )
+        command=ControllerCommand(
+            ControllerCommandKind.DISPATCH_TRUSTED_VALIDATION,
+            action_id,
+            proposed.research_id,
+            proposed.revision,
+        )
+        return ControllerCycle(
+            trigger,
+            {
+                "kind":"trusted_validation",
+                "action_id":action_id,
+                "work_id":state.research_id,
+                "pr_number":int(pr["number"]),
+                "head_sha":str(pr["head_sha"]),
+            },
+            None,
+            admission_write,
+            state_write_request(comments,proposed),
+            command,
+        )
+
+    @staticmethod
+    def _command_for_in_flight(
+        payload: dict[str, Any],
+        state: ResearchState,
+    ) -> ControllerCommand | None:
+        mapping = {
+            "action_intent": ControllerCommandKind.RECONCILE_ACTION,
+            "action_observation": ControllerCommandKind.OBSERVE_ACTION,
+            "evidence_intent": ControllerCommandKind.RECONCILE_EVIDENCE,
+            "evidence_observation": ControllerCommandKind.OBSERVE_EVIDENCE,
+            "diagnostic_intent": ControllerCommandKind.RECONCILE_DIAGNOSTIC,
+            "diagnostic_observation": ControllerCommandKind.OBSERVE_DIAGNOSTIC,
+            "corrective_intent": ControllerCommandKind.RECONCILE_CORRECTIVE,
+            "corrective_observation": ControllerCommandKind.OBSERVE_CORRECTIVE,
+        }
+        command_kind = mapping.get(payload.get("kind"))
+        if command_kind is None:
+            return None
+        action_id = payload.get("action_id")
+        if not isinstance(action_id, str) or not action_id:
+            raise ControllerCompositionError("in-flight work has no action_id")
+        return ControllerCommand(
+            command_kind,
+            action_id,
+            state.research_id,
+            state.revision,
+        )
+
+    def _consume_provider_reasoning(
+        self,
+        *,
+        work: dict[str, dict[str, Any]],
+        work_id: str,
+        state: ResearchState,
+        repository_context: dict[str, Any] | None,
+    ) -> tuple[ReasoningConsumption, dict[str, Any]]:
+        item = work.get(work_id)
+        if item is None or item.get("status") != "reasoning_required":
+            raise ControllerCompositionError(
+                "provider reasoning requires reasoning_required work"
+            )
+        planned = plan_admitted_issue(item, registry=self.decisions)
+        context = planned.envelope.as_reasoning_context()
+        issue_body=str(item.get("body") or "")
+        acceptance_criteria=extract_acceptance_criteria(issue_body)
+        observability_only=is_observability_only_workload(issue_body)
+        eligible_criteria=eligible_acceptance_criteria(issue_body,state)
+        target_acceptance_criterion=(
+            eligible_criteria[0] if eligible_criteria else None
+        )
+        context["acceptance_criteria"]=list(eligible_criteria)
+        context["eligible_acceptance_criteria"]=list(eligible_criteria)
+        context["target_acceptance_criterion"]=target_acceptance_criterion
+        context["workload_mode"]=(
+            "observability_only" if observability_only else "actionable"
+        )
+        integrated_acceptance=integrated_acceptance_evidence(state)
+        context["durable_state"] = {
+            "research_id": state.research_id,
+            "revision": state.revision,
+            "stage": state.stage.value,
+            "action_queue": copy.deepcopy(state.action_queue),
+            "execution_results": copy.deepcopy(state.execution_results),
+            "diagnostic_recoveries": copy.deepcopy(state.diagnostic_recoveries),
+            "predispatch_failures": copy.deepcopy(state.predispatch_failures),
+            "inherited_evidence": copy.deepcopy(state.inherited_evidence),
+            "integrated_acceptance_evidence": {
+                criterion:list(action_ids)
+                for criterion,action_ids in integrated_acceptance.items()
+            },
+        }
+        context["repository_context"] = copy.deepcopy(repository_context or {})
+        conflict_prs=conflicted_workload_pull_requests(
+            state,context["repository_context"]
+        )
+        context["repository_context"]["conflicted_workload_pull_requests"]=(
+            conflict_prs
+        )
+        context["repository_context"]["conflicted_workload_branches"]=[
+            item["head_ref"] for item in conflict_prs
+        ]
+        context["repository_context"]["conflict_recovery_branch"]=(
+            conflict_recovery_branch_name(
+                state,context["repository_context"]
+            )
+        )
+        context["repository_context"]["conflict_main_file_snapshots"]=(
+            conflict_main_file_snapshots(
+                state,context["repository_context"]
+            )
+        )
+        context["repository_context"]["scheduler_surfaces"] = (
+            existing_scheduler_surfaces()
+        )
+        scheduled_runtime = scheduled_runtime_reasoning_contract(
+            self.now(),
+            scheduler_surfaces=context["repository_context"]["scheduler_surfaces"],
+        )
+        reasoning_head_sha = str(
+            (repository_context or {}).get("observed_head_sha") or ""
+        ).strip() or None
+        mutation_policy = parse_policy(
+            load_repository_json("automation/samuel/repository-mutation-policy.json")
+        )
+        centralization_manifest=load_centralization_manifest(
+            "automation/samuel/scientific-centralization.json"
+        )
+        context["scientific_centralization"]=centralization_reasoning_contract(
+            centralization_manifest
+        )
+        context["execution_contracts"] = {
+            "action_plan": {
+                "required_fields": [
+                    "schema_version",
+                    "research_id",
+                    "stage",
+                    "executor",
+                    "payload",
+                    "expected_observation",
+                ],
+                "schema_version": 1,
+                "research_id": work_id,
+                "stage": (
+                    "one non-terminal ResearchStage such as implement or execute"
+                ),
+                "decision_risk": "optional",
+            },
+            "repository_mutation": {
+                **repository_mutation_reasoning_contract(),
+                "policy": {
+                    **repository_mutation_policy_reasoning_contract(
+                        mutation_policy
+                    ),
+                    "new_branch_base": (
+                        "for branch create, desired.sha must equal "
+                        "repository_context.observed_head_sha"
+                    ),
+                    "file_create_rule": (
+                        "target branch must already exist before file creation"
+                    ),
+                },
+            },
+            "github_native": native_github_reasoning_contract(),
+            "scheduled_runtime": scheduled_runtime,
+        }
+        def parse_provider_proposal(
+            raw: dict[str, Any],
+        ) -> IssueReasoningProposal:
+            proposal = IssueReasoningProposal.from_dict(raw)
+            blocker=proposal.blocker
+            if proposal.action_plan is not None and blocker is not None:
+                raise ValueError(
+                    "blocker must be null when an executable ActionPlan is produced"
+                )
+            if blocker is not None:
+                capability=blocker["capability"].lower()
+                scheduler_blockers={
+                    "workflow_file_mutation",
+                    "durable_scheduler",
+                    "scheduled_workflow",
+                }
+                if (
+                    scheduled_runtime.get("existing_durable_scheduler") is True
+                    and capability in scheduler_blockers
+                ):
+                    considered=set(blocker["alternatives_considered"])
+                    if SCHEDULER_CAPABILITY not in considered:
+                        raise ValueError(
+                            "known alternative existing_scheduled_runtime must be "
+                            "considered before scheduler-related blocking or revision"
+                        )
+                    if blocker["exhausted"] is True:
+                        raise ValueError(
+                            "scheduler alternative is not exhausted: observed "
+                            "samuel-bootstrap scheduling can drive code-owned UTC phase "
+                            "routing under allowed src/** paths"
+                        )
+            if (
+                proposal.operation == "implement_gap"
+                and not planned.envelope.implementation_gaps
+            ):
+                raise ValueError(
+                    "implement_gap is invalid because implementation_gaps is empty; "
+                    "use analyze for an action within accepted architecture"
+                )
+            locked_ids = {
+                str(item.get("decision_id"))
+                for item in context.get("locked_decisions", [])
+                if isinstance(item, dict) and item.get("decision_id")
+            }
+            if (
+                proposal.decision_id is not None
+                and proposal.decision_id not in locked_ids
+            ):
+                raise ValueError(
+                    "decision_id must be null or reference an existing locked decision; "
+                    "do not use workload ids or invent governance decisions"
+                )
+            if (
+                proposal.operation == "propose_revision"
+                and proposal.decision_id is None
+            ):
+                raise ValueError(
+                    "propose_revision must reference an existing locked decision"
+                )
+            if proposal.action_plan is not None:
+                candidate = ActionPlan.from_dict(proposal.action_plan)
+                if candidate.research_id != work_id:
+                    raise ValueError(
+                        "ActionPlan research_id must equal active work_id " + work_id
+                    )
+                if candidate.executor is ExecutorKind.GITHUB_NATIVE:
+                    native_command=NativeGitHubCommand.from_plan(candidate)
+                    qualified=(
+                        native_github_reasoning_contract().get("actions") or {}
+                    )
+                    if native_command.action.value not in qualified:
+                        raise ValueError(
+                            "native GitHub action is not qualified for semantic "
+                            "planning: " + native_command.action.value
+                        )
+                elif candidate.executor is ExecutorKind.REPOSITORY_MUTATION:
+                    expected_repository = (
+                        str((repository_context or {}).get("repository") or "")
+                        or None
+                    )
+                    manifest = to_repository_manifest(
+                        candidate,
+                        expected_repository=expected_repository,
+                    )
+                    if (
+                        manifest.repository == mutation_policy.repository
+                        and (
+                            expected_repository is None
+                            or expected_repository == mutation_policy.repository
+                        )
+                    ):
+                        try:
+                            authorize_manifest(
+                                manifest,
+                                policy=mutation_policy,
+                                repository=mutation_policy.repository,
+                            )
+                        except PolicyError as exc:
+                            raise ValueError(
+                                "repository mutation policy rejected ActionPlan: "
+                                + str(exc)
+                            ) from exc
+                else:
+                    raise ValueError(
+                        "production semantic provider emitted unsupported executor "
+                        + candidate.executor.value
+                    )
+                if (
+                    acceptance_criteria
+                    and not (
+                        candidate.executor is ExecutorKind.GITHUB_NATIVE
+                        and candidate.payload.get("action")=="close_issue"
+                    )
+                    and proposal.progress is not None
+                ):
+                    criterion=proposal.progress.get("criterion")
+                    if target_acceptance_criterion is None:
+                        raise ValueError(
+                            "no controller-eligible acceptance criterion remains; "
+                            "non-close progress is forbidden"
+                        )
+                    if criterion != target_acceptance_criterion:
+                        raise ValueError(
+                            "progress.criterion must equal the controller-selected "
+                            "context.target_acceptance_criterion exactly"
+                        )
+                failure=preflight_semantic_plan(
+                    plan=candidate,
+                    progress=proposal.progress,
+                    completion_claim=proposal.completion_claim,
+                    issue_body=issue_body,
+                    state=state,
+                    repository_context=context["repository_context"],
+                )
+                if failure is not None:
+                    raise ValueError(failure.as_validation_error())
+            elif proposal.progress is not None or proposal.completion_claim is not None:
+                raise ValueError(
+                    "progress and completion_claim require an executable ActionPlan"
+                )
+            return proposal
+
+        proposal = StructuredReasoningNode(
+            parser=parse_provider_proposal,
+            max_attempts=2,
+        ).run(
+            ReasoningRequest(
+                task=(
+                    "Produce exactly one next bounded ActionPlan toward completing "
+                    f"{work_id}. Continue from durable execution history and "
+                    "inherited_evidence. Treat inherited_evidence as verified prior "
+                    "work from a terminal predecessor workload; do not repeat it. "
+                    "Treat context.eligible_acceptance_criteria as the controller-owned "
+                    "set of acceptance criteria still eligible for new progress. The "
+                    "controller has selected context.target_acceptance_criterion as the "
+                    "single current target. For a non-close ActionPlan, progress.criterion "
+                    "must equal that target exactly; never select a criterion directly "
+                    "from the Issue text or from integrated_acceptance_evidence. Compare repository evidence "
+                    "only to decide how to advance an eligible criterion. Treat absence "
+                    "from tracked_paths as "
+                    "evidence only when repository_context.tracked_paths_truncated is "
+                    "false. Reuse a workload-owned writable branch proven by a "
+                    "completed durable branch-create action and still present in "
+                    "repository_context.samuel_branches, even if main advanced after "
+                    "that branch was created. Do not create a replacement branch solely "
+                    "because repository_context.observed_head_sha changed. However, a branch "
+                    "listed in repository_context.conflicted_workload_branches is proven "
+                    "non-reusable by a rejected exact-head merge and must never receive "
+                    "new mutations or a new PR. When repository_context.conflict_recovery_branch "
+                    "is present, continue on that fresh current-main branch. Use "
+                    "repository_context.conflict_main_file_snapshots to preserve current-main "
+                    "content for overlapping files; do not blindly replay stale branch content. "
+                    "Create a fresh samuel/* branch only when no reusable workload-owned branch "
+                    "or deterministic conflict-recovery branch exists. "
+                    "After branch creation completes, advance the first unmet artifact "
+                    "on that branch instead of repeating branch creation. Do not repeat completed actions. "
+                    "Treat durable_state.integrated_acceptance_evidence as code-verified "
+                    "merged progress excluded by the controller from "
+                    "eligible_acceptance_criteria. If target_acceptance_criterion is null, "
+                    "do not propose new progress; close only with complete verified evidence. "
+                    "When implementation_gaps is "
+                    "empty, operation must be analyze. Use implement_gap only for a "
+                    "named gap in implementation_gaps. Follow execution_contracts "
+                    "exactly. For github_native plans, payload must contain only "
+                    "fields listed in execution_contracts.github_native.payload."
+                    "allowed_fields; action-specific data belongs under target. For "
+                    "repository_mutation plans, follow "
+                    "execution_contracts.repository_mutation exactly, including "
+                    "execution_contracts.repository_mutation.policy file-path, branch "
+                    "allow/deny patterns, and runtime_capabilities. When "
+                    "workflow_file_mutation is false, never propose a path under "
+                    ".github/workflows/. Reuse repository_context.scheduler_surfaces "
+                    "as an existing durable scheduler and implement cadence/integration "
+                    "under an executable allowed source path rather than requesting a "
+                    "policy revision solely because workflow-file mutation is unavailable. "
+                    "When blocking or requesting revision, populate blocker with the "
+                    "capability, alternatives_considered, and exhausted status. A known "
+                    "scheduler alternative cannot be marked exhausted while "
+                    "execution_contracts.scheduled_runtime.existing_durable_scheduler is true. "
+                    "Status/audit comments are controller-owned and are not valid "
+                    "semantic implementation progress. A suspended action is verified failure "
+                    "evidence: inspect durable_state.execution_results and do not repeat "
+                    "the same policy-invalid plan unchanged. When the Issue contains "
+                    "a ## Acceptance section, every executable non-close ActionPlan must "
+                    "populate progress with one exact acceptance bullet it advances. "
+                    "A close_issue ActionPlan must leave progress null and populate "
+                    "completion_claim covering every exact acceptance bullet with only "
+                    "terminal-success durable evidence action ids. Preflight rejects "
+                    "duplicate plans, stale/missing targets, unready merge heads, and "
+                    "premature completion before dispatch. "
+                    "Prefer the smallest verifiable next step; return null only "
+                    "when no safe executable step exists."
+                ),
+                context=context,
+            ),
+            self.reasoning.runner(),
+        )
+        outcome, plan, reason = compile_guarded_action(
+            proposal, planned.envelope
+        )
+        reconciled_after_null = False
+        if (
+            plan is None
+            and proposal.operation == "analyze"
+            and outcome is GuardOutcome.CONTINUE
+            and not observability_only
+        ):
+            reconciliation_context = copy.deepcopy(context)
+            reconciliation_context["completion_reconciliation"] = {
+                "required": True,
+                "rules": [
+                    (
+                        "The workload is still open. Null is not a stable controller "
+                        "outcome while a safe bounded action can advance an unmet "
+                        "acceptance criterion."
+                    ),
+                    (
+                        "Close the Issue only when every acceptance criterion is "
+                        "directly supported by durable or inherited verified evidence."
+                    ),
+                    (
+                        "Treat absence from tracked_paths as evidence only when "
+                        "tracked_paths_truncated is false."
+                    ),
+                    (
+                        "Reuse a workload-owned branch already proven by a "
+                        "completed durable branch-create action and still present in "
+                        "repository_context.samuel_branches, even when main has advanced; "
+                        "except never reuse a branch listed in "
+                        "repository_context.conflicted_workload_branches. Prefer the "
+                        "deterministic conflict_recovery_branch when present and preserve "
+                        "overlapping main files from conflict_main_file_snapshots."
+                    ),
+                    (
+                        "Before declaring a scheduler capability exhausted, inspect "
+                        "execution_contracts.scheduled_runtime and reuse an observed existing "
+                        "scheduler with code-owned src/** phase routing when available."
+                    ),
+                    (
+                        "For Issues with ## Acceptance bullets, non-close progress must "
+                        "advance exactly context.target_acceptance_criterion. Never choose "
+                        "another criterion from the Issue body. close_issue requires a "
+                        "completion_claim backed only by terminal-success durable evidence."
+                    ),
+                    (
+                        "Prefer the smallest valid repository_mutation or github_native "
+                        "ActionPlan that advances the first unsupported criterion."
+                    ),
+                ],
+            }
+
+            def parse_reconciliation_proposal(
+                raw: dict[str, Any],
+            ) -> IssueReasoningProposal:
+                repaired = parse_provider_proposal(raw)
+                repaired_outcome, repaired_plan, _ = compile_guarded_action(
+                    repaired, planned.envelope
+                )
+                if (
+                    repaired.operation == "analyze"
+                    and repaired_outcome is GuardOutcome.CONTINUE
+                    and repaired_plan is None
+                ):
+                    raise ValueError(
+                        "completion reconciliation for an open workload requires "
+                        "one executable ActionPlan; null cannot be the stable outcome"
+                    )
+                return repaired
+
+            proposal = StructuredReasoningNode(
+                parser=parse_reconciliation_proposal,
+                max_attempts=2,
+            ).run(
+                ReasoningRequest(
+                    task=(
+                        "Reconcile the still-open workload against its Issue acceptance "
+                        "criteria. The first reasoning pass returned no ActionPlan. "
+                        "Using durable execution history, inherited_evidence, and the "
+                        "bounded repository manifest, produce exactly one safe bounded "
+                        "next ActionPlan for the controller-selected "
+                        f"target_acceptance_criterion={target_acceptance_criterion!r}. "
+                        "Do not choose a different acceptance criterion. Reuse an "
+                        "existing workload-owned branch proven by completed durable history "
+                        "and still visible in repository_context.samuel_branches before "
+                        "creating another branch, even if main advanced later. Do not close "
+                        "the Issue unless every "
+                        "acceptance criterion is verified. Follow execution_contracts "
+                        "exactly."
+                    ),
+                    context=reconciliation_context,
+                ),
+                self.reasoning.runner(),
+            )
+            outcome, plan, reason = compile_guarded_action(
+                proposal, planned.envelope
+            )
+            context = reconciliation_context
+            reconciled_after_null = True
+
+        repository_audit = context.get("repository_context") or {}
+        durable_audit = context.get("durable_state") or {}
+        planning = {
+            "schema_version": 1,
+            "work_id": work_id,
+            "outcome": outcome.value,
+            "reason": reason,
+            "blocker": None,
+            "semantic_provider": {
+                "available": True,
+                "provider": self.reasoning.status().provider,
+                "mode": "AUTO_WITH_AUDIT",
+                "reconciled_after_null": reconciled_after_null,
+            },
+            "proposal": {
+                "operation": proposal.operation,
+                "decision_id": proposal.decision_id,
+                "compatible_with_locked_decisions": (
+                    proposal.compatible_with_locked_decisions
+                ),
+                "revision_requested": proposal.revision_requested,
+                "blocker": copy.deepcopy(proposal.blocker),
+                "progress": copy.deepcopy(proposal.progress),
+                "completion_claim": copy.deepcopy(proposal.completion_claim),
+            },
+            "action_plan": proposal.action_plan,
+            "reasoning_context": {
+                "goal": context.get("goal"),
+                "locked_decisions": context.get("locked_decisions", []),
+                "implementation_gaps": context.get("implementation_gaps", []),
+                "allowed_reasoning_operations": context.get(
+                    "allowed_reasoning_operations", []
+                ),
+                "escalation_constraints": context.get(
+                    "escalation_constraints", []
+                ),
+                "scheduled_runtime": copy.deepcopy(scheduled_runtime),
+                "acceptance_criteria": list(eligible_criteria),
+                "eligible_acceptance_criteria": list(eligible_criteria),
+                "target_acceptance_criterion": target_acceptance_criterion,
+                "workload_mode": context.get("workload_mode"),
+                "durable_state": {
+                    "research_id": durable_audit.get("research_id"),
+                    "revision": durable_audit.get("revision"),
+                    "stage": durable_audit.get("stage"),
+                    "action_statuses": {
+                        key: value.get("status")
+                        for key, value in (
+                            durable_audit.get("action_queue") or {}
+                        ).items()
+                        if isinstance(value, dict)
+                    },
+                    "execution_results": copy.deepcopy(
+                        durable_audit.get("execution_results") or {}
+                    ),
+                    "integrated_acceptance_evidence": copy.deepcopy(
+                        durable_audit.get("integrated_acceptance_evidence") or {}
+                    ),
+                    "inherited_evidence": copy.deepcopy(
+                        durable_audit.get("inherited_evidence") or []
+                    ),
+                },
+                "repository_context": {
+                    "repository": repository_audit.get("repository"),
+                    "observed_head_sha": repository_audit.get(
+                        "observed_head_sha"
+                    ),
+                    "open_issues": [
+                        {
+                            "number": item.get("number"),
+                            "title": item.get("title"),
+                            "state": item.get("state"),
+                            "labels": item.get("labels", []),
+                        }
+                        for item in repository_audit.get(
+                            "open_issues", []
+                        )
+                        if isinstance(item, dict)
+                    ],
+                    "open_pull_requests": repository_audit.get(
+                        "open_pull_requests", []
+                    ),
+                    "samuel_branches": repository_audit.get(
+                        "samuel_branches", []
+                    ),
+                    "tracked_paths": repository_audit.get(
+                        "tracked_paths", []
+                    ),
+                    "tracked_paths_truncated": bool(
+                        repository_audit.get("tracked_paths_truncated", False)
+                    ),
+                    "workflow_files": repository_audit.get(
+                        "workflow_files", []
+                    ),
+                    "scheduler_surfaces": copy.deepcopy(
+                        repository_audit.get("scheduler_surfaces") or []
+                    ),
+                    "conflicted_workload_pull_requests": copy.deepcopy(
+                        repository_audit.get("conflicted_workload_pull_requests") or []
+                    ),
+                    "conflicted_workload_branches": copy.deepcopy(
+                        repository_audit.get("conflicted_workload_branches") or []
+                    ),
+                    "conflict_recovery_branch": repository_audit.get(
+                        "conflict_recovery_branch"
+                    ),
+                    "conflict_main_file_snapshots": copy.deepcopy(
+                        repository_audit.get("conflict_main_file_snapshots") or []
+                    ),
+                },
+            },
+        }
+        if plan is None:
+            if (
+                proposal.operation == "analyze"
+                and outcome is GuardOutcome.CONTINUE
+            ):
+                return (
+                    ReasoningConsumption(
+                        "reasoning_required",
+                        "provider analysis produced no executable ActionPlan",
+                        work,
+                        state,
+                        None,
+                    ),
+                    planning,
+                )
+            lifecycle = (
+                "revision_required"
+                if outcome is GuardOutcome.REVISION_REQUIRED
+                else "blocked"
+            )
+            blocked_state = copy.deepcopy(state)
+            if (
+                reasoning_head_sha is not None
+                and blocked_state.last_reasoning_head_sha != reasoning_head_sha
+            ):
+                blocked_state.last_reasoning_head_sha = reasoning_head_sha
+                blocked_state.revision += 1
+            return (
+                ReasoningConsumption(
+                    outcome.value,
+                    reason,
+                    transition_issue_status(work, work_id, lifecycle),
+                    blocked_state,
+                    None,
+                ),
+                planning,
+            )
+        if plan.research_id != work_id or state.research_id != work_id:
+            raise ControllerCompositionError(
+                "provider ActionPlan research identity does not match active work"
+            )
+        proposed = copy.deepcopy(state)
+        proposed.last_reasoning_head_sha = reasoning_head_sha
+        enqueue_suspended_action(proposed, plan)
+        if proposal.progress is not None:
+            proposed.action_queue[plan.idempotency_key]["progress"]=copy.deepcopy(
+                proposal.progress
+            )
+        if proposal.completion_claim is not None:
+            proposed.action_queue[plan.idempotency_key]["completion_claim"]=copy.deepcopy(
+                proposal.completion_claim
+            )
+        return (
+            ReasoningConsumption(
+                "planned",
+                reason,
+                transition_issue_status(work, work_id, "planned"),
+                proposed,
+                plan.idempotency_key,
+            ),
+            planning,
+        )
+
+    def _consume_waiting_reasoning(
+        self,
+        *,
+        trigger: ControllerTrigger,
+        comments: list[dict[str, Any]],
+        work: dict[str, dict[str, Any]],
+        work_id: str,
+        state: ResearchState | None,
+        admission_comment_id: int | None,
+        planning: dict[str, Any] | None = None,
+        prior_admission_write: dict[str, Any] | None = None,
+        repository_context: dict[str, Any] | None = None,
+        inherited_evidence: list[dict[str, Any]] | None = None,
+    ) -> ControllerCycle:
+        item = work.get(work_id)
+        if item is None:
+            raise ControllerCompositionError("reasoning work is missing from admission ledger")
+        working_state = state or _initial_state(
+            work_id,
+            item,
+            inherited_evidence=inherited_evidence,
+        )
+        recovery_criteria = eligible_acceptance_criteria(
+            str(item.get("body") or ""), working_state
+        )
+        recovery_target = recovery_criteria[0] if recovery_criteria else None
+        active_failure = unresolved_predispatch_failure(
+            working_state, recovery_target
+        )
+        if active_failure is not None and active_failure.get("status") in {
+            "escalated", "blocked"
+        }:
+            kind = (
+                "controller_escalated"
+                if active_failure.get("status") == "escalated"
+                else "controller_blocked"
+            )
+            return ControllerCycle(
+                trigger,
+                {
+                    "kind": kind,
+                    "work_id": work_id,
+                    "failure_fingerprint": active_failure.get("fingerprint"),
+                    "failure_class": active_failure.get("failure_class"),
+                    "target_acceptance_criterion": recovery_target,
+                },
+                {
+                    "schema_version": 1,
+                    "work_id": work_id,
+                    "outcome": kind,
+                    "predispatch_failure": copy.deepcopy(active_failure),
+                },
+                prior_admission_write,
+                None,
+                None,
+            )
+        if not self.reasoning_enabled:
+            return ControllerCycle(
+                trigger,
+                {"kind": "reasoning_required", "work_id": work_id},
+                planning,
+                prior_admission_write,
+                None,
+            )
+        initial_revision = working_state.revision
+        if self.reasoning.status().available:
+            try:
+                result, provider_planning = self._consume_provider_reasoning(
+                    work=work,
+                    work_id=work_id,
+                    state=working_state,
+                    repository_context=repository_context,
+                )
+            except ReasoningNodeError as exc:
+                proposed = copy.deepcopy(working_state)
+                validation_error = exc.validation_error or str(exc)
+                failure = record_predispatch_failure(
+                    proposed,
+                    work_id=work_id,
+                    target_acceptance_criterion=recovery_target,
+                    error=validation_error,
+                    node_attempts=exc.attempts,
+                    repository_context=repository_context,
+                )
+                status = str(failure.get("status"))
+                kind = {
+                    "retryable": "controller_recovery",
+                    "escalated": "controller_escalated",
+                    "blocked": "controller_blocked",
+                }[status]
+                failure_planning = {
+                    "schema_version": 1,
+                    "work_id": work_id,
+                    "outcome": kind,
+                    "reason": validation_error,
+                    "predispatch_failure": copy.deepcopy(failure),
+                }
+                return ControllerCycle(
+                    trigger,
+                    {
+                        "kind": kind,
+                        "work_id": work_id,
+                        "failure_fingerprint": failure.get("fingerprint"),
+                        "failure_class": failure.get("failure_class"),
+                        "target_acceptance_criterion": recovery_target,
+                    },
+                    failure_planning,
+                    prior_admission_write,
+                    state_write_request(comments, proposed),
+                    None,
+                )
+            planning = provider_planning
+            resolved = resolve_predispatch_failure(
+                result.state, recovery_target
+            )
+            if resolved:
+                planning = dict(planning)
+                planning["predispatch_recovery"] = {
+                    "status": "resolved",
+                    "fingerprints": list(resolved),
+                    "target_acceptance_criterion": recovery_target,
+                }
+        else:
+            result = consume_reasoning_submission(
+                comments,
+                work,
+                work_id,
+                registry=self.decisions,
+                state=working_state,
+            )
+        if result.outcome == "reasoning_required":
+            initial_state_write = None
+            if (
+                result.state.revision > initial_revision
+                or (state is None and working_state.inherited_evidence)
+            ):
+                initial_state_write = state_write_request(
+                    comments, result.state
+                )
+            return ControllerCycle(
+                trigger,
+                {"kind": "reasoning_required", "work_id": work_id},
+                planning,
+                prior_admission_write,
+                initial_state_write,
+            )
+
+        admission_write = _admission_write(admission_comment_id, result.work)
+        if result.action_id is None:
+            blocker_state_write = None
+            if result.state.revision > working_state.revision:
+                blocker_state_write = state_write_request(
+                    comments, result.state
+                )
+            return ControllerCycle(
+                trigger,
+                {
+                    "kind": "reasoning_consumed",
+                    "work_id": work_id,
+                    "outcome": result.outcome,
+                    "action_id": None,
+                },
+                planning,
+                admission_write,
+                blocker_state_write,
+            )
+        queued = result.state.action_queue.get(result.action_id)
+        if not isinstance(queued, dict) or not isinstance(queued.get("plan"), dict):
+            raise ControllerCompositionError("planned reasoning produced no durable queued plan")
+        payload = {
+            "kind": "action",
+            "action_id": result.action_id,
+            "plan": queued["plan"],
+            "reasoning_outcome": result.outcome,
+            "work_id": work_id,
+        }
+        return self._prepare_dispatch_intent(
+            trigger=trigger,
+            comments=comments,
+            state=result.state,
+            payload=payload,
+            admission_write=admission_write,
+            planning=planning,
+        )
+
+    def run_cycle(
+        self,
+        trigger: ControllerTrigger,
+        *,
+        comments: list[dict[str, Any]],
+        pending: list[BootstrapWork],
+        issue: dict[str, Any] | None = None,
+        repository_context: dict[str, Any] | None = None,
+    ) -> ControllerCycle:
+        if not isinstance(comments, list) or any(
+            not isinstance(item, dict) for item in comments
+        ):
+            raise ControllerCompositionError("comments must be a list of objects")
+        if issue is not None and trigger.kind is not TriggerKind.ISSUES:
+            raise ControllerCompositionError(
+                "issue payload is only valid for an issues trigger"
+            )
+
+        state = load_state_comment(comments)
+        rollover_source_state: ResearchState | None = None
+        admitted, admission_comment_id = _admission_state(comments)
+        admission_write = None
+        if issue is not None:
+            labels = {
+                item.get("name")
+                for item in issue.get("labels", [])
+                if isinstance(item, dict)
+            }
+            if ADMISSION_LABEL in labels:
+                admission = admit_issue(comments, issue)
+                admitted = decode_admission_ledger(admission["body"])
+                admission_comment_id = admission["comment_id"]
+                if admission["changed"]:
+                    admission_write = _admission_write(
+                        admission_comment_id, admitted
+                    )
+
+        open_issue_numbers: set[int] = set()
+        if repository_context is not None:
+            open_issues = repository_context.get("open_issues", [])
+            if not isinstance(open_issues, list):
+                raise ControllerCompositionError(
+                    "repository context open_issues must be a list"
+                )
+            discovered = discover_admissible_issues(admitted, open_issues)
+            if discovered != admitted:
+                admitted = discovered
+                admission_write = _admission_write(
+                    admission_comment_id, admitted
+                )
+
+            open_issue_numbers = {
+                item.get("number")
+                for item in open_issues
+                if isinstance(item, dict)
+                and item.get("state") in {None, "open"}
+                and isinstance(item.get("number"), int)
+            }
+            open_issues_complete = (
+                repository_context.get("open_issues_complete") is True
+            )
+            if state is not None and not can_rollover_state(state):
+                current = admitted.get(state.research_id)
+                current_issue_number = (
+                    current.get("issue_number")
+                    if isinstance(current, dict)
+                    else None
+                )
+                if (
+                    open_issues_complete
+                    and isinstance(current, dict)
+                    and isinstance(current_issue_number, int)
+                    and current_issue_number not in open_issue_numbers
+                    and is_quiescent_unexecuted_state(state)
+                ):
+                    workload_mode = (
+                        "observability_only"
+                        if is_observability_only_workload(
+                            str(current.get("body") or "")
+                        )
+                        else "actionable"
+                    )
+                    proposed = retire_quiescent_state(
+                        state,
+                        issue_number=current_issue_number,
+                        workload_mode=workload_mode,
+                    )
+                    if current.get("status") != "complete":
+                        admitted = transition_issue_status(
+                            admitted, state.research_id, "complete"
+                        )
+                        admission_write = _admission_write(
+                            admission_comment_id, admitted
+                        )
+                    return ControllerCycle(
+                        trigger,
+                        {
+                            "kind": "state_retirement",
+                            "work_id": state.research_id,
+                            "issue_number": current_issue_number,
+                            "reason": "closed_quiescent_unexecuted_workload",
+                        },
+                        None,
+                        admission_write,
+                        state_write_request(comments, proposed),
+                        None,
+                    )
+            if state is not None and can_rollover_state(state):
+                current = admitted.get(state.research_id)
+                if (
+                    isinstance(current, dict)
+                    and isinstance(current.get("issue_number"), int)
+                    and current["issue_number"] not in open_issue_numbers
+                ):
+                    if current.get("status") != "complete":
+                        admitted = transition_issue_status(
+                            admitted, state.research_id, "complete"
+                        )
+                    admission_write = _admission_write(
+                        admission_comment_id, admitted
+                    )
+                    rollover_source_state = state
+                    state = None
+
+        def rollover_evidence(work_id: str) -> list[dict[str, Any]]:
+            if rollover_source_state is None:
+                return []
+            item = admitted.get(work_id)
+            if not isinstance(item, dict):
+                return []
+            issue_number = item.get("issue_number")
+            if not isinstance(issue_number, int) or isinstance(issue_number, bool):
+                return []
+            return inherited_evidence_for_issue(
+                rollover_source_state, issue_number
+            )
+
+        actions_quiescent = (
+            state is None
+            or all(
+                isinstance(queued, dict)
+                and queued.get("status")
+                in {
+                    ActionLifecycle.COMPLETE.value,
+                    ActionLifecycle.REJECTED.value,
+                    ActionLifecycle.SUSPENDED.value,
+                }
+                for queued in state.action_queue.values()
+            )
+        )
+
+        if state is not None and actions_quiescent:
+            current=admitted.get(state.research_id)
+            current_issue_number=(
+                current.get("issue_number") if isinstance(current,dict) else None
+            )
+            if (
+                isinstance(current,dict)
+                and current.get("status")!="complete"
+                and isinstance(current_issue_number,int)
+                and current_issue_number in open_issue_numbers
+            ):
+                terminal_close=_deterministic_terminal_close_plan(
+                    state,current,repository_context
+                )
+                if terminal_close is not None:
+                    close_plan,completion_claim=terminal_close
+                    proposed=copy.deepcopy(state)
+                    enqueue_suspended_action(proposed,close_plan)
+                    proposed.action_queue[
+                        close_plan.idempotency_key
+                    ]["completion_claim"]=copy.deepcopy(completion_claim)
+                    admitted=transition_issue_status(
+                        admitted,state.research_id,"planned"
+                    )
+                    admission_write=_admission_write(
+                        admission_comment_id,admitted
+                    )
+                    return self._prepare_dispatch_intent(
+                        trigger=trigger,
+                        comments=comments,
+                        state=proposed,
+                        payload={
+                            "kind":"action",
+                            "action_id":close_plan.idempotency_key,
+                            "plan":proposed.action_queue[
+                                close_plan.idempotency_key
+                            ]["plan"],
+                            "reasoning_outcome":"deterministic_acceptance_completion",
+                            "work_id":state.research_id,
+                        },
+                        admission_write=admission_write,
+                    )
+
+            recovery_branch_plan=conflict_recovery_branch_plan(
+                state,repository_context
+            )
+            if recovery_branch_plan is not None:
+                proposed=copy.deepcopy(state)
+                enqueue_suspended_action(proposed,recovery_branch_plan)
+                if state.research_id in admitted:
+                    admitted=transition_issue_status(
+                        admitted,state.research_id,"planned"
+                    )
+                    admission_write=_admission_write(
+                        admission_comment_id,admitted
+                    )
+                return self._prepare_dispatch_intent(
+                    trigger=trigger,
+                    comments=comments,
+                    state=proposed,
+                    payload={
+                        "kind":"action",
+                        "action_id":recovery_branch_plan.idempotency_key,
+                        "plan":proposed.action_queue[
+                            recovery_branch_plan.idempotency_key
+                        ]["plan"],
+                        "reasoning_outcome":"deterministic_merge_conflict_recovery",
+                        "work_id":state.research_id,
+                    },
+                    admission_write=admission_write,
+                )
+
+            try:
+                validation_work=select_trusted_validation_work(
+                    state,repository_context
+                )
+            except ValueError as exc:
+                raise ControllerCompositionError(
+                    "trusted validation selection failed: "+str(exc)
+                ) from exc
+            if validation_work is not None:
+                return self._prepare_trusted_validation(
+                    trigger=trigger,
+                    comments=comments,
+                    state=state,
+                    work=validation_work,
+                    admission_write=admission_write,
+                )
+
+            ready_pr_plan=_owned_ready_pr_plan(state,repository_context)
+            if ready_pr_plan is not None:
+                proposed=copy.deepcopy(state)
+                enqueue_suspended_action(proposed,ready_pr_plan)
+                if state.research_id in admitted:
+                    admitted=transition_issue_status(
+                        admitted,state.research_id,"planned"
+                    )
+                    admission_write=_admission_write(
+                        admission_comment_id,admitted
+                    )
+                return self._prepare_dispatch_intent(
+                    trigger=trigger,
+                    comments=comments,
+                    state=proposed,
+                    payload={
+                        "kind":"action",
+                        "action_id":ready_pr_plan.idempotency_key,
+                        "plan":proposed.action_queue[
+                            ready_pr_plan.idempotency_key
+                        ]["plan"],
+                        "reasoning_outcome":"deterministic_ready_pr",
+                        "work_id":state.research_id,
+                    },
+                    admission_write=admission_write,
+                )
+
+        if (
+            state is not None
+            and actions_quiescent
+            and self.reasoning.status().available
+        ):
+            current = admitted.get(state.research_id)
+            current_status = (
+                current.get("status") if isinstance(current, dict) else None
+            )
+            current_issue_number = (
+                current.get("issue_number") if isinstance(current, dict) else None
+            )
+            observed_head_sha = str(
+                (repository_context or {}).get("observed_head_sha") or ""
+            ).strip() or None
+            semantic_blocker_stale = (
+                current_status in {"blocked", "revision_required"}
+                and isinstance(current_issue_number, int)
+                and current_issue_number in open_issue_numbers
+                and observed_head_sha is not None
+                and state.last_reasoning_head_sha != observed_head_sha
+            )
+            ordinary_continuation = (
+                current_status == "planned"
+                and bool(state.action_queue)
+            )
+            if (
+                isinstance(current, dict)
+                and (ordinary_continuation or semantic_blocker_stale)
+                and not any(
+                    recovery.get("status") in {"open", "needs_evidence"}
+                    for recovery in state.diagnostic_recoveries.values()
+                )
+            ):
+                admitted = transition_issue_status(
+                    admitted, state.research_id, "reasoning_required"
+                )
+                continuation_write = _admission_write(
+                    admission_comment_id, admitted
+                )
+                return self._consume_waiting_reasoning(
+                    trigger=trigger,
+                    comments=comments,
+                    work=admitted,
+                    work_id=state.research_id,
+                    state=state,
+                    admission_comment_id=admission_comment_id,
+                    prior_admission_write=continuation_write,
+                    repository_context=repository_context,
+                )
+
+        waiting = sorted(
+            work_id for work_id, item in admitted.items()
+            if item.get("status") == "reasoning_required"
+        )
+        planned = sorted(
+            work_id for work_id, item in admitted.items()
+            if item.get("status") == "planned"
+        )
+        if len(waiting) > 1:
+            raise ControllerCompositionError("multiple reasoning-required work items")
+        if state is None and planned:
+            if len(planned) != 1 or waiting:
+                raise ControllerCompositionError(
+                    "ambiguous planned work without durable controller state"
+                )
+            work_id = planned[0]
+            admitted = transition_issue_status(admitted, work_id, "reasoning_required")
+            recovery_write = _admission_write(admission_comment_id, admitted)
+            return self._consume_waiting_reasoning(
+                trigger=trigger,
+                comments=comments,
+                work=admitted,
+                work_id=work_id,
+                state=None,
+                admission_comment_id=admission_comment_id,
+                prior_admission_write=recovery_write,
+                repository_context=repository_context,
+                inherited_evidence=rollover_evidence(work_id),
+            )
+        if waiting:
+            if state is not None and waiting[0] != state.research_id:
+                return ControllerCycle(
+                    trigger,
+                    {
+                        "kind":"blocked",
+                        "work_id":state.research_id,
+                        "reason":(
+                            "active durable workload retains ownership until its "
+                            "repository issue is observed closed"
+                        ),
+                    },
+                    None,
+                    admission_write,
+                    None,
+                    None,
+                )
+            return self._consume_waiting_reasoning(
+                trigger=trigger,
+                comments=comments,
+                work=admitted,
+                work_id=waiting[0],
+                state=state,
+                admission_comment_id=admission_comment_id,
+                prior_admission_write=admission_write,
+                repository_context=repository_context,
+                inherited_evidence=rollover_evidence(waiting[0]),
+            )
+
+        selected = select_controller_work(
+            pending,
+            diagnostic_recoveries={} if state is None else state.diagnostic_recoveries,
+            action_queue={} if state is None else state.action_queue,
+            admitted_work=admitted,
+        )
+        payload = _selected_payload(selected)
+        if (
+            state is not None
+            and payload.get("kind") == "issue"
+            and payload.get("work_id") != state.research_id
+        ):
+            return ControllerCycle(
+                trigger,
+                {
+                    "kind":"blocked",
+                    "work_id":state.research_id,
+                    "reason":(
+                        "active durable workload retains ownership until its "
+                        "repository issue is observed closed"
+                    ),
+                },
+                None,
+                admission_write,
+                None,
+                None,
+            )
+        if payload["kind"] == "action_intent":
+            if state is None:
+                raise ControllerCompositionError(
+                    "action intent requires durable controller state"
+                )
+            action_id=payload.get("action_id")
+            if not isinstance(action_id,str) or not action_id:
+                raise ControllerCompositionError(
+                    "action intent has no action_id"
+                )
+            queued=state.action_queue.get(action_id)
+            if not isinstance(queued,dict):
+                raise ControllerCompositionError(
+                    "action intent has no durable queue entry"
+                )
+            intent=DispatchIntent.from_dict(queued.get("dispatch_intent"))
+            observed_ref=trigger.executor_ref.strip()
+            observed_head=trigger.executor_head_sha.strip()
+            if (
+                intent.expected_head_sha is not None
+                and observed_ref
+                and observed_head
+                and intent.ref == observed_ref
+                and intent.expected_head_sha != observed_head
+            ):
+                proposed=copy.deepcopy(state)
+                retired=proposed.action_queue[action_id]
+                retired.setdefault("dispatch_intent_history",[]).append({
+                    **intent.to_dict(),
+                    "retired_reason":"executor_source_advanced_before_dispatch",
+                    "observed_executor_head_sha":observed_head,
+                })
+                retired["status"]=ActionLifecycle.REJECTED.value
+                retired.pop("dispatch_intent",None)
+                retired.pop("dispatch_receipt",None)
+                proposed.revision += 1
+                admission_write=None
+                if state.research_id in admitted:
+                    admitted=transition_issue_status(
+                        admitted,state.research_id,"reasoning_required"
+                    )
+                    admission_write=_admission_write(
+                        admission_comment_id,admitted
+                    )
+                return ControllerCycle(
+                    trigger,
+                    {
+                        "kind":"stale_action_intent",
+                        "action_id":action_id,
+                        "expected_head_sha":intent.expected_head_sha,
+                        "observed_head_sha":observed_head,
+                    },
+                    None,
+                    admission_write,
+                    state_write_request(comments,proposed),
+                    None,
+                )
+        if payload["kind"] in {"action", "evidence", "diagnostic", "corrective"}:
+            if state is None:
+                raise ControllerCompositionError(
+                    "dispatchable work requires durable controller state"
+                )
+            return self._prepare_dispatch_intent(
+                trigger=trigger,
+                comments=comments,
+                state=state,
+                payload=payload,
+                admission_write=admission_write,
+            )
+        if payload["kind"] == "pending":
+            raise ControllerCompositionError(
+                "legacy static workflow work is not supported by production controller"
+            )
+        if payload["kind"] != "issue":
+            command = None if state is None else self._command_for_in_flight(
+                payload, state
+            )
+            return ControllerCycle(
+                trigger, payload, None, admission_write, None, command
+            )
+
+        result = plan_admitted_issue(payload, registry=self.decisions)
+        provider = self.reasoning.status()
+        planning = {
+            "schema_version": 1,
+            "work_id": result.work_id,
+            "outcome": "reasoning_required",
+            "reason": (
+                "semantic reasoning provider available; reasoning step required"
+                if provider.available
+                else "external semantic reasoning worker required"
+            ),
+            "blocker": None,
+            "semantic_provider": {
+                "available": provider.available,
+                "provider": provider.provider,
+            },
+            "action_plan": None,
+            "reasoning_context": result.envelope.as_reasoning_context(),
+        }
+        transitioned = transition_issue_status(
+            admitted, result.work_id, "reasoning_required"
+        )
+        admission_write = _admission_write(admission_comment_id, transitioned)
+        return self._consume_waiting_reasoning(
+            trigger=trigger,
+            comments=comments,
+            work=transitioned,
+            work_id=result.work_id,
+            state=state,
+            admission_comment_id=admission_comment_id,
+            planning=planning,
+            prior_admission_write=admission_write,
+            repository_context=repository_context,
+        )

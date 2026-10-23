@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "source_repository": "HyungseonSong-plasma/chatgpt-operation",
+  "commit_sha": "9b335e3fbb9c5e8e323e382daeec56fa25336822",
+  "snapshot_id": "git:HyungseonSong-plasma/chatgpt-operation@9b335e3fbb9c5e8e323e382daeec56fa25336822",
+  "source_acquisition": "Exact pinned GitHub blob from central repository, checked in byte-for-byte without executing it.",
+  "files": [
+    {
+      "path": "src/chatgpt_operation/controller/bootstrap.py",
+      "fixture": "fixtures/samuel/controller/bootstrap.py.txt",
+      "git_blob_sha": "0814ea249349ebcfc51e444aa5ac1dc6cf9fc9dc",
+      "definitions": [
+        {
+          "kind": "class",
+          "name": "BootstrapKind",
+          "line": 19
+        },
+        {
+          "kind": "class",
+          "name": "BootstrapWork",
+          "line": 24
+        },
+        {
+          "kind": "function",
+          "name": "load_pending",
+          "line": 51
+        },
+        {
+          "kind": "function",
+          "name": "select_controller_work",
+          "line": 84
+        }
+      ]
+    },
+    {
+      "path": "src/chatgpt_operation/controller/action_lifecycle.py",
+      "fixture": "fixtures/samuel/controller/action_lifecycle.py.txt",
+      "git_blob_sha": "87cc730155b52051f13ecfaa69ff717486485785",
+      "definitions": [
+        {
+          "kind": "class",
+          "name": "ActionLifecycle",
+          "line": 11
+        },
+        {
+          "kind": "class",
+          "name": "DispatchIntent",
+          "line": 27
+        }
+      ]
+    },
+    {
+      "path": "src/chatgpt_operation/controller/runtime.py",
+      "fixture": "fixtures/samuel/controller/runtime.py.txt",
+      "git_blob_sha": "eadf451f09a6618525c0c481870b183c47d5602b",
+      "definitions": [
+        {
+          "kind": "class",
+          "name": "ControllerCompositionError",
+          "line": 104
+        },
+        {
+          "kind": "class",
+          "name": "TriggerKind",
+          "line": 108
+        },
+        {
+          "kind": "class",
+          "name": "ControllerTrigger",
+          "line": 119
+        },
+        {
+          "kind": "class",
+          "name": "ControllerCycle",
+          "line": 161
+        },
+        {
+          "kind": "class",
+          "name": "SamuelController",
+          "line": 395
+        }
+      ],
+      "unresolved_imports": [
+        {
+          "line": 15,
+          "hint": ".action_lifecycle.ActionLifecycle"
+        },
+        {
+          "line": 15,
+          "hint": ".action_lifecycle.DispatchIntent"
+        },
+        {
+          "line": 17,
+          "hint": ".bootstrap.BootstrapWork"
+        },
+        {
+          "line": 17,
+          "hint": ".bootstrap.select_controller_work"
+        }
+      ]
+    }
+  ]
+}

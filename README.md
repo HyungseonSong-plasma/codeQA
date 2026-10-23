@@ -183,3 +183,10 @@ Issue #29 defines the versioned cross-language adapter capability declaration
 (`python_adapter_capability`). See
 [Language Adapter contract](docs/contracts/language-adapter-0.1.md).
 This is a declaration of syntax-extraction support, never code-quality PASS.
+
+## Samuel Python Adapter integration fixture
+
+Issue #24 validates the original pinned Samuel conformance requirement with
+byte-identical controller sources, selected ground-truth CCG nodes/edges,
+negative syntax cases and a dedicated CI cross-check. See
+[Samuel Adapter Conformance](docs/samuel-adapter-conformance.md).
