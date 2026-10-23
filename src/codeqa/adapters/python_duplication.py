@@ -91,8 +91,7 @@ def extract_python_token_blocks(
         ]
         for node, identity in collector.functions:
             if any(isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-                   for child in node.body for x in ast.walk(child)
-                   if x is not child):
+                   for child in node.body for x in ast.walk(child)):
                 skipped.append((identity, "nested_scope_overlap_not_evaluated"))
                 continue
             if not node.body:
