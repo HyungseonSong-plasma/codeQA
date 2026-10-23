@@ -166,6 +166,47 @@ class ExtendedCoverageTests(unittest.TestCase):
         _,_,report=self.inspect({"src/module.py":code})
         self.assertEqual(self.find(report,"BadName").status,"REVIEW_REQUIRED")
 
+    def test_unimported_qualified_final_is_not_a_verified_constant(self):
+        cases=[
+            "typing.Final",
+            "typing_extensions.Final",
+        ]
+        for annotation in cases:
+            with self.subTest(annotation=annotation):
+                source={"src/module.py":f"BadName: {annotation}[int] = 1\\n"}
+                _,ext,report=self.inspect(source)
+                self.assertFalse(any(f.name=="BadName" for f in report.findings))
+                self.assertEqual(report.status,"NOT_EVALUATED")
+                self.assertTrue(any(
+                    u.category=="annotation_binding"
+                    and u.reason=="unverified_typing_namespace_binding"
+                    for u in ext.uncertainty
+                ))
+        _,_,verified=self.inspect({
+            "src/module.py":"import typing\\nBadName: typing.Final[int] = 1\\n"})
+        self.assertEqual(self.find(verified,"BadName").status,"REVIEW_REQUIRED")
+
+    def test_wildcard_imports_block_unverified_final_binding(self):
+        cases=[
+            ("from typing import Final as F\\nfrom vendor import *\\n"
+             "BadName: F[int] = 1\\n"),
+            ("from vendor import *\\nBadName: Final[int] = 1\\n"),
+            ("import typing as tp\\nfrom vendor import *\\n"
+             "BadName: tp.Final[int] = 1\\n"),
+            ("from vendor import *\\nimport typing\\n"
+             "BadName: typing.Final[int] = 1\\n"),
+        ]
+        for code in cases:
+            with self.subTest(source=code):
+                _,ext,report=self.inspect({"src/module.py":code})
+                self.assertFalse(any(f.name=="BadName" for f in report.findings))
+                self.assertEqual(report.status,"NOT_EVALUATED")
+                self.assertTrue(any(
+                    u.category=="annotation_binding"
+                    and u.reason=="wildcard_import_may_shadow_Final_binding"
+                    for u in ext.uncertainty
+                ))
+
     def test_unicode_identifier_does_not_auto_normalize_or_claim_conformance(self):
         src={"src/unicode.py":"from typing import Final\nK: Final[str] = 'kelvin'\n"}
         _,_,report=self.inspect(src)
