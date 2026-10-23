@@ -142,6 +142,8 @@ class ExtendedCoverageTests(unittest.TestCase):
              "module_scope_rebinds_imported_Final_alias"),
             ("import typing as tp\ntp, other = object(), None\nBadName: tp.Final[int] = 1\n",
              "module_scope_rebinds_imported_Final_alias"),
+            ("from typing import Final as F\nfrom .vendor import F\nBadName: F[int] = 1\n",
+             "module_scope_rebinds_imported_Final_alias"),
             ("from typing import Final as F\nclass C:\n    F = list\n    BadName: F[int] = 1\n",
              "class_scope_shadows_imported_Final_alias"),
             ("from typing import Final as F\nclass C:\n    if condition:\n        F = list\n    BadName: F[int] = 1\n",
