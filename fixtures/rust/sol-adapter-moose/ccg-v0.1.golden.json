@@ -1,0 +1,397 @@
+{
+  "schema_version": "0.1",
+  "snapshot": {
+    "id": "git:HyungseonSong-plasma/sol-adapter-moose@ce40af4ffda17feaef99f4de328c9a37b6019553"
+  },
+  "nodes": [
+    {
+      "id": "rust:file:src/lib.rs",
+      "kind": "file",
+      "name": "src/lib.rs",
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:file:src/main.rs",
+      "kind": "file",
+      "name": "src/main.rs",
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:file:src/ir.rs",
+      "kind": "file",
+      "name": "src/ir.rs",
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:module:src/lib.rs:ir@5",
+      "kind": "module",
+      "name": "ir",
+      "location": {
+        "path": "src/lib.rs",
+        "start_line": 5,
+        "end_line": 5
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:symbol:src/lib.rs:FoundationAdapter@26",
+      "kind": "symbol",
+      "name": "FoundationAdapter",
+      "location": {
+        "path": "src/lib.rs",
+        "start_line": 26,
+        "end_line": 26
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:method:src/lib.rs:FoundationAdapter.describe_adapter@29",
+      "kind": "method",
+      "name": "describe_adapter",
+      "location": {
+        "path": "src/lib.rs",
+        "start_line": 29,
+        "end_line": 29
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:symbol:src/ir.rs:MooseInputModel@5",
+      "kind": "symbol",
+      "name": "MooseInputModel",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 5,
+        "end_line": 5
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:symbol:src/ir.rs:GeneratedLineMesh@16",
+      "kind": "symbol",
+      "name": "GeneratedLineMesh",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 16,
+        "end_line": 16
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:symbol:src/ir.rs:VariableOrder@30",
+      "kind": "symbol",
+      "name": "VariableOrder",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 30,
+        "end_line": 30
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:method:src/ir.rs:MooseInputModel.validate@79",
+      "kind": "method",
+      "name": "validate",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 79,
+        "end_line": 79
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:function:src/ir.rs:operator_name@280",
+      "kind": "function",
+      "name": "operator_name",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 280,
+        "end_line": 280
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:function:src/main.rs:main@14",
+      "kind": "function",
+      "name": "main",
+      "location": {
+        "path": "src/main.rs",
+        "start_line": 14,
+        "end_line": 14
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "id": "rust:function:src/main.rs:run@21",
+      "kind": "function",
+      "name": "run",
+      "location": {
+        "path": "src/main.rs",
+        "start_line": 21,
+        "end_line": 21
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "rust:file:src/lib.rs",
+      "target": "rust:module:src/lib.rs:ir@5",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/lib.rs",
+        "start_line": 5,
+        "end_line": 5
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/lib.rs",
+      "target": "rust:symbol:src/lib.rs:FoundationAdapter@26",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/lib.rs",
+        "start_line": 26,
+        "end_line": 26
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:symbol:src/lib.rs:FoundationAdapter@26",
+      "target": "rust:method:src/lib.rs:FoundationAdapter.describe_adapter@29",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/lib.rs",
+        "start_line": 29,
+        "end_line": 29
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/ir.rs",
+      "target": "rust:symbol:src/ir.rs:MooseInputModel@5",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 5,
+        "end_line": 5
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/ir.rs",
+      "target": "rust:symbol:src/ir.rs:GeneratedLineMesh@16",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 16,
+        "end_line": 16
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/ir.rs",
+      "target": "rust:symbol:src/ir.rs:VariableOrder@30",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 30,
+        "end_line": 30
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:symbol:src/ir.rs:MooseInputModel@5",
+      "target": "rust:method:src/ir.rs:MooseInputModel.validate@79",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 79,
+        "end_line": 79
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/ir.rs",
+      "target": "rust:function:src/ir.rs:operator_name@280",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 280,
+        "end_line": 280
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/main.rs",
+      "target": "rust:function:src/main.rs:main@14",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/main.rs",
+        "start_line": 14,
+        "end_line": 14
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/main.rs",
+      "target": "rust:function:src/main.rs:run@21",
+      "kind": "defines",
+      "resolution": "resolved",
+      "location": {
+        "path": "src/main.rs",
+        "start_line": 21,
+        "end_line": 21
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/lib.rs",
+      "kind": "imports",
+      "resolution": "unresolved",
+      "target_hint": "crate::execution_v02::{MOOSE_TARGET, THERMAL_CAPABILITY_V02}",
+      "location": {
+        "path": "src/lib.rs",
+        "start_line": 8,
+        "end_line": 8
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/main.rs",
+      "kind": "imports",
+      "resolution": "unresolved",
+      "target_hint": "sol_adaptor_moose::FoundationAdapter",
+      "location": {
+        "path": "src/main.rs",
+        "start_line": 10,
+        "end_line": 10
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/main.rs",
+      "kind": "imports",
+      "resolution": "unresolved",
+      "target_hint": "std::process",
+      "location": {
+        "path": "src/main.rs",
+        "start_line": 12,
+        "end_line": 12
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    },
+    {
+      "source": "rust:file:src/ir.rs",
+      "kind": "imports",
+      "resolution": "unresolved",
+      "target_hint": "std::collections::BTreeSet",
+      "location": {
+        "path": "src/ir.rs",
+        "start_line": 1,
+        "end_line": 1
+      },
+      "provenance": {
+        "producer": "manual-rust-ccg-golden",
+        "method": "pinned-source-syntax-observation"
+      }
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "analyzed_paths": [
+      "src/lib.rs",
+      "src/main.rs",
+      "src/ir.rs"
+    ],
+    "unprocessed": []
+  },
+  "diagnostics": []
+}
