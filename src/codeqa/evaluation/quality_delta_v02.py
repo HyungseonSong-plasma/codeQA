@@ -204,6 +204,134 @@ def metric_snapshot_from_qa_result(
     return validate_metric_snapshot(doc, snapshot_schema)
 
 
+def _grounded_source_change(
+    before: Mapping[str, Any],
+    after: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+) -> tuple[dict[str, str], dict[str, str], dict[str, str], list[str]]:
+    """Normalize caller-attested renames only when both source hashes match."""
+    old_files = {x["path"]: x["sha256"] for x in before["source"]["files"]}
+    new_files = {x["path"]: x["sha256"] for x in after["source"]["files"]}
+    rename_to_old: dict[str, str] = {}
+    used_old: set[str] = set()
+    for change in manifest["renames"]:
+        src, dst = change["before"], change["after"]
+        if (src in used_old or dst in rename_to_old or not _safe_path(src)
+                or not _safe_path(dst) or src == dst
+                or old_files.get(src) != change["before_sha256"]
+                or new_files.get(dst) != change["after_sha256"]):
+            _fail("ambiguous, ungrounded or duplicate explicit rename mapping")
+        used_old.add(src)
+        rename_to_old[dst] = src
+    normalized_new = {rename_to_old.get(path, path) for path in new_files}
+    reasons: list[str] = []
+    if old_files.keys() != normalized_new:
+        reasons.append("selected_paths_changed_without_grounded_renames")
+    if (before["source"]["coverage"] != "complete"
+            or after["source"]["coverage"] != "complete"):
+        reasons.append("incomplete_or_failed_source_parsing")
+    return old_files, new_files, rename_to_old, reasons
+
+
+def _subjects_by_source(
+    rule: dict[str, Any], rename_to_old: Mapping[str, str],
+) -> dict[tuple[str | None, str], dict[str, Any]]:
+    """Use lexical subject identities; never infer symbol or function renames."""
+    subjects: dict[tuple[str | None, str], dict[str, Any]] = {}
+    for observation in rule["observations"]:
+        path = rename_to_old.get(observation["path"], observation["path"])
+        key = (path, observation["subject_key"])
+        if key in subjects:
+            _fail("renamed source creates colliding observation identities")
+        subjects[key] = observation
+    return subjects
+
+
+def _source_bytes_unchanged(
+    old_files: Mapping[str, str],
+    new_files: Mapping[str, str],
+    rename_to_old: Mapping[str, str],
+) -> bool:
+    return (len(old_files) == len(new_files)
+            and all(old_files.get(rename_to_old.get(path, path)) == checksum
+                    for path, checksum in new_files.items()))
+
+
+def _observation_differences(
+    before: Mapping[tuple[str | None, str], Mapping[str, Any]],
+    after: Mapping[tuple[str | None, str], Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Record observed matched, added and removed subjects without imputation."""
+    changes = []
+    for path, subject in sorted(set(before) | set(after)):
+        old = before.get((path, subject))
+        new = after.get((path, subject))
+        changes.append({
+            "path": path or "(selected_scope)", "subject_key": subject,
+            "change": "MATCHED" if old is not None and new is not None
+                      else "ADDED" if new is not None else "REMOVED",
+            "baseline_value": old["value"] if old else None,
+            "candidate_value": new["value"] if new else None,
+            "value_delta": new["value"] - old["value"] if old and new else None,
+            "baseline_review_required": old["review_required"] if old else None,
+            "candidate_review_required": new["review_required"] if new else None,
+        })
+    return changes
+
+
+def _compare_one_rule(
+    rule_id: str,
+    before: Mapping[str, Any] | None,
+    after: Mapping[str, Any] | None,
+    *,
+    source_reasons: list[str],
+    old_files: Mapping[str, str],
+    new_files: Mapping[str, str],
+    rename_to_old: Mapping[str, str],
+) -> dict[str, Any]:
+    """Fail closed on rule drift, then report only comparable observations."""
+    reference = before or after
+    assert reference is not None
+    reasons = list(source_reasons)
+    if before is None or after is None:
+        reasons.append("rule_missing_or_unsupported_in_one_snapshot")
+    else:
+        for key in ("version", "principle", "engine", "profile", "metric", "denominator"):
+            if before[key] != after[key]:
+                reasons.append(key + "_changed")
+        if before["evidence_status"] != "MEASURED" or after["evidence_status"] != "MEASURED":
+            reasons.append("rule_evidence_incomplete_or_not_evaluated")
+    changes = []
+    if before is not None and after is not None and not reasons:
+        old = _subjects_by_source(before, {})
+        new = _subjects_by_source(after, rename_to_old)
+        if (_source_bytes_unchanged(old_files, new_files, rename_to_old)
+                and {key: (x["value"], x["review_required"]) for key, x in old.items()}
+                != {key: (x["value"], x["review_required"]) for key, x in new.items()}):
+            reasons.append("unchanged_source_bytes_conflicting_metrics")
+        if not reasons:
+            changes = _observation_differences(old, new)
+    comparable = not reasons
+    old_sum = sum(x["value"] for x in before["observations"]) if comparable else None
+    new_sum = sum(x["value"] for x in after["observations"]) if comparable else None
+    old_reviews = sum(x["review_required"] for x in before["observations"]) if comparable else None
+    new_reviews = sum(x["review_required"] for x in after["observations"]) if comparable else None
+    return {
+        "rule_id": rule_id,
+        "status": "COMPARABLE" if comparable else "NOT_COMPARABLE",
+        "reasons": sorted(set(reasons)),
+        "metric": reference["metric"],
+        "denominator": reference["denominator"],
+        "baseline_sum": old_sum,
+        "candidate_sum": new_sum,
+        "sum_delta": new_sum - old_sum if comparable else None,
+        "baseline_reviews": old_reviews,
+        "candidate_reviews": new_reviews,
+        "review_delta": new_reviews - old_reviews if comparable else None,
+        "observations": changes,
+    }
+
+
 def compare_metric_snapshots(
     baseline: Mapping[str, Any], candidate: Mapping[str, Any],
     change_manifest: Mapping[str, Any],
@@ -212,7 +340,7 @@ def compare_metric_snapshots(
     change_schema: Mapping[str, Any],
     delta_schema: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Never create a regression claim from a missing or incompatible metric."""
+    """Compare only source-compatible, independently measured versioned rules."""
     before = validate_metric_snapshot(baseline, snapshot_schema)
     after = validate_metric_snapshot(candidate, snapshot_schema)
     _schema_check(change_manifest, change_schema)
@@ -223,105 +351,34 @@ def compare_metric_snapshots(
         _fail("distinct immutable snapshots required")
     if before["source"]["repository"] != after["source"]["repository"]:
         _fail("cannot compare distinct source repositories")
-    old_files = {x["path"]: x["sha256"] for x in before["source"]["files"]}
-    new_files = {x["path"]: x["sha256"] for x in after["source"]["files"]}
-    rename_to_old = {}
-    used_old = set()
-    for change in change_manifest["renames"]:
-        src, dst = change["before"], change["after"]
-        if (src in used_old or dst in rename_to_old or not _safe_path(src)
-                or not _safe_path(dst) or src == dst
-                or old_files.get(src) != change["before_sha256"]
-                or new_files.get(dst) != change["after_sha256"]):
-            _fail("ambiguous, ungrounded or duplicate explicit rename mapping")
-        used_old.add(src)
-        rename_to_old[dst] = src
-    normalized_new = {rename_to_old.get(p, p) for p in new_files}
-    reasons = []
-    if old_files.keys() != normalized_new:
-        reasons.append("selected_paths_changed_without_grounded_renames")
-    if before["source"]["coverage"] != "complete" or after["source"]["coverage"] != "complete":
-        reasons.append("incomplete_or_failed_source_parsing")
-    before_rules = {r["id"]: r for r in before["rules"]}
-    after_rules = {r["id"]: r for r in after["rules"]}
-    all_rule_ids = sorted(set(before_rules) | set(after_rules))
-    comparisons = []
-    for rule_id in all_rule_ids:
-        first = before_rules.get(rule_id)
-        last = after_rules.get(rule_id)
-        reference = first or last
-        metric = reference["metric"]
-        denominator = reference["denominator"]
-        local = list(reasons)
-        if first is None or last is None:
-            local.append("rule_missing_or_unsupported_in_one_snapshot")
-        else:
-            for key in ("version", "principle", "engine", "profile", "metric", "denominator"):
-                if first[key] != last[key]:
-                    local.append(key + "_changed")
-            if first["evidence_status"] != "MEASURED" or last["evidence_status"] != "MEASURED":
-                local.append("rule_evidence_incomplete_or_not_evaluated")
-        edits = []
-        if first is not None and last is not None and not local:
-            def observed(rule: dict, *, normalized: bool) -> dict:
-                records = {}
-                for obs in rule["observations"]:
-                    path = rename_to_old.get(obs["path"], obs["path"]) if normalized else obs["path"]
-                    key = (path, obs["subject_key"])
-                    if key in records:
-                        _fail("renamed source creates colliding observation identities")
-                    records[key] = obs
-                return records
-            left = observed(first, normalized=False)
-            right = observed(last, normalized=True)
-            unchanged_input = (len(old_files) == len(new_files)
-                and all(old_files.get(rename_to_old.get(path,path)) == checksum
-                        for path, checksum in new_files.items()))
-            if unchanged_input and ({key:(x["value"],x["review_required"]) for key,x in left.items()}
-                                    != {key:(x["value"],x["review_required"]) for key,x in right.items()}):
-                local.append("unchanged_source_bytes_conflicting_metrics")
-            if not local:
-                for path, subject in sorted(set(left) | set(right)):
-                    b = left.get((path,subject))
-                    c = right.get((path,subject))
-                    edits.append({
-                        "path": path or "(selected_scope)", "subject_key": subject,
-                        "change": "MATCHED" if b is not None and c is not None
-                                  else "ADDED" if c is not None else "REMOVED",
-                        "baseline_value": b["value"] if b else None,
-                        "candidate_value": c["value"] if c else None,
-                        "value_delta": c["value"]-b["value"] if b and c else None,
-                        "baseline_review_required": b["review_required"] if b else None,
-                        "candidate_review_required": c["review_required"] if c else None,
-                    })
-        comparable = not local
-        bsum = sum(obs["value"] for obs in first["observations"]) if comparable else None
-        csum = sum(obs["value"] for obs in last["observations"]) if comparable else None
-        br = sum(obs["review_required"] for obs in first["observations"]) if comparable else None
-        cr = sum(obs["review_required"] for obs in last["observations"]) if comparable else None
-        comparisons.append({
-            "rule_id": rule_id,
-            "status": "COMPARABLE" if comparable else "NOT_COMPARABLE",
-            "reasons": sorted(set(local)), "metric": metric, "denominator": denominator,
-            "baseline_sum": bsum, "candidate_sum": csum,
-            "sum_delta": csum - bsum if comparable else None,
-            "baseline_reviews": br, "candidate_reviews": cr,
-            "review_delta": cr-br if comparable else None,
-            "observations": edits,
-        })
-    good = sum(x["status"] == "COMPARABLE" for x in comparisons)
-    state = ("COMPARABLE" if good == len(comparisons) and good else
-             "PARTIAL" if good else "NOT_COMPARABLE")
-    doc = {
+    old_files, new_files, rename_to_old, source_reasons = _grounded_source_change(
+        before, after, change_manifest,
+    )
+    left = {rule["id"]: rule for rule in before["rules"]}
+    right = {rule["id"]: rule for rule in after["rules"]}
+    deltas = [
+        _compare_one_rule(
+            rule_id, left.get(rule_id), right.get(rule_id),
+            source_reasons=source_reasons,
+            old_files=old_files,
+            new_files=new_files,
+            rename_to_old=rename_to_old,
+        )
+        for rule_id in sorted(set(left) | set(right))
+    ]
+    comparable = sum(delta["status"] == "COMPARABLE" for delta in deltas)
+    status = ("COMPARABLE" if comparable == len(deltas) and comparable else
+              "PARTIAL" if comparable else "NOT_COMPARABLE")
+    document = {
         "schema_version": "0.2",
         "baseline_snapshot_id": before["snapshot_id"],
         "candidate_snapshot_id": after["snapshot_id"],
-        "status": state, "reasons": sorted(set(reasons)),
-        "rule_deltas": comparisons,
+        "status": status, "reasons": sorted(set(source_reasons)),
+        "rule_deltas": deltas,
         "interpretation": "DESCRIPTIVE_METRIC_CHANGES_NOT_PROVEN_REGRESSIONS",
     }
-    _schema_check(doc, delta_schema)
-    return doc
+    _schema_check(document, delta_schema)
+    return document
 
 
 def build_source_change_manifest(
