@@ -1,0 +1,59 @@
+name: Pinned Naming Delta conformance
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/naming_source_delta.py'
+      - 'contracts/qa/naming-source-delta-v0.1.schema.json'
+      - 'tests/test_naming_source_delta.py'
+      - 'docs/naming-source-delta.md'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-source-delta.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/codeqa/evaluation/naming_source_delta.py'
+      - 'contracts/qa/naming-source-delta-v0.1.schema.json'
+      - 'tests/test_naming_source_delta.py'
+      - 'docs/naming-source-delta.md'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-source-delta.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  delta:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 69be07aab3e5815a1670f7308deb6caf6b49bc79
+          path: moose-base
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: d8e8d5e2d5154d907953699644263b1dba681be6
+          path: moose-guided
+          persist-credentials: false
+      - name: Verify pinned source inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C moose-base rev-parse HEAD)" = "69be07aab3e5815a1670f7308deb6caf6b49bc79"
+          test "$(git -C moose-guided rev-parse HEAD)" = "d8e8d5e2d5154d907953699644263b1dba681be6"
+          cmp moose-base/physics_harness/analysis/field_comparison.py codeqa/fixtures/moose-p3-refactor/base.py.txt
+          cmp moose-guided/physics_harness/analysis/field_comparison.py codeqa/fixtures/moose-p3-refactor/guided.py.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - run: python3 -m unittest discover -s codeqa/tests -p test_naming_source_delta.py -v
