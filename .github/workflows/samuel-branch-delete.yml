@@ -1,0 +1,46 @@
+# Persistent, explicit-request consumer route to pinned Samuel's exact-SHA deletion.
+name: codeQA Samuel exact-SHA branch delete
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/requests/branch-delete-request.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.request.outputs.matrix }}
+      has_targets: ${{ steps.request.outputs.has_targets }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: request
+        name: Validate exact-SHA deletion request (read-only)
+        run: |
+          python3 .github/scripts/validate_branch_delete_request.py \
+            --request .github/requests/branch-delete-request.json \
+            --github-output "$GITHUB_OUTPUT"
+
+  delete:
+    needs: prepare
+    if: needs.prepare.outputs.has_targets == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Delete by pinned Samuel exact-SHA guarded capability
+        uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@9b335e3fbb9c5e8e323e382daeec56fa25336822
+        with:
+          repository: HyungseonSong-plasma/codeQA
+          branch: ${{ matrix.branch }}
+          expected-sha: ${{ matrix.expected_sha }}
+          github-token: ${{ github.token }}
