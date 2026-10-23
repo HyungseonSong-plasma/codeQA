@@ -111,6 +111,7 @@ class _Extra(ast.NodeVisitor):
         self.ambiguous_final_roots=candidate_final_roots-set(self.imports)
         self.scope: list[str]=[]
         self.classes: list[ast.ClassDef]=[]
+        self.class_binding_roots: list[set[str]]=[]
         self.decls: list[NamingExtendedSymbol]=[]
         self.unknowns: list[NamingUncertainty]=[]
         self.seen=set()
@@ -132,8 +133,7 @@ class _Extra(ast.NodeVisitor):
         name=".".join((self.imports.get(first,first),*rest))
         if name not in ("typing.Final","typing_extensions.Final"):
             return False
-        if self.classes and first in _scope_writes(ast.Module(
-                body=self.classes[-1].body, type_ignores=[])):
+        if self.class_binding_roots and first in self.class_binding_roots[-1]:
             self.unknown(annotation,"annotation_binding",
                          "class_scope_shadows_imported_Final_alias")
             return False
@@ -179,6 +179,8 @@ class _Extra(ast.NodeVisitor):
     def visit_ClassDef(self,node:ast.ClassDef)->None:
         self.scope.append(node.name)
         self.classes.append(node)
+        self.class_binding_roots.append(_scope_writes(ast.Module(
+            body=node.body, type_ignores=[])))
         if len(self.scope)>1:
             self.unknown(node,"nested_class",
                          "nested_class_lexical_role_only_not_complete_binding")
@@ -188,6 +190,7 @@ class _Extra(ast.NodeVisitor):
         for stmt in node.body:
             self.visit(stmt)
         self.classes.pop()
+        self.class_binding_roots.pop()
         self.scope.pop()
 
     def visit_FunctionDef(self,node:ast.FunctionDef|ast.AsyncFunctionDef)->None:
