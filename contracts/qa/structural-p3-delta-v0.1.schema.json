@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:structural-p3-delta:v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "baseline_snapshot_id",
+    "candidate_snapshot_id",
+    "selected_file_count",
+    "declared_path",
+    "status",
+    "source_coverage",
+    "analysis_limitations",
+    "function_counts",
+    "rule_profile_id",
+    "maximum_function_call_sites",
+    "counts",
+    "exact_syntax_relocation_candidates",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "baseline_snapshot_id": {
+      "type": "string",
+      "pattern": "^git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[a-f0-9]{40}$"
+    },
+    "candidate_snapshot_id": {
+      "type": "string",
+      "pattern": "^git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[a-f0-9]{40}$"
+    },
+    "selected_file_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "declared_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "COMPARABLE_STATIC_COUNTS",
+        "NOT_COMPARABLE"
+      ]
+    },
+    "source_coverage": {
+      "enum": [
+        "complete",
+        "partial_or_none"
+      ]
+    },
+    "analysis_limitations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "function_counts": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2,
+      "items": false
+    },
+    "rule_profile_id": {
+      "const": "codeqa.p3.extraction.v0.1"
+    },
+    "maximum_function_call_sites": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "counts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "unit",
+          "scope",
+          "baseline",
+          "candidate",
+          "delta",
+          "interpretation"
+        ],
+        "properties": {
+          "metric": {
+            "enum": [
+              "selected_ast_call_sites",
+              "declared_parent_helper_ast_calls",
+              "selected_p3_review_trigger_count",
+              "selected_unresolved_call_sites"
+            ]
+          },
+          "unit": {
+            "enum": [
+              "AST_call_site",
+              "function_review_count"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "same_selected_file_population",
+              "caller_declared_parent_helper_cohort"
+            ]
+          },
+          "baseline": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "candidate": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "delta": {
+            "type": "integer"
+          },
+          "interpretation": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "exact_syntax_relocation_candidates": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "interpretation": {
+      "const": "STATIC_SCOPE_COUNTS_NOT_PROVEN_ARCHITECTURE_OR_BEHAVIOR_IMPROVEMENT"
+    }
+  }
+}

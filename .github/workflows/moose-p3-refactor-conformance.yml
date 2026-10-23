@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'src/codeqa/evaluation/extraction_aware_p3.py'
+      - 'src/codeqa/evaluation/structural_p3_delta.py'
+      - 'tests/test_structural_p3_delta.py'
+      - 'contracts/qa/structural-p3-delta-v0.1.schema.json'
+      - 'docs/structural-p3-delta.md'
       - 'src/codeqa/adapters/python_p3_witness.py'
       - 'src/codeqa/core/p3_witness.py'
       - 'src/codeqa/adapters/python_complexity.py'
@@ -23,6 +27,10 @@ on:
     branches: [main]
     paths:
       - 'src/codeqa/evaluation/extraction_aware_p3.py'
+      - 'src/codeqa/evaluation/structural_p3_delta.py'
+      - 'tests/test_structural_p3_delta.py'
+      - 'contracts/qa/structural-p3-delta-v0.1.schema.json'
+      - 'docs/structural-p3-delta.md'
       - 'tests/test_extraction_aware_p3.py'
       - 'contracts/qa/extraction-p3-v0.1.schema.json'
       - 'profiles/extraction-p3-v0.1.json'
@@ -89,4 +97,5 @@ jobs:
         shell: bash
         run: |
           python3 -m unittest discover -s codeqa/tests -p test_extraction_aware_p3.py -v
+          python3 -m unittest discover -s codeqa/tests -p test_structural_p3_delta.py -v
           python3 -m unittest discover -s codeqa/tests -p test_body_complexity.py -v
