@@ -11,11 +11,19 @@ on:
       - 'src/codeqa/adapters/python_symbols.py'
       - 'src/codeqa/core/symbols.py'
       - 'src/codeqa/evaluation/contextual.py'
+      - 'fixtures/samuel/**'
+      - 'tests/test_samuel_adapter_conformance.py'
+      - 'docs/samuel-adapter-conformance.md'
+      - 'docs/python-adapter.md'
   push:
     branches: [main]
     paths:
       - '.github/scripts/external_python_audit.py'
       - '.github/workflows/moose-test-audit.yml'
+      - 'fixtures/samuel/**'
+      - 'tests/test_samuel_adapter_conformance.py'
+      - 'docs/samuel-adapter-conformance.md'
+      - 'docs/python-adapter.md'
   workflow_dispatch:
 
 permissions:
