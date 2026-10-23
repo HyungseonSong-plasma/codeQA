@@ -84,6 +84,9 @@ def _imports(tree: ast.Module) -> dict[str, str]:
                 bindings[local]=node.module+"."+alias.name
         if isinstance(node,(ast.ClassDef,ast.FunctionDef,ast.AsyncFunctionDef)):
             conflicting.add(node.name)
+        if isinstance(node, ast.ImportFrom) and (node.level or not node.module):
+            # A relative import can replace a previously imported Final root.
+            conflicting.update(a.asname or a.name for a in node.names if a.name != "*")
         if not isinstance(node, (ast.Import, ast.ImportFrom)):
             # Also catch destructuring, conditional and loop rebindings.
             conflicting.update(_scope_writes(node))
