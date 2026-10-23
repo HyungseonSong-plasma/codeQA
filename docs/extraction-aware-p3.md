@@ -41,9 +41,11 @@ possible behavior or physics simulation correctness**.
   by codeQA**, and any ambiguous, missing or overlapping owner fails closed.
   A renamed parent is allowed only with an explicit before/after mapping.
 - Input graphs must be **validated CCG v0.1 facts** from two distinct full
-  pinned commits of the **same repository**. Actual source text, Graph
-  coverage, locations and existing Mechanical P3 `call_metrics` are
-  cross-checked against an independently parsed AST. The exact selected
+  pinned commits of the **same repository**. Exact source text, Graph coverage, locations and existing Mechanical P3
+  `call_metrics` are checked against **Adapter-owned** immutable Python AST
+  call witnesses (`codeqa.adapters.python_p3_witness`). The pure evaluator
+  consumes `codeqa.core.p3_witness` dataclasses and must never import the
+  Python Adapter; orchestration supplies the evidence explicitly. The exact selected
   file population must match and every *other selected file* must remain
   unchanged for attribution to the declared target.
 - Profile `profiles/extraction-p3-v0.1.json` is registered as
@@ -56,6 +58,12 @@ possible behavior or physics simulation correctness**.
   sites, selected-scope total, scope review trigger count, function count,
   unknown call targets, coverage/analysis states, source SHA-256 and
   per-file immutable Git snapshot identity.
+- Call `extract_python_p3_call_evidence(source_mapping)` separately for
+  each pinned snapshot; pass its result as the positional
+  `before_call_evidence` / `after_call_evidence` arguments to
+  `compare_extraction_aware_p3`. SHA-256 digests bind witnesses to exact
+  caller-supplied UTF-8 text, while immutable Git identity remains a
+  caller/source-CI responsibility.
 - AST calls are counted under the actual lexical function, including async
   and nested definitions. A nested or lambda body is **not borrowed** by
   an enclosing function. The source-call counts/locations must agree with
