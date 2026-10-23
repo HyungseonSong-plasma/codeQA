@@ -32,7 +32,7 @@ baseline_profile=..., policy=...)`.
   and dynamic namespace operations have **explicit uncertainty
   records**, not a fabricated conformance verdict. Unicode
   identifiers requiring NFKC normalization remain `NOT_EVALUATED`.
-- Each observation binds exact original file SHA-256, line and UTF-8
+- Module/class rebinding of imported `Final` names now records explicit\n  `annotation_binding` uncertainty instead of claiming a verified constant.\n- Each observation binds exact original file SHA-256, line and UTF-8
   byte offset. A spoofed or stale position raises an error. The
   evaluator also validates v0.1 source-identity parity before emitting
   supplementary findings.
@@ -73,7 +73,7 @@ inventory or whole-repository coverage.
 
 **#69 remains OPEN** pending real maintainer-reviewed source inventory,
 more declaration types (including complicated dynamic module bindings,
-import re-exports, nested binding semantics, Final alias redefinitions),
+import re-exports, nested binding semantics, more complex Final binding transformations),
 full exception precedence and signed source/consumer schema provenance.
 Related #70 and #71 separately own external runtime bindings; #72/#73
 own additional languages. No silent changes to public CCG/QA Result/Delta

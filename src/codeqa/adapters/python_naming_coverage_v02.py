@@ -20,6 +20,50 @@ def _dotted(n: ast.AST) -> str | None:
     return None
 
 
+def _scope_writes(node: ast.AST) -> set[str]:
+    """Possible bindings in one suite; function/class bodies have distinct scope."""
+    class Writes(ast.NodeVisitor):
+        def __init__(self):
+            self.names: set[str] = set()
+
+        def visit_Name(self, n: ast.Name) -> None:
+            if isinstance(n.ctx, (ast.Store, ast.Del)):
+                self.names.add(n.id)
+
+        def visit_FunctionDef(self, n: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+            self.names.add(n.name)
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_ClassDef(self, n: ast.ClassDef) -> None:
+            self.names.add(n.name)
+
+        def visit_Import(self, n: ast.Import) -> None:
+            self.names.update(a.asname or a.name.split(".")[0] for a in n.names)
+
+        def visit_ImportFrom(self, n: ast.ImportFrom) -> None:
+            self.names.update(a.asname or a.name for a in n.names if a.name != "*")
+
+        def visit_ExceptHandler(self, n: ast.ExceptHandler) -> None:
+            if n.name:
+                self.names.add(n.name)
+            self.generic_visit(n)
+
+        def visit_Lambda(self, n: ast.Lambda) -> None:
+            pass
+
+        def visit_ListComp(self, n: ast.ListComp) -> None:
+            pass
+
+        visit_SetComp = visit_ListComp
+        visit_DictComp = visit_ListComp
+        visit_GeneratorExp = visit_ListComp
+
+    visitor = Writes()
+    visitor.visit(node)
+    return visitor.names
+
+
 def _imports(tree: ast.Module) -> dict[str, str]:
     bindings: dict[str,str]={}
     conflicting=set()
@@ -40,9 +84,12 @@ def _imports(tree: ast.Module) -> dict[str, str]:
                 bindings[local]=node.module+"."+alias.name
         if isinstance(node,(ast.ClassDef,ast.FunctionDef,ast.AsyncFunctionDef)):
             conflicting.add(node.name)
-        if isinstance(node,(ast.Assign,ast.AnnAssign)):
-            targets=node.targets if isinstance(node,ast.Assign) else [node.target]
-            conflicting.update(t.id for t in targets if isinstance(t,ast.Name))
+        if isinstance(node, ast.ImportFrom) and (node.level or not node.module):
+            # A relative import can replace a previously imported Final root.
+            conflicting.update(a.asname or a.name for a in node.names if a.name != "*")
+        if not isinstance(node, (ast.Import, ast.ImportFrom)):
+            # Also catch destructuring, conditional and loop rebindings.
+            conflicting.update(_scope_writes(node))
     return {k:v for k,v in bindings.items() if k not in conflicting}
 
 
@@ -51,8 +98,20 @@ class _Extra(ast.NodeVisitor):
         self.path=path
         self.source=source
         self.imports=_imports(tree)
+        candidate_final_roots=set()
+        for statement in tree.body:
+            if isinstance(statement, ast.ImportFrom) and statement.level == 0 \
+                    and statement.module in ("typing", "typing_extensions"):
+                candidate_final_roots.update(
+                    a.asname or a.name for a in statement.names if a.name == "Final")
+            elif isinstance(statement, ast.Import):
+                candidate_final_roots.update(
+                    a.asname or a.name.split(".")[0] for a in statement.names
+                    if a.name in ("typing", "typing_extensions"))
+        self.ambiguous_final_roots=candidate_final_roots-set(self.imports)
         self.scope: list[str]=[]
         self.classes: list[ast.ClassDef]=[]
+        self.class_binding_roots: list[set[str]]=[]
         self.decls: list[NamingExtendedSymbol]=[]
         self.unknowns: list[NamingUncertainty]=[]
         self.seen=set()
@@ -67,8 +126,18 @@ class _Extra(ast.NodeVisitor):
         if not name:
             return False
         first,*rest=name.split(".")
+        if first in self.ambiguous_final_roots and (not rest or rest == ["Final"]):
+            self.unknown(annotation,"annotation_binding",
+                         "module_scope_rebinds_imported_Final_alias")
+            return False
         name=".".join((self.imports.get(first,first),*rest))
-        return name in ("typing.Final","typing_extensions.Final")
+        if name not in ("typing.Final","typing_extensions.Final"):
+            return False
+        if self.class_binding_roots and first in self.class_binding_roots[-1]:
+            self.unknown(annotation,"annotation_binding",
+                         "class_scope_shadows_imported_Final_alias")
+            return False
+        return True
 
     def declare(self, node: ast.Name | ast.Attribute, name: str,
                 kind: str, relation: str, reason: str)->None:
@@ -110,6 +179,8 @@ class _Extra(ast.NodeVisitor):
     def visit_ClassDef(self,node:ast.ClassDef)->None:
         self.scope.append(node.name)
         self.classes.append(node)
+        self.class_binding_roots.append(_scope_writes(ast.Module(
+            body=node.body, type_ignores=[])))
         if len(self.scope)>1:
             self.unknown(node,"nested_class",
                          "nested_class_lexical_role_only_not_complete_binding")
@@ -119,6 +190,7 @@ class _Extra(ast.NodeVisitor):
         for stmt in node.body:
             self.visit(stmt)
         self.classes.pop()
+        self.class_binding_roots.pop()
         self.scope.pop()
 
     def visit_FunctionDef(self,node:ast.FunctionDef|ast.AsyncFunctionDef)->None:
