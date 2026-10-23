@@ -1,0 +1,8 @@
+{
+  "source_repository": "HyungseonSong-plasma/codeQA",
+  "source_commit": "ef6359131f0cd952ed43674274ffe0453c6bf2a9",
+  "original_path": "src/codeqa/adapters/python_snapshot.py",
+  "path": "fixtures/naming-codeqa/python_snapshot.py.txt",
+  "git_blob_sha": "5c419b49dbf54b5cb439be9e269da6729656db2e",
+  "interpretation": "exact pinned source syntax fixture; not full repository or behavior coverage"
+}

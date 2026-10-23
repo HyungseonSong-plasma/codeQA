@@ -1,0 +1,62 @@
+name: Naming convention pinned Python MVP
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/adapters/python_naming.py'
+      - 'src/codeqa/core/naming.py'
+      - 'src/codeqa/evaluation/naming.py'
+      - 'profiles/python-naming-safe-v0.1.json'
+      - 'contracts/qa/naming-report-v0.1.schema.json'
+      - 'fixtures/naming-codeqa/**'
+      - 'tests/test_naming_safe.py'
+      - 'docs/naming-conventions.md'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-python-conformance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/codeqa/adapters/python_naming.py'
+      - 'src/codeqa/core/naming.py'
+      - 'src/codeqa/evaluation/naming.py'
+      - 'profiles/python-naming-safe-v0.1.json'
+      - 'contracts/qa/naming-report-v0.1.schema.json'
+      - 'fixtures/naming-codeqa/**'
+      - 'tests/test_naming_safe.py'
+      - 'docs/naming-conventions.md'
+      - 'pyproject.toml'
+      - '.github/workflows/naming-python-conformance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-python-naming:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - name: Read exact historical codeQA source
+        uses: actions/checkout@v4
+        with:
+          ref: ef6359131f0cd952ed43674274ffe0453c6bf2a9
+          path: historical
+          persist-credentials: false
+      - name: Verify pinned source Git identity and bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C historical rev-parse HEAD)" = "ef6359131f0cd952ed43674274ffe0453c6bf2a9"
+          cmp historical/src/codeqa/adapters/python_snapshot.py \
+              codeqa/fixtures/naming-codeqa/python_snapshot.py.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install codeQA without importing inspected source
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Evaluate safe Python naming conformance fixtures
+        run: python3 -m unittest discover -s codeqa/tests -p test_naming_safe.py -v
