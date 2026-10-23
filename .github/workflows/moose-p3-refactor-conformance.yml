@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - 'src/codeqa/evaluation/extraction_aware_p3.py'
+      - 'src/codeqa/evaluation/statement_similarity.py'
+      - 'src/codeqa/adapters/python_statement_similarity.py'
+      - 'src/codeqa/core/statement_similarity.py'
+      - 'tests/test_statement_similarity.py'
+      - 'profiles/statement-similarity-v0.2.json'
+      - 'contracts/qa/statement-similarity-v0.2.schema.json'
+      - 'docs/statement-similarity-v02.md'
       - 'src/codeqa/evaluation/structural_p3_delta.py'
       - 'tests/test_structural_p3_delta.py'
       - 'contracts/qa/structural-p3-delta-v0.1.schema.json'
@@ -27,6 +34,13 @@ on:
     branches: [main]
     paths:
       - 'src/codeqa/evaluation/extraction_aware_p3.py'
+      - 'src/codeqa/evaluation/statement_similarity.py'
+      - 'src/codeqa/adapters/python_statement_similarity.py'
+      - 'src/codeqa/core/statement_similarity.py'
+      - 'tests/test_statement_similarity.py'
+      - 'profiles/statement-similarity-v0.2.json'
+      - 'contracts/qa/statement-similarity-v0.2.schema.json'
+      - 'docs/statement-similarity-v02.md'
       - 'src/codeqa/evaluation/structural_p3_delta.py'
       - 'tests/test_structural_p3_delta.py'
       - 'contracts/qa/structural-p3-delta-v0.1.schema.json'
@@ -97,5 +111,6 @@ jobs:
         shell: bash
         run: |
           python3 -m unittest discover -s codeqa/tests -p test_extraction_aware_p3.py -v
+          python3 -m unittest discover -s codeqa/tests -p test_statement_similarity.py -v
           python3 -m unittest discover -s codeqa/tests -p test_structural_p3_delta.py -v
           python3 -m unittest discover -s codeqa/tests -p test_body_complexity.py -v

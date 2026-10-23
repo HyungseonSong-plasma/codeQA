@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:statement-similarity:v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "profile_id",
+    "profile_fingerprint",
+    "analyzed_paths",
+    "unprocessed",
+    "coverage_status",
+    "eligible_direct_statements",
+    "repeated_statement_occurrences",
+    "groups",
+    "not_evaluated",
+    "status",
+    "interpretation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_id": {
+      "const": "python-direct-statement-patterns-v0.2"
+    },
+    "profile_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "analyzed_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unprocessed": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "string",
+            "minLength": 1
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2,
+        "items": false
+      }
+    },
+    "coverage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "none"
+      ]
+    },
+    "eligible_direct_statements": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repeated_statement_occurrences": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "owner_id",
+          "statement_kind",
+          "normalized_syntax_sha256",
+          "witnesses"
+        ],
+        "properties": {
+          "owner_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement_kind": {
+            "enum": [
+              "if",
+              "for",
+              "while",
+              "try",
+              "with",
+              "match"
+            ]
+          },
+          "normalized_syntax_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "witnesses": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "owner_id",
+                "path",
+                "line",
+                "end_line",
+                "statement_kind",
+                "token_count",
+                "source_sha256",
+                "normalized_syntax_sha256",
+                "producer"
+              ],
+              "properties": {
+                "owner_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "end_line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "statement_kind": {
+                  "enum": [
+                    "if",
+                    "for",
+                    "while",
+                    "try",
+                    "with",
+                    "match"
+                  ]
+                },
+                "token_count": {
+                  "type": "integer",
+                  "minimum": 12
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "normalized_syntax_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "producer": {
+                  "const": "python-direct-statement-ast-v0.2"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "not_evaluated": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "status": {
+      "enum": [
+        "REPEATED_PATTERNS_OBSERVED",
+        "NO_REPEATS_OBSERVED",
+        "NOT_EVALUATED"
+      ]
+    },
+    "interpretation": {
+      "const": "INTRA_FUNCTION_SYNTAX_PATTERN_NOT_BEHAVIOR_OR_AUTOMATIC_REFACTOR"
+    }
+  }
+}
