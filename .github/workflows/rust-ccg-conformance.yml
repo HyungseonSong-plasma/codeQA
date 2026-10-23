@@ -1,0 +1,56 @@
+name: Rust CCG v0.1 — pinned source conformance
+
+on:
+  pull_request:
+    paths:
+      - 'fixtures/rust/**'
+      - 'tests/test_rust_ccg_reference.py'
+      - 'docs/rust-ccg-reference.md'
+      - '.github/workflows/rust-ccg-conformance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'fixtures/rust/**'
+      - 'tests/test_rust_ccg_reference.py'
+      - 'docs/rust-ccg-reference.md'
+      - '.github/workflows/rust-ccg-conformance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-source-conformance:
+    name: rust-source-conformance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact codeQA revision
+        uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - name: Checkout immutable sol-adapter-moose Rust source
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/sol-adapter-moose
+          ref: ce40af4ffda17feaef99f4de328c9a37b6019553
+          path: rust-source
+          persist-credentials: false
+      - name: Verify independent source SHA and exact fixture bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C rust-source rev-parse HEAD)" = "ce40af4ffda17feaef99f4de328c9a37b6019553"
+          for name in lib main ir; do
+            cmp "rust-source/src/$name.rs" \
+                "codeqa/fixtures/rust/sol-adapter-moose/src/$name.rs.txt"
+          done
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install codeQA only (Rust source is never compiled/executed)
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Run Rust CCG golden and adversarial tests
+        run: python3 -m unittest discover -s codeqa/tests -p test_rust_ccg_reference.py -v

@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "source_repository": "HyungseonSong-plasma/sol-adapter-moose",
+  "commit_sha": "ce40af4ffda17feaef99f4de328c9a37b6019553",
+  "snapshot_id": "git:HyungseonSong-plasma/sol-adapter-moose@ce40af4ffda17feaef99f4de328c9a37b6019553",
+  "provenance": "manually_curated_from_pinned_rust_source__NOT_AUTOMATED_PARSER",
+  "files": [
+    {
+      "path": "src/lib.rs",
+      "fixture": "fixtures/rust/sol-adapter-moose/src/lib.rs.txt",
+      "git_blob_sha": "5c3782e006e693d011f4bc8c4c13b6b028524c35"
+    },
+    {
+      "path": "src/main.rs",
+      "fixture": "fixtures/rust/sol-adapter-moose/src/main.rs.txt",
+      "git_blob_sha": "77a65d12abda3e1084a1a206db8b23d096b7b39a"
+    },
+    {
+      "path": "src/ir.rs",
+      "fixture": "fixtures/rust/sol-adapter-moose/src/ir.rs.txt",
+      "git_blob_sha": "4c7a056d4a6d9aaa0d8c90c6f2bc899edbd515fa"
+    }
+  ],
+  "declarations": [
+    {
+      "id": "rust:module:src/lib.rs:ir@5",
+      "kind": "module",
+      "name": "ir",
+      "path": "src/lib.rs",
+      "line": 5,
+      "anchor": "pub mod ir;",
+      "parent": "rust:file:src/lib.rs"
+    },
+    {
+      "id": "rust:symbol:src/lib.rs:FoundationAdapter@26",
+      "kind": "symbol",
+      "name": "FoundationAdapter",
+      "path": "src/lib.rs",
+      "line": 26,
+      "anchor": "pub struct FoundationAdapter;",
+      "parent": "rust:file:src/lib.rs"
+    },
+    {
+      "id": "rust:method:src/lib.rs:FoundationAdapter.describe_adapter@29",
+      "kind": "method",
+      "name": "describe_adapter",
+      "path": "src/lib.rs",
+      "line": 29,
+      "anchor": "pub fn describe_adapter(",
+      "parent": "rust:symbol:src/lib.rs:FoundationAdapter@26"
+    },
+    {
+      "id": "rust:symbol:src/ir.rs:MooseInputModel@5",
+      "kind": "symbol",
+      "name": "MooseInputModel",
+      "path": "src/ir.rs",
+      "line": 5,
+      "anchor": "pub struct MooseInputModel {",
+      "parent": "rust:file:src/ir.rs"
+    },
+    {
+      "id": "rust:symbol:src/ir.rs:GeneratedLineMesh@16",
+      "kind": "symbol",
+      "name": "GeneratedLineMesh",
+      "path": "src/ir.rs",
+      "line": 16,
+      "anchor": "pub struct GeneratedLineMesh {",
+      "parent": "rust:file:src/ir.rs"
+    },
+    {
+      "id": "rust:symbol:src/ir.rs:VariableOrder@30",
+      "kind": "symbol",
+      "name": "VariableOrder",
+      "path": "src/ir.rs",
+      "line": 30,
+      "anchor": "pub enum VariableOrder {",
+      "parent": "rust:file:src/ir.rs"
+    },
+    {
+      "id": "rust:method:src/ir.rs:MooseInputModel.validate@79",
+      "kind": "method",
+      "name": "validate",
+      "path": "src/ir.rs",
+      "line": 79,
+      "anchor": "pub fn validate(",
+      "parent": "rust:symbol:src/ir.rs:MooseInputModel@5"
+    },
+    {
+      "id": "rust:function:src/ir.rs:operator_name@280",
+      "kind": "function",
+      "name": "operator_name",
+      "path": "src/ir.rs",
+      "line": 280,
+      "anchor": "fn operator_name(",
+      "parent": "rust:file:src/ir.rs"
+    },
+    {
+      "id": "rust:function:src/main.rs:main@14",
+      "kind": "function",
+      "name": "main",
+      "path": "src/main.rs",
+      "line": 14,
+      "anchor": "fn main() {",
+      "parent": "rust:file:src/main.rs"
+    },
+    {
+      "id": "rust:function:src/main.rs:run@21",
+      "kind": "function",
+      "name": "run",
+      "path": "src/main.rs",
+      "line": 21,
+      "anchor": "fn run() ->",
+      "parent": "rust:file:src/main.rs"
+    }
+  ],
+  "imports": [
+    {
+      "path": "src/lib.rs",
+      "line": 8,
+      "anchor": "use crate::execution_v02::{MOOSE_TARGET, THERMAL_CAPABILITY_V02};",
+      "hint": "crate::execution_v02::{MOOSE_TARGET, THERMAL_CAPABILITY_V02}"
+    },
+    {
+      "path": "src/main.rs",
+      "line": 10,
+      "anchor": "use sol_adaptor_moose::FoundationAdapter;",
+      "hint": "sol_adaptor_moose::FoundationAdapter"
+    },
+    {
+      "path": "src/main.rs",
+      "line": 12,
+      "anchor": "use std::process;",
+      "hint": "std::process"
+    },
+    {
+      "path": "src/ir.rs",
+      "line": 1,
+      "anchor": "use std::collections::BTreeSet;",
+      "hint": "std::collections::BTreeSet"
+    }
+  ]
+}
