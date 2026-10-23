@@ -1,0 +1,277 @@
+{
+  "schema_version": "experiment-v1",
+  "date": "2026-10-23",
+  "source_repo": "HyungseonSong-plasma/moose-test-repo",
+  "codeqa_repo": "HyungseonSong-plasma/codeQA",
+  "codeqa_engine_sha": "ff95b021cafb535bbb1b01b4cca2f677af6c9a7c",
+  "source_scope": "physics_harness/analysis/*.py",
+  "target": "physics_harness/analysis/field_comparison.py",
+  "immutable_commits": {
+    "base": "69be07aab3e5815a1670f7308deb6caf6b49bc79",
+    "blind": "9343dfd8a62f51886b1bf80e73f9887076fcd8d9",
+    "guided_round1": "4f50707594440ab174580d02affd05894fce417c",
+    "guided_final": "d8e8d5e2d5154d907953699644263b1dba681be6"
+  },
+  "runs": {
+    "blind_before_codeqa": "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/39957923063",
+    "guided_round1": "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/39958272770",
+    "guided_final": "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/39958533417"
+  },
+  "behavior": {
+    "kind": "differential_function_execution_against_unmodified_source",
+    "scenarios": 253,
+    "covered": [
+      "finite_scalars",
+      "nonfinite_nan_inf",
+      "negative_nan_infinite_tolerances",
+      "missing_and_extra_fields",
+      "two_value_random_vectors",
+      "error_type_and_message"
+    ],
+    "result": "PASS",
+    "solver_executed": false
+  },
+  "per_function_aggregate_calls": {
+    "base": 19,
+    "blind": 19,
+    "guided": 20
+  },
+  "per_function_parent_P3_limit": 12,
+  "limitations": [
+    "selected_files_not_whole_repo",
+    "P6_not_evaluated_for_typed_signatures",
+    "static_unresolved_imports",
+    "quality_delta_refactor_incomparability",
+    "tests_not_proof_of_full_behavioral_or_scientific_equivalence"
+  ],
+  "observed": {
+    "arms": {
+      "base": {
+        "complexity_not_evaluated": 40,
+        "complexity_review_count": 0,
+        "coverage": "complete",
+        "duplication_fraction": 0,
+        "duplication_limitations": [],
+        "mechanical_analysis_status": "LIMITED",
+        "mechanical_limitations": [
+          "unresolved_relationships"
+        ],
+        "mechanical_review_count": 15,
+        "selected_production_files": 8,
+        "sha": "69be07aab3e5815a1670f7308deb6caf6b49bc79",
+        "target_functions": [
+          {
+            "complexity_limitations": [
+              "signature_expressions_not_evaluated"
+            ],
+            "complexity_proxy": null,
+            "complexity_status": "NOT_EVALUATED",
+            "id": "def::physics_harness/analysis/field_comparison.py::compare_named_scalars@8:0",
+            "name": "compare_named_scalars",
+            "outgoing_ast_calls": 19,
+            "span": 68
+          }
+        ],
+        "unknown_imports": {
+          "outside_snapshot": 36
+        }
+      },
+      "blind": {
+        "complexity_not_evaluated": 41,
+        "complexity_review_count": 0,
+        "coverage": "complete",
+        "duplication_fraction": 0,
+        "duplication_limitations": [],
+        "mechanical_analysis_status": "LIMITED",
+        "mechanical_limitations": [
+          "unresolved_relationships"
+        ],
+        "mechanical_review_count": 15,
+        "selected_production_files": 8,
+        "sha": "9343dfd8a62f51886b1bf80e73f9887076fcd8d9",
+        "target_functions": [
+          {
+            "complexity_limitations": [
+              "signature_expressions_not_evaluated"
+            ],
+            "complexity_proxy": null,
+            "complexity_status": "NOT_EVALUATED",
+            "id": "def::physics_harness/analysis/field_comparison.py::_require_finite_nonnegative_tolerance@8:0",
+            "name": "_require_finite_nonnegative_tolerance",
+            "outgoing_ast_calls": 2,
+            "span": 4
+          },
+          {
+            "complexity_limitations": [
+              "signature_expressions_not_evaluated"
+            ],
+            "complexity_proxy": null,
+            "complexity_status": "NOT_EVALUATED",
+            "id": "def::physics_harness/analysis/field_comparison.py::compare_named_scalars@14:0",
+            "name": "compare_named_scalars",
+            "outgoing_ast_calls": 17,
+            "span": 66
+          }
+        ],
+        "unknown_imports": {
+          "outside_snapshot": 36
+        }
+      },
+      "guided": {
+        "complexity_not_evaluated": 41,
+        "complexity_review_count": 0,
+        "coverage": "complete",
+        "duplication_fraction": 0,
+        "duplication_limitations": [],
+        "mechanical_analysis_status": "LIMITED",
+        "mechanical_limitations": [
+          "unresolved_relationships"
+        ],
+        "mechanical_review_count": 14,
+        "selected_production_files": 8,
+        "sha": "d8e8d5e2d5154d907953699644263b1dba681be6",
+        "target_functions": [
+          {
+            "complexity_limitations": [
+              "signature_expressions_not_evaluated"
+            ],
+            "complexity_proxy": null,
+            "complexity_status": "NOT_EVALUATED",
+            "id": "def::physics_harness/analysis/field_comparison.py::_compare_scalar_row@8:0",
+            "name": "_compare_scalar_row",
+            "outgoing_ast_calls": 8,
+            "span": 34
+          },
+          {
+            "complexity_limitations": [
+              "signature_expressions_not_evaluated"
+            ],
+            "complexity_proxy": null,
+            "complexity_status": "NOT_EVALUATED",
+            "id": "def::physics_harness/analysis/field_comparison.py::compare_named_scalars@44:0",
+            "name": "compare_named_scalars",
+            "outgoing_ast_calls": 12,
+            "span": 47
+          }
+        ],
+        "unknown_imports": {
+          "outside_snapshot": 36
+        }
+      }
+    },
+    "base_comparisons": {
+      "blind": {
+        "rules": {
+          "branch_nesting_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "cyclomatic_proxy_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "function_span_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "normalized_duplicate_fraction": {
+            "reasons": [],
+            "review_delta": 0,
+            "status": "COMPARABLE",
+            "sum_delta": 0
+          },
+          "outgoing_call_sites_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "static_fan_out_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          }
+        },
+        "status": "PARTIAL"
+      },
+      "guided": {
+        "rules": {
+          "branch_nesting_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "cyclomatic_proxy_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "function_span_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "normalized_duplicate_fraction": {
+            "reasons": [
+              "denominator_changed"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "outgoing_call_sites_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "static_fan_out_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          }
+        },
+        "status": "NOT_COMPARABLE"
+      }
+    }
+  }
+}

@@ -1,0 +1,253 @@
+name: MOOSE blinded refactor comparison (codeQA)
+
+on:
+  push:
+    branches: [experiment/moose-refactor-comparison-20261023]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout codeQA experiment (not production)
+        uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - name: Checkout MOOSE identical baseline
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 69be07aab3e5815a1670f7308deb6caf6b49bc79
+          path: base
+          persist-credentials: false
+      - name: Checkout blind branch frozen before any codeQA analysis
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 44bed71f3bb898c099650afa011e8485fa59cb18
+          path: blind
+          persist-credentials: false
+      - name: Checkout codeQA-informed refactor from the identical baseline
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 4f4f4bc935615811ebbb6f9dc37faadc04ca6e79
+          path: informed
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install codeQA only
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Static codeQA analysis; inspect only frozen ci/guards Python scope
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from codeqa.infrastructure.resources import ResourceRegistry
+          from codeqa.pipeline.python import analyze_python
+          from codeqa.adapters.python_snapshot import parse_python_snapshot
+          from codeqa.adapters.python_complexity import extract_python_complexity
+          from codeqa.adapters.python_duplication import extract_python_token_blocks
+          from codeqa.evaluation.complexity import ComplexityProfile, evaluate_complexity
+          from codeqa.evaluation.duplication import DuplicationProfile, evaluate_duplication
+          from codeqa.evaluation.qa_result import mechanical_to_qa_result
+          from codeqa.evaluation.mechanical import MechanicalProfile
+          from codeqa.evaluation.dependency_metrics import DependencyMetricsProfile, evaluate_dependency_metrics
+          from codeqa.evaluation.quality_delta_companions import (
+              complexity_metric_rules, dependency_metric_rule, duplication_metric_rule,
+          )
+          from codeqa.evaluation.quality_delta_v02 import (
+              metric_snapshot_from_qa_result, build_source_change_manifest,
+              compare_metric_snapshots,
+          )
+          root = Path("codeqa")
+          registry = ResourceRegistry(root)
+          repo = "HyungseonSong-plasma/moose-test-repo"
+          target = "ci/guards/physics_dependency_guard.py"
+          sha = {
+              "base": "69be07aab3e5815a1670f7308deb6caf6b49bc79",
+              "blind": "44bed71f3bb898c099650afa011e8485fa59cb18",
+              "informed": "4f4f4bc935615811ebbb6f9dc37faadc04ca6e79",
+          }
+          output, snapshots = {}, {}
+          for name, revision in sha.items():
+              directory = Path(name)
+              files = {
+                  p.relative_to(directory).as_posix(): p.read_text(encoding="utf-8")
+                  for p in sorted((directory / "ci/guards").glob("*.py"))
+              }
+              if len(files) < 12 or target not in files:
+                  raise RuntimeError("fixed guard selection unexpectedly empty")
+              snap = "git:" + repo + "@" + revision
+              mechanical = registry.load_json("mechanical_profile")
+              cprofile = ComplexityProfile.from_mapping(registry.load_json("complexity_profile"))
+              dconf = registry.load_json("duplication_profile")
+              dprofile = DuplicationProfile.from_mapping(dconf)
+              dep_profile = DependencyMetricsProfile.from_mapping(
+                  registry.load_json("dependency_metrics_profile"))
+              analysis = analyze_python(files, snapshot_id=snap,
+                  ccg_schema=registry.load_json("ccg_schema"),
+                  mechanical_profile=mechanical)
+              parsed = parse_python_snapshot(files)
+              comp = evaluate_complexity(analysis.graph,
+                  extract_python_complexity(parsed), cprofile)
+              dup = evaluate_duplication(extract_python_token_blocks(
+                  parsed, files, snapshot_id=snap, profile=dconf), dprofile)
+              dependency = evaluate_dependency_metrics(analysis.dependencies, dep_profile)
+              qa = mechanical_to_qa_result(analysis.graph, analysis.quality,
+                  MechanicalProfile.from_mapping(mechanical),
+                  schema=registry.load_json("qa_result_schema"))
+              snapshots[name] = metric_snapshot_from_qa_result(
+                  qa, files, repository=repo, commit_sha=revision,
+                  result_schema=registry.load_json("qa_result_schema"),
+                  snapshot_schema=registry.load_json("metric_snapshot_v02_schema"),
+                  companions=(
+                      *complexity_metric_rules(comp, cprofile),
+                      duplication_metric_rule(dup, dprofile),
+                      dependency_metric_rule(dependency, dep_profile),
+                  ),
+              )
+              comp_by_id = {
+                  x.node_id: x for x in comp.reviews if x.path == target
+              }
+              calls_by_id = {x.node_id: x.call_sites for x in analysis.quality.call_metrics}
+              target_functions = []
+              for node in analysis.graph.nodes:
+                  if node.kind not in ("function", "method") or not node.location:
+                      continue
+                  if node.location.path != target:
+                      continue
+                  rev = comp_by_id.get(node.id)
+                  target_functions.append({
+                      "id": node.id,
+                      "name": node.name,
+                      "span": node.location.end_line-node.location.start_line+1,
+                      "outgoing_ast_call_sites": calls_by_id.get(node.id),
+                      "complexity_proxy": rev.cyclomatic_proxy if rev else None,
+                      "max_nesting": rev.branch_nesting_max if rev else None,
+                      "complexity_state": rev.status if rev else "UNAVAILABLE",
+                  })
+              output[name] = {
+                  "source_sha": revision,
+                  "coverage": analysis.graph.coverage.status,
+                  "files_selected": len(files),
+                  "mechanical_status": analysis.quality.status,
+                  "mechanical_limitations": list(analysis.quality.analysis_limitations),
+                  "mechanical_review_count": len(analysis.quality.findings),
+                  "duplication_fraction": dup.observed_duplicate_fraction,
+                  "duplication_limitations": list(dup.not_evaluated),
+                  "complexity_review_count": sum(
+                      x.status == "REVIEW_REQUIRED" for x in comp.reviews),
+                  "unknown_static_imports": dict(dependency.unknown_by_reason),
+                  "target_functions": sorted(target_functions, key=lambda x:x["name"]),
+              }
+          output["comparisons"] = {}
+          for source_label, target_label in (
+              ("base", "blind"), ("base", "informed"), ("blind", "informed")
+          ):
+              delta = compare_metric_snapshots(
+                  snapshots[source_label], snapshots[target_label],
+                  build_source_change_manifest(
+                      snapshots[source_label], snapshots[target_label]),
+                  snapshot_schema=registry.load_json("metric_snapshot_v02_schema"),
+                  change_schema=registry.load_json("source_change_v02_schema"),
+                  delta_schema=registry.load_json("qa_delta_v02_schema"),
+              )
+              output["comparisons"][source_label + "_vs_" + target_label] = {
+                  "overall_status": delta["status"],
+                  "rules": {
+                      r["rule_id"]: {
+                          "status":r["status"], "sum_delta":r["sum_delta"],
+                          "review_delta":r["review_delta"],"reasons":r["reasons"],
+                      } for r in delta["rule_deltas"]
+                  },
+              }
+          import difflib
+          baseline = (Path("base") / target).read_text(encoding="utf-8").splitlines()
+          for label in ("blind", "informed"):
+              candidate = (Path(label) / target).read_text(encoding="utf-8").splitlines()
+              opcodes = difflib.SequenceMatcher(
+                  a=baseline, b=candidate, autojunk=False).get_opcodes()
+              output[label]["changed_source_lines"] = {
+                  "baseline_lines": len(baseline), "candidate_lines": len(candidate),
+                  "added": sum(j2-j1 for tag,i1,i2,j1,j2 in opcodes
+                               if tag in ("insert","replace")),
+                  "removed": sum(i2-i1 for tag,i1,i2,j1,j2 in opcodes
+                                 if tag in ("delete","replace")),
+              }
+          print("CODEQA_EXPERIMENT_RESULTS_BEGIN")
+          print(json.dumps(output, indent=2, sort_keys=True))
+          print("CODEQA_EXPERIMENT_RESULTS_END")
+          PY
+      - name: Independent source-only differential behavior regression
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          import io
+          from contextlib import redirect_stdout
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+
+          versions = {}
+          for label in ("base", "blind", "informed"):
+              file = Path(label) / "ci/guards/physics_dependency_guard.py"
+              spec = importlib.util.spec_from_file_location(
+                  "refactor_guard_" + label, file,
+              )
+              module = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              versions[label] = module
+
+          cases = [
+              {},
+              {"a": set()},
+              {"a": {"a"}},
+              {"a": {"b"}, "b": {"c"}, "c": {"a"}},
+              {"a": {"b"}, "b": {"c"}, "c": set()},
+              {"c": {"b"}, "a": {"b"}, "b": {"c"}},
+              {"z": {"missing"}, "b": {"c"}, "c": {"b"}},
+          ]
+          import_names = [
+              "physics_harness.evidence.a", "physics_harness.analysis.b",
+              "physics_harness.execution.c", "physics_harness.cli.d",
+              "physics_harness.validation.e", "physics_harness.inventory.x",
+              "physics_harness.dmix.y", "ci.utility", "external.tool",
+          ]
+          with TemporaryDirectory() as temp:
+              source = Path(temp) / "fixture.py"
+              source.write_text(
+                  "import physics_harness.evidence.a, ci.utility\n"
+                  "from physics_harness.analysis import b\n"
+                  "from .relative import ignored\n"
+                  "from ci.helpers import x\n"
+                  "import external.tool\n"
+                  "label = 'ci/guards/something'\n",
+                  encoding="utf-8",
+              )
+              reference = versions["base"]
+              for label, m in versions.items():
+                  assert m.imported_modules(source) == reference.imported_modules(source), label
+                  assert m.repository_ci_references() == reference.repository_ci_references(), label
+                  assert m.audit() == reference.audit(), label
+                  for graph in cases:
+                      assert m.find_cycle(graph) == reference.find_cycle(graph), (label, graph)
+                  for src in import_names:
+                      for dst in import_names:
+                          assert m.violation(src, dst) == reference.violation(src, dst), (label, src, dst)
+              print("DIFFERENTIAL_BEHAVIOR_EQUIVALENCE_PASS: 3 arms / 7 graphs / 81 policy pairs")
+          PY
+      - name: Run all three dependency guards (not physics solver)
+        shell: bash
+        run: |
+          for folder in base blind informed; do
+            echo "GUARD_$folder"
+            (cd "$folder" && python3 ci/guards/physics_dependency_guard.py --check all)
+          done

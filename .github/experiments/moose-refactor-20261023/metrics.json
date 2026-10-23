@@ -1,0 +1,511 @@
+{
+  "experiment": "2026-10-23-mOOSE-blind-versus-codeqa",
+  "codeqa_revision": "ff95b021cafb535bbb1b01b4cca2f677af6c9a7c",
+  "reproduction_workflow_commit": "c7c332cb1ba3bb9b5faa79ca8528140012a566ef",
+  "workflow_run": "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/39952912693",
+  "source_repository": "HyungseonSong-plasma/moose-test-repo",
+  "source_scope": "ci/guards/*.py; NOT entire repository",
+  "baseline_sha": "69be07aab3e5815a1670f7308deb6caf6b49bc79",
+  "blind_committed_before_first_codeqa_run": "44bed71f3bb898c099650afa011e8485fa59cb18",
+  "first_codeqa_run": "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/39952274165",
+  "informed_sha": "4f4f4bc935615811ebbb6f9dc37faadc04ca6e79",
+  "differential_behavior": "PASS: guard all for every arm; 7 cycle graph controls, 81 policy pairs, AST imports and full audit equal",
+  "observed": {
+    "base": {
+      "complexity_review_count": 0,
+      "coverage": "complete",
+      "duplication_fraction": 0.005730872283417684,
+      "duplication_limitations": [
+        "excluded_or_unmeasured_function_blocks"
+      ],
+      "files_selected": 14,
+      "mechanical_limitations": [
+        "unresolved_relationships"
+      ],
+      "mechanical_review_count": 36,
+      "mechanical_status": "REVIEW_REQUIRED",
+      "source_sha": "69be07aab3e5815a1670f7308deb6caf6b49bc79",
+      "target_functions": [
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::audit@117:0",
+          "max_nesting": null,
+          "name": "audit",
+          "outgoing_ast_call_sites": 12,
+          "span": 16
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::find_cycle.dfs@93:4",
+          "max_nesting": null,
+          "name": "dfs",
+          "outgoing_ast_call_sites": 9,
+          "span": 16
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::find_cycle@88:0",
+          "max_nesting": null,
+          "name": "find_cycle",
+          "outgoing_ast_call_sites": 4,
+          "span": 27
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::imported_modules@29:0",
+          "max_nesting": null,
+          "name": "imported_modules",
+          "outgoing_ast_call_sites": 10,
+          "span": 9
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::main@135:0",
+          "max_nesting": null,
+          "name": "main",
+          "outgoing_ast_call_sites": 15,
+          "span": 22
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::module_name@21:0",
+          "max_nesting": null,
+          "name": "module_name",
+          "outgoing_ast_call_sites": 4,
+          "span": 6
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::repository_ci_references@67:0",
+          "max_nesting": null,
+          "name": "repository_ci_references",
+          "outgoing_ast_call_sites": 22,
+          "span": 19
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::top_package@40:0",
+          "max_nesting": null,
+          "name": "top_package",
+          "outgoing_ast_call_sites": 2,
+          "span": 5
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::violation@47:0",
+          "max_nesting": null,
+          "name": "violation",
+          "outgoing_ast_call_sites": 2,
+          "span": 18
+        }
+      ],
+      "unknown_static_imports": {
+        "outside_snapshot": 71
+      }
+    },
+    "blind": {
+      "changed_source_lines": {
+        "added": 16,
+        "baseline_lines": 160,
+        "candidate_lines": 166,
+        "removed": 10
+      },
+      "complexity_review_count": 0,
+      "coverage": "complete",
+      "duplication_fraction": 0.0057583009273107985,
+      "duplication_limitations": [
+        "excluded_or_unmeasured_function_blocks"
+      ],
+      "files_selected": 14,
+      "mechanical_limitations": [
+        "unresolved_relationships"
+      ],
+      "mechanical_review_count": 36,
+      "mechanical_status": "REVIEW_REQUIRED",
+      "source_sha": "44bed71f3bb898c099650afa011e8485fa59cb18",
+      "target_functions": [
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::absolute_imports@29:0",
+          "max_nesting": null,
+          "name": "absolute_imports",
+          "outgoing_ast_call_sites": 6,
+          "span": 9
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::audit@123:0",
+          "max_nesting": null,
+          "name": "audit",
+          "outgoing_ast_call_sites": 12,
+          "span": 16
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::find_cycle.dfs@99:4",
+          "max_nesting": null,
+          "name": "dfs",
+          "outgoing_ast_call_sites": 9,
+          "span": 16
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::find_cycle@94:0",
+          "max_nesting": null,
+          "name": "find_cycle",
+          "outgoing_ast_call_sites": 4,
+          "span": 27
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::imported_modules@40:0",
+          "max_nesting": null,
+          "name": "imported_modules",
+          "outgoing_ast_call_sites": 5,
+          "span": 6
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::main@141:0",
+          "max_nesting": null,
+          "name": "main",
+          "outgoing_ast_call_sites": 15,
+          "span": 22
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::module_name@21:0",
+          "max_nesting": null,
+          "name": "module_name",
+          "outgoing_ast_call_sites": 4,
+          "span": 6
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::repository_ci_references@75:0",
+          "max_nesting": null,
+          "name": "repository_ci_references",
+          "outgoing_ast_call_sites": 17,
+          "span": 17
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::top_package@48:0",
+          "max_nesting": null,
+          "name": "top_package",
+          "outgoing_ast_call_sites": 2,
+          "span": 5
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::violation@55:0",
+          "max_nesting": null,
+          "name": "violation",
+          "outgoing_ast_call_sites": 2,
+          "span": 18
+        }
+      ],
+      "unknown_static_imports": {
+        "outside_snapshot": 71
+      }
+    },
+    "comparisons": {
+      "base_vs_blind": {
+        "overall_status": "NOT_COMPARABLE",
+        "rules": {
+          "branch_nesting_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "cyclomatic_proxy_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "function_span_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "normalized_duplicate_fraction": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "outgoing_call_sites_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "static_fan_out_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          }
+        }
+      },
+      "base_vs_informed": {
+        "overall_status": "NOT_COMPARABLE",
+        "rules": {
+          "branch_nesting_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "cyclomatic_proxy_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "function_span_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "normalized_duplicate_fraction": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "outgoing_call_sites_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "static_fan_out_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          }
+        }
+      },
+      "blind_vs_informed": {
+        "overall_status": "NOT_COMPARABLE",
+        "rules": {
+          "branch_nesting_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "cyclomatic_proxy_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "function_span_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "normalized_duplicate_fraction": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "outgoing_call_sites_review": {
+            "reasons": [
+              "denominator_changed",
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          },
+          "static_fan_out_review": {
+            "reasons": [
+              "rule_evidence_incomplete_or_not_evaluated"
+            ],
+            "review_delta": null,
+            "status": "NOT_COMPARABLE",
+            "sum_delta": null
+          }
+        }
+      }
+    },
+    "informed": {
+      "changed_source_lines": {
+        "added": 27,
+        "baseline_lines": 160,
+        "candidate_lines": 168,
+        "removed": 19
+      },
+      "complexity_review_count": 0,
+      "coverage": "complete",
+      "duplication_fraction": 0.0057020142180094786,
+      "duplication_limitations": [
+        "excluded_or_unmeasured_function_blocks"
+      ],
+      "files_selected": 14,
+      "mechanical_limitations": [
+        "unresolved_relationships"
+      ],
+      "mechanical_review_count": 36,
+      "mechanical_status": "REVIEW_REQUIRED",
+      "source_sha": "4f4f4bc935615811ebbb6f9dc37faadc04ca6e79",
+      "target_functions": [
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::_dfs_cycle@88:0",
+          "max_nesting": null,
+          "name": "_dfs_cycle",
+          "outgoing_ast_call_sites": 9,
+          "span": 23
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::audit@125:0",
+          "max_nesting": null,
+          "name": "audit",
+          "outgoing_ast_call_sites": 12,
+          "span": 16
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::find_cycle@113:0",
+          "max_nesting": null,
+          "name": "find_cycle",
+          "outgoing_ast_call_sites": 4,
+          "span": 10
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::imported_modules@29:0",
+          "max_nesting": null,
+          "name": "imported_modules",
+          "outgoing_ast_call_sites": 10,
+          "span": 9
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::main@143:0",
+          "max_nesting": null,
+          "name": "main",
+          "outgoing_ast_call_sites": 15,
+          "span": 22
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::module_name@21:0",
+          "max_nesting": null,
+          "name": "module_name",
+          "outgoing_ast_call_sites": 4,
+          "span": 6
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::repository_ci_references@67:0",
+          "max_nesting": null,
+          "name": "repository_ci_references",
+          "outgoing_ast_call_sites": 22,
+          "span": 19
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::top_package@40:0",
+          "max_nesting": null,
+          "name": "top_package",
+          "outgoing_ast_call_sites": 2,
+          "span": 5
+        },
+        {
+          "complexity_proxy": null,
+          "complexity_state": "NOT_EVALUATED",
+          "id": "def::ci/guards/physics_dependency_guard.py::violation@47:0",
+          "max_nesting": null,
+          "name": "violation",
+          "outgoing_ast_call_sites": 2,
+          "span": 18
+        }
+      ],
+      "unknown_static_imports": {
+        "outside_snapshot": 71
+      }
+    }
+  }
+}
