@@ -20,7 +20,7 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        cls.validate_request = runpy.run_path(str(VALIDATOR))["validate_request"]
+        cls.validate_request = staticmethod(runpy.run_path(str(VALIDATOR))["validate_request"])
 
     def test_exact_samuel_source_and_skill_binding(self) -> None:
         manifest = self.manifest
