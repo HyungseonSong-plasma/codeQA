@@ -201,10 +201,13 @@ def compare_naming_snapshots(
     for new_path,new_sha in after_hashes.items():
         old_path=translate.get(new_path,new_path)
         if old_path in before_hashes and before_hashes[old_path]==new_sha:
+            keep_modules = new_path == old_path
             lhs_evidence={(k,f.status,f.rule_id,f.expected)
-                          for k,f in old.items() if k[0]==old_path}
+                          for k,f in old.items()
+                          if k[0]==old_path and (keep_modules or k[3]!="module")}
             rhs_evidence={(k,f.status,f.rule_id,f.expected)
-                          for k,f in new.items() if k[0]==old_path}
+                          for k,f in new.items()
+                          if k[0]==old_path and (keep_modules or k[3]!="module")}
             if lhs_evidence!=rhs_evidence:
                 raise NamingDeltaError("unchanged source bytes contradict naming evidence")
     renamed_old={}
