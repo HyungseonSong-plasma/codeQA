@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.2",
+  "profile_id": "codeqa.naming.python.coverage.v0.2",
+  "styles": {
+    "module_constant": "UPPER_SNAKE_CASE",
+    "class_constant": "UPPER_SNAKE_CASE",
+    "instance_attribute": "snake_case"
+  },
+  "path_overrides": [],
+  "exact_exceptions": [],
+  "excluded_prefixes": [
+    "vendor/",
+    "generated/"
+  ]
+}
