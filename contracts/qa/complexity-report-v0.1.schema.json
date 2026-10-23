@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:complexity:report:v0.1",
+  "title": "Python AST Complexity companion v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshot_id",
+    "profile_id",
+    "coverage_status",
+    "unprocessed_paths",
+    "reviews",
+    "status",
+    "schema_version",
+    "interpretation"
+  ],
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "none"
+      ]
+    },
+    "unprocessed_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "path",
+          "start_line",
+          "end_line",
+          "status",
+          "cyclomatic_proxy",
+          "branch_nesting_max",
+          "limitations",
+          "producer"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "end_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "REVIEW_REQUIRED",
+              "NOT_EVALUATED"
+            ]
+          },
+          "cyclomatic_proxy": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "branch_nesting_max": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "limitations": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "producer": {
+            "const": "python-ast-complexity-v0.1"
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "REVIEW_REQUIRED",
+        "NOT_EVALUATED"
+      ]
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "interpretation": {
+      "const": "HEURISTIC_SYNTAX_PROXY_NOT_P6_VERDICT"
+    }
+  }
+}

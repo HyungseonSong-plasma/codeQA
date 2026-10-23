@@ -1,0 +1,6 @@
+{
+  "profile_id": "python-ast-complexity-v0.1",
+  "schema_version": "0.1",
+  "max_cyclomatic_proxy_review": 10,
+  "max_branch_nesting_review": 3
+}
