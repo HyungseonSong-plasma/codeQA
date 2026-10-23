@@ -1,0 +1,247 @@
+name: MOOSE production Python blinded refactor experiment
+
+on:
+  push:
+    branches: [experiment/moose-production-field-20261023]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout pinned codeQA experiment
+        uses: actions/checkout@v4
+        with:
+          path: codeqa
+          persist-credentials: false
+      - name: Checkout identical original MOOSE production sources
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 69be07aab3e5815a1670f7308deb6caf6b49bc79
+          path: base
+          persist-credentials: false
+      - name: Checkout blind experiment frozen before first codeQA run
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: 9343dfd8a62f51886b1bf80e73f9887076fcd8d9
+          path: blind
+          persist-credentials: false
+      - name: Checkout codeQA-informed production refactor from identical baseline
+        uses: actions/checkout@v4
+        with:
+          repository: HyungseonSong-plasma/moose-test-repo
+          ref: d8e8d5e2d5154d907953699644263b1dba681be6
+          path: guided
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install codeQA without importing or executing MOOSE production code
+        run: python3 -m pip install --disable-pip-version-check -e ./codeqa
+      - name: Collect same-scope static codeQA evidence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from codeqa.infrastructure.resources import ResourceRegistry
+          from codeqa.pipeline.python import analyze_python
+          from codeqa.adapters.python_snapshot import parse_python_snapshot
+          from codeqa.adapters.python_complexity import extract_python_complexity
+          from codeqa.adapters.python_duplication import extract_python_token_blocks
+          from codeqa.evaluation.complexity import ComplexityProfile, evaluate_complexity
+          from codeqa.evaluation.duplication import DuplicationProfile, evaluate_duplication
+          from codeqa.evaluation.dependency_metrics import (
+              DependencyMetricsProfile, evaluate_dependency_metrics,
+          )
+          from codeqa.evaluation.qa_result import mechanical_to_qa_result
+          from codeqa.evaluation.mechanical import MechanicalProfile
+          from codeqa.evaluation.quality_delta_companions import (
+              complexity_metric_rules, dependency_metric_rule, duplication_metric_rule,
+          )
+          from codeqa.evaluation.quality_delta_v02 import (
+              metric_snapshot_from_qa_result, build_source_change_manifest,
+              compare_metric_snapshots,
+          )
+          reg = ResourceRegistry(Path("codeqa"))
+          root = "physics_harness/analysis"
+          target = root + "/field_comparison.py"
+          repo = "HyungseonSong-plasma/moose-test-repo"
+          versions = {
+              "base":"69be07aab3e5815a1670f7308deb6caf6b49bc79",
+              "blind":"9343dfd8a62f51886b1bf80e73f9887076fcd8d9",
+              "guided":"d8e8d5e2d5154d907953699644263b1dba681be6",
+          }
+          summaries, snapshots = {}, {}
+          for name, commit in versions.items():
+              checkout=Path(name)
+              files={
+                  f.relative_to(checkout).as_posix():f.read_text(encoding="utf-8")
+                  for f in sorted((checkout/root).glob("*.py"))
+              }
+              if target not in files or len(files) < 7:
+                  raise RuntimeError("production file inventory lost")
+              snapshot_id="git:"+repo+"@"+commit
+              mech=reg.load_json("mechanical_profile")
+              comp_profile=ComplexityProfile.from_mapping(reg.load_json("complexity_profile"))
+              dupe_conf=reg.load_json("duplication_profile")
+              dupe_profile=DuplicationProfile.from_mapping(dupe_conf)
+              dep_profile=DependencyMetricsProfile.from_mapping(reg.load_json("dependency_metrics_profile"))
+              a=analyze_python(files,snapshot_id=snapshot_id,
+                  ccg_schema=reg.load_json("ccg_schema"),mechanical_profile=mech)
+              parsed=parse_python_snapshot(files)
+              comp=evaluate_complexity(a.graph,extract_python_complexity(parsed),comp_profile)
+              duplication=evaluate_duplication(extract_python_token_blocks(
+                  parsed,files,snapshot_id=snapshot_id,profile=dupe_conf),dupe_profile)
+              dependency=evaluate_dependency_metrics(a.dependencies,dep_profile)
+              old=mechanical_to_qa_result(a.graph,a.quality,
+                  MechanicalProfile.from_mapping(mech),
+                  schema=reg.load_json("qa_result_schema"))
+              snapshots[name]=metric_snapshot_from_qa_result(
+                  old,files,repository=repo,commit_sha=commit,
+                  result_schema=reg.load_json("qa_result_schema"),
+                  snapshot_schema=reg.load_json("metric_snapshot_v02_schema"),
+                  companions=(
+                      *complexity_metric_rules(comp,comp_profile),
+                      duplication_metric_rule(duplication,dupe_profile),
+                      dependency_metric_rule(dependency,dep_profile),
+                  ),
+              )
+              complexities={x.node_id:x for x in comp.reviews if x.path == target}
+              calls={x.node_id:x.call_sites for x in a.quality.call_metrics}
+              functions=[]
+              for node in a.graph.nodes:
+                  if node.kind not in ("function","method") or not node.location:
+                      continue
+                  if node.location.path!=target:
+                      continue
+                  c=complexities.get(node.id)
+                  functions.append({
+                      "id":node.id,"name":node.name,
+                      "span":node.location.end_line-node.location.start_line+1,
+                      "outgoing_ast_calls":calls.get(node.id),
+                      "complexity_proxy":c.cyclomatic_proxy if c else None,
+                      "complexity_status":c.status if c else "UNKNOWN",
+                      "complexity_limitations":list(c.limitations) if c else [],
+                  })
+              summaries[name]={
+                  "sha":commit,"selected_production_files":len(files),
+                  "coverage":a.graph.coverage.status,
+                  "mechanical_review_count":len(a.quality.findings),
+                  "mechanical_analysis_status":a.quality.analysis_status,
+                  "mechanical_limitations":list(a.quality.analysis_limitations),
+                  "complexity_review_count":sum(x.status=="REVIEW_REQUIRED" for x in comp.reviews),
+                  "complexity_not_evaluated":sum(x.status=="NOT_EVALUATED" for x in comp.reviews),
+                  "duplication_fraction":duplication.observed_duplicate_fraction,
+                  "duplication_limitations":list(duplication.not_evaluated),
+                  "unknown_imports":dict(dependency.unknown_by_reason),
+                  "target_functions":sorted(functions,key=lambda x:x["name"]),
+              }
+          reports={}
+          for name in versions:
+              if name=="base":continue
+              delta=compare_metric_snapshots(
+                  snapshots["base"],snapshots[name],
+                  build_source_change_manifest(snapshots["base"],snapshots[name]),
+                  snapshot_schema=reg.load_json("metric_snapshot_v02_schema"),
+                  change_schema=reg.load_json("source_change_v02_schema"),
+                  delta_schema=reg.load_json("qa_delta_v02_schema"),
+              )
+              reports[name]={
+                  "status":delta["status"],
+                  "rules":{
+                      r["rule_id"]:{
+                          "status":r["status"],"reasons":r["reasons"],
+                          "sum_delta":r["sum_delta"],
+                          "review_delta":r["review_delta"],
+                      } for r in delta["rule_deltas"]
+                  },
+              }
+          print("MOOSE_PRODUCTION_CODEQA_BEGIN")
+          print(json.dumps({"arms":summaries,"base_comparisons":reports},
+                           sort_keys=True,indent=2))
+          print("MOOSE_PRODUCTION_CODEQA_END")
+          PY
+
+      - name: Differential numerical semantics (no MOOSE solver)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from importlib.util import spec_from_file_location, module_from_spec
+          from itertools import product
+          import math
+          import random
+          from pathlib import Path
+
+          versions = {}
+          for label in ("base", "blind", "guided"):
+              source = Path(label) / "physics_harness/analysis/field_comparison.py"
+              spec = spec_from_file_location("field_" + label, source)
+              module = module_from_spec(spec)
+              spec.loader.exec_module(module)
+              versions[label] = module.compare_named_scalars
+
+          def serialize(value):
+              if isinstance(value, dict):
+                  return {str(k): serialize(v) for k, v in sorted(value.items())}
+              if isinstance(value, list):
+                  return [serialize(v) for v in value]
+              if isinstance(value, float):
+                  return repr(value)  # distinguishes nan, +/-inf, -0.0 precisely
+              return value
+
+          def execute(fn, inputs):
+              candidate, reference, rel, absolute = inputs
+              a, b = candidate.copy(), reference.copy()
+              try:
+                  result = ("RETURN", serialize(fn(
+                      candidate, reference,
+                      relative_tolerance=rel, absolute_tolerance=absolute,
+                  )))
+              except Exception as exc:
+                  result = ("EXCEPTION", type(exc).__name__, str(exc))
+              if a != candidate or b != reference:
+                  raise AssertionError("input mapping mutated")
+              return result
+
+          values = [0.0, -0.0, 1.0, 1.0001, -7.0, 1e-300,
+                    1e300, math.inf, -math.inf, math.nan, "not-a-float"]
+          fixed = [
+              ({}, {}, 0.1, 0.0),
+              ({"a": 1.0}, {}, 0.1, 0.0),
+              ({}, {"b": 1.0}, 0.1, 0.0),
+              ({"a": 1.0, "z": 2.0}, {"z": 2.0, "b": 0.0}, 0.1, 0.0),
+              ({"z": 0.0, "a": 1.0}, {"z": 0.0, "a": 1.0}, 0.0, 0.0),
+              ({"a": True}, {"a": 1}, 0.0, 0.0),
+              ({"a": 1.0}, {"a": 2.0}, -1.0, 0.0),
+              ({"a": 1.0}, {"a": 2.0}, math.nan, 0.0),
+              ({"a": 1.0}, {"a": 2.0}, math.inf, 0.0),
+              ({"a": 1.0}, {"a": 2.0}, 0.0, math.nan),
+              ({"a": 1.0}, {"a": 2.0}, 0.0, math.inf),
+              ({"a": 1.0}, {"a": 2.0}, 0.0, -0.1),
+          ]
+          for a, b in product(values, values):
+              fixed.append(({"density":a}, {"density":b}, 0.1, 0.01))
+          rng = random.Random(20261023)
+          for _ in range(120):
+              candidate = {f"field_{i}": rng.uniform(-1e4, 1e4) for i in range(5)}
+              reference = {f"field_{i}": rng.uniform(-1e4, 1e4) for i in range(5)}
+              fixed.append((candidate, reference, 0.05, 1e-12))
+          for index, case in enumerate(fixed):
+              reference = execute(versions["base"], case)
+              for name in ("blind", "guided"):
+                  result = execute(versions[name], case)
+                  if result != reference:
+                      raise AssertionError(
+                          f"{name} changed numerical or exception behavior in case {index}: "
+                          f"{reference!r} != {result!r}"
+                      )
+          print(f"PRODUCTION_NUMERIC_EQUIVALENCE_PASS: {len(fixed)} cases, 3 arms, "
+                "including finite, nonfinite, tolerances, unmatched keys, random vectors")
+          PY
