@@ -173,7 +173,7 @@ class ExtendedCoverageTests(unittest.TestCase):
         ]
         for annotation in cases:
             with self.subTest(annotation=annotation):
-                source={"src/module.py":f"BadName: {annotation}[int] = 1\\n"}
+                source={"src/module.py":f"BadName: {annotation}[int] = 1\n"}
                 _,ext,report=self.inspect(source)
                 self.assertFalse(any(f.name=="BadName" for f in report.findings))
                 self.assertEqual(report.status,"NOT_EVALUATED")
@@ -183,18 +183,18 @@ class ExtendedCoverageTests(unittest.TestCase):
                     for u in ext.uncertainty
                 ))
         _,_,verified=self.inspect({
-            "src/module.py":"import typing\\nBadName: typing.Final[int] = 1\\n"})
+            "src/module.py":"import typing\nBadName: typing.Final[int] = 1\n"})
         self.assertEqual(self.find(verified,"BadName").status,"REVIEW_REQUIRED")
 
     def test_wildcard_imports_block_unverified_final_binding(self):
         cases=[
-            ("from typing import Final as F\\nfrom vendor import *\\n"
-             "BadName: F[int] = 1\\n"),
-            ("from vendor import *\\nBadName: Final[int] = 1\\n"),
-            ("import typing as tp\\nfrom vendor import *\\n"
-             "BadName: tp.Final[int] = 1\\n"),
-            ("from vendor import *\\nimport typing\\n"
-             "BadName: typing.Final[int] = 1\\n"),
+            ("from typing import Final as F\nfrom vendor import *\n"
+             "BadName: F[int] = 1\n"),
+            ("from vendor import *\nBadName: Final[int] = 1\n"),
+            ("import typing as tp\nfrom vendor import *\n"
+             "BadName: tp.Final[int] = 1\n"),
+            ("from vendor import *\nimport typing\n"
+             "BadName: typing.Final[int] = 1\n"),
         ]
         for code in cases:
             with self.subTest(source=code):
