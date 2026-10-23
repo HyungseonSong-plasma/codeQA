@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:semantic:declared-rule-report:v0.1",
+  "title": "Source-witnessed declared architecture rule report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshot_id",
+    "policy_id",
+    "revision",
+    "as_of",
+    "scope",
+    "coverage_status",
+    "unprocessed_paths",
+    "findings",
+    "status",
+    "schema_version",
+    "interpretation"
+  ],
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date"
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "none"
+      ]
+    },
+    "unprocessed_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule_id",
+          "policy_clause",
+          "status",
+          "code",
+          "source",
+          "target",
+          "line",
+          "expression",
+          "execution",
+          "reason",
+          "exception_id"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_clause": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "VIOLATION",
+              "REVIEW_REQUIRED",
+              "NOT_EVALUATED"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "expression": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "execution": {
+            "enum": [
+              "top_level",
+              "conditional_or_deferred",
+              null
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exception_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "VIOLATION",
+        "REVIEW_REQUIRED",
+        "NOT_EVALUATED"
+      ]
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "interpretation": {
+      "const": "DECLARED_STATIC_POLICY_ONLY_NOT_P4_P5_CERTIFICATION"
+    }
+  }
+}
