@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:semantic:declared-rules:v0.1",
+  "title": "Declarative directory role policy v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_id",
+    "revision",
+    "scope",
+    "effective_from",
+    "temporality",
+    "scope_inventory_complete",
+    "roles",
+    "exceptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "effective_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "temporality": {
+      "enum": [
+        "CONTEMPORANEOUS",
+        "RETROSPECTIVE"
+      ]
+    },
+    "scope_inventory_complete": {
+      "type": "boolean"
+    },
+    "roles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "responsibility",
+          "allowed_imports",
+          "forbidden_imports"
+        ],
+        "properties": {
+          "responsibility": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allowed_imports": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "forbidden_imports": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source",
+          "target",
+          "rationale",
+          "expires_on"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expires_on": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      }
+    }
+  }
+}
