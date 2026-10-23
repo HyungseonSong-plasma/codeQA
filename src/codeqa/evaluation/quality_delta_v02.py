@@ -184,8 +184,8 @@ def metric_snapshot_from_qa_result(
             incomplete = ["rule_not_evaluated"]
         rules.append({
             "id": rule["id"], "version": rule["version"],
-            "principle": rule["principle"], "engine": base["engine"],
-            "profile": base["profile"], "metric": rule["metric"],
+            "principle": rule["principle"], "engine": dict(base["engine"]),
+            "profile": dict(base["profile"]), "metric": dict(rule["metric"]),
             "denominator": {"kind": "measured_functions", "value": len(observations)},
             "evidence_status": status,
             "limitations": incomplete,
