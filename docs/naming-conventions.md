@@ -107,5 +107,8 @@ fixture is SHA-verified; CI independently compares it with the immutable
 original commit and executes the test suite. A follow-up PR is required
 for hierarchy resolution beyond the same file and framework-specific
 effective serializer/ORM mapping, a cross-language convention catalog,
-glossaries and renaming migrations. Do not close the entire #61 roadmap
-based solely on this MVP.
+glossaries and renaming migrations. The design-level closure of [issue #61](https://github.com/HyungseonSong-plasma/codeQA/issues/61)
+is defined in [ADR 0004](adr/0004-versioned-naming-conventions-and-scope.md).
+It accepts the architecture and independently transfers unfinished roadmap
+requirements to #69–#76; neither the Python MVP nor the ADR establishes
+cross-language or runtime interface compatibility.
