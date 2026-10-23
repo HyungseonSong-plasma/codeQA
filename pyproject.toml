@@ -18,6 +18,7 @@ include = ["codeqa*"]
 repository_layout = "profiles/repository-layout.json"
 ccg_schema = "contracts/ccg/graph-v0.1.schema.json"
 adapter_capability_schema = "contracts/adapters/capability-v0.1.schema.json"
+source_selection_schema = "contracts/adapters/source-selection-v0.1.schema.json"
 python_adapter_capability = "profiles/python-adapter-capabilities-v0.1.json"
 mechanical_profile = "profiles/mechanical-v0.1.json"
 dependency_metrics_profile = "profiles/dependency-metrics-v0.1.json"
