@@ -32,7 +32,14 @@ baseline_profile=..., policy=...)`.
   and dynamic namespace operations have **explicit uncertainty
   records**, not a fabricated conformance verdict. Unicode
   identifiers requiring NFKC normalization remain `NOT_EVALUATED`.
-- Module/class rebinding of imported `Final` names now records explicit\n  `annotation_binding` uncertainty instead of claiming a verified constant.\n- Each observation binds exact original file SHA-256, line and UTF-8
+- Module/class rebinding of imported `Final` names records explicit
+  `annotation_binding` uncertainty instead of claiming a verified constant.
+- Qualified `typing.Final` / `typing_extensions.Final` spellings require
+  an explicit unique import witness. An unimported namespace and any
+  module-level wildcard import capable of shadowing `Final` result in
+  `annotation_binding` uncertainty, not a speculative constant finding.
+  This is intentionally conservative and does not resolve runtime imports.
+- Each observation binds exact original file SHA-256, line and UTF-8
   byte offset. A spoofed or stale position raises an error. The
   evaluator also validates v0.1 source-identity parity before emitting
   supplementary findings.
