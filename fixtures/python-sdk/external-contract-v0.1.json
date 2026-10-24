@@ -1,0 +1,67 @@
+{
+  "version": "0.1",
+  "scope": "CONTROLLED_PYTHON_SDK_FIXTURE_ONLY",
+  "packages": {
+    "Pydantic": "2.13.5",
+    "SQLAlchemy": "2.0.50",
+    "Pyright": "1.1.414"
+  },
+  "expected_pydantic": {
+    "input": {
+      "legacyId": 7,
+      "quantity": 2
+    },
+    "serialization_by_alias": {
+      "itemId": 7,
+      "quantity": 2,
+      "total": 14
+    },
+    "serialization_by_name": {
+      "item_id": 7,
+      "quantity": 2,
+      "total": 14
+    },
+    "alternate_input": {
+      "newId": 7,
+      "quantity": 2
+    },
+    "forbidden_collision": "sameKey"
+  },
+  "expected_sqlalchemy": {
+    "tablename": "sdk_records",
+    "columns": [
+      {
+        "attribute": "id",
+        "column_key": "id",
+        "physical_name": "id"
+      },
+      {
+        "attribute": "python_label",
+        "column_key": "db_key",
+        "physical_name": "DB_LABEL"
+      },
+      {
+        "attribute": "quantity",
+        "column_key": "quantity",
+        "physical_name": "quantity"
+      }
+    ],
+    "expected_event_count": 1,
+    "required_sqlite_reflection_columns": [
+      "id",
+      "DB_LABEL",
+      "quantity"
+    ],
+    "baseline_ddl": [
+      "CREATE TABLE sdk_records",
+      "DB_LABEL"
+    ],
+    "migration_policy": "CONTROLLED_SQLITE_BASELINE_ONLY"
+  },
+  "limits": [
+    "No production schema migration",
+    "No external API consumer baseline",
+    "No user-supplied model execution",
+    "No real SDK callback semantics inferred solely from Pyright"
+  ]
+}
