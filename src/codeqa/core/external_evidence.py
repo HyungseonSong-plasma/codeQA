@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from hashlib import sha256
 import json
 from typing import Any, Literal
@@ -48,6 +49,8 @@ class Execution:
     state: str
     exit_code: int | None
     exit_classification: str
+    started_at: str
+    finished_at: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +170,21 @@ def parse_external_evidence(
     if violations:
         raise ExternalEvidenceError("invalid external evidence: " + violations[0].message)
 
+    def parse_time(value: str) -> datetime:
+        try:
+            timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ExternalEvidenceError("invalid execution timestamp") from exc
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ExternalEvidenceError("execution timestamp must carry an offset")
+        return timestamp
+
+    execution = document["execution"]
+    started = parse_time(execution["started_at"])
+    if execution["finished_at"] is not None:
+        finished = parse_time(execution["finished_at"])
+        if finished < started:
+            raise ExternalEvidenceError("execution completed before start")
     scope = document["scope"]
     expected = _sorted_file_records(scope["expected_files"])
     scanned = _sorted_file_records(scope["scanned_files"])
@@ -272,6 +290,8 @@ def assess_external_evidence(
         unknown.add("TOOL_RESULT_NOT_ATTESTED_COMPLETE")
     if envelope.execution.state == "COMPLETED" and envelope.execution.exit_code is None:
         unknown.add("EXIT_CODE_NOT_RECORDED")
+    if envelope.execution.finished_at is None:
+        unknown.add("EXECUTION_END_UNRECORDED")
 
     selected = {x.path: x.sha256 for x in scope.expected_files}
     scanned = {x.path: x.sha256 for x in scope.scanned_files}
