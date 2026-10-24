@@ -218,6 +218,17 @@ class SemgrepAdapterTests(unittest.TestCase):
                 finding, json.dumps(document).encode()
             ), 1,
         )
+        # Real Semgrep 1.182.1 SARIF output omits result.level. It is
+        # optional in SARIF 2.1.0: enforce locations and identifiers without
+        # fabricating missing severity values.
+        del document["runs"][0]["results"][0]["level"]
+        self.assertEqual(
+            validate_semgrep_sarif_parity(finding, json.dumps(document).encode()), 1
+        )
+        document["runs"][0]["results"][0]["level"] = "warning"
+        with self.assertRaises(SemgrepAdapterError):
+            validate_semgrep_sarif_parity(finding, json.dumps(document).encode())
+        document["runs"][0]["results"][0]["level"] = "error"
         document["runs"][0]["results"][0]["ruleId"] = "unexpected"
         with self.assertRaises(SemgrepAdapterError):
             validate_semgrep_sarif_parity(finding, json.dumps(document).encode())
