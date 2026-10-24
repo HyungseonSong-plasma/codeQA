@@ -70,7 +70,7 @@ class EvidenceGateTests(unittest.TestCase):
         def envelope(tool, rule):
             return {
                 "schema_version": "0.1", "snapshot_id": policy["snapshot_id"],
-                "tool": tool,
+                "tool": deepcopy(tool),
                 "execution": {
                     "state": "COMPLETED", "exit_code": 0,
                     "exit_classification": "VALID_RESULT",
