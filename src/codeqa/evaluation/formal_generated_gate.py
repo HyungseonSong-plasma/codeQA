@@ -54,6 +54,7 @@ class GeneratedFixturePolicy:
     specification_path: str
     specification_sha256: str
     required_properties: tuple[str, ...]
+    required_rule_ids: tuple[str, ...]
     accepted_assumptions: tuple[str, ...]
     required_generated_paths: tuple[str, ...]
     tool: ToolIdentity
@@ -86,7 +87,7 @@ def parse_generated_fixture_policy(value: Mapping[str, object]) -> GeneratedFixt
     """Exact data-only policy; cannot select a production/deployed source mode."""
     keys = {
         "version", "scope", "snapshot_id", "specification_path",
-        "specification_sha256", "required_properties", "accepted_assumptions",
+        "specification_sha256", "required_properties", "required_rule_ids", "accepted_assumptions",
         "required_generated_paths", "tool",
         "expected_build_configuration_sha256", "attestation_id",
     }
@@ -102,7 +103,7 @@ def parse_generated_fixture_policy(value: Mapping[str, object]) -> GeneratedFixt
     for name in ("snapshot_id", "attestation_id"):
         if not isinstance(value[name], str) or not value[name]:
             raise ValueError("invalid snapshot or provenance identity")
-    for field in ("required_properties", "accepted_assumptions", "required_generated_paths"):
+    for field in ("required_properties", "required_rule_ids", "accepted_assumptions", "required_generated_paths"):
         values = value[field]
         if not isinstance(values, list) or not values or any(
             not isinstance(x, str) or not x for x in values
@@ -128,6 +129,7 @@ def parse_generated_fixture_policy(value: Mapping[str, object]) -> GeneratedFixt
         specification_path=value["specification_path"],
         specification_sha256=value["specification_sha256"],
         required_properties=tuple(sorted(value["required_properties"])),
+        required_rule_ids=tuple(sorted(value["required_rule_ids"])),
         accepted_assumptions=tuple(sorted(value["accepted_assumptions"])),
         required_generated_paths=tuple(sorted(value["required_generated_paths"])),
         tool=tool,
@@ -217,7 +219,7 @@ def evaluate_generated_fixture_gate(
         evidence, expected_snapshot_id=policy.snapshot_id,
         expected_files={policy.specification_path: policy.specification_sha256},
         expected_tool=policy.tool,
-        expected_rules=(policy.tool.exit_classifier,) if False else evidence.scope.required_rules,
+        expected_rules=policy.required_rule_ids,
         raw_artifact=raw_verifier_log, purpose="SOURCE_ANALYSIS",
     )
     if admitted.status != "ADMISSIBLE":
