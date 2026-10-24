@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from dataclasses import replace
 from hashlib import sha256
+from pathlib import Path
+import json
 import unittest
+
+from jsonschema import Draft202012Validator
 
 from codeqa.evaluation.naming_rename_impact_v02 import (
     RenameImpactError, SymbolWitness, ReferenceWitness, assess_rename_impact,
@@ -92,6 +96,14 @@ class RenameImpactTests(unittest.TestCase):
             self.assess(references=(ref, ref))
         with self.assertRaisesRegex(RenameImpactError, "target mismatch"):
             self.assess(references=(replace(ref, target_name="other"),))
+
+    def test_proposal_report_validates_separate_versioned_schema(self):
+        root = Path(__file__).resolve().parents[1]
+        schema = json.loads((root / "contracts/qa/naming-rename-impact-v0.2-draft.schema.json").read_text())
+        Draft202012Validator.check_schema(schema)
+        report = self.assess(symbol=self.make_symbol(boundary="public_api"))
+        Draft202012Validator(schema).validate(report.to_document())
+        self.assertFalse(report.to_document()["mutation_performed"])
 
     def test_invalid_policy_and_identity_rejected(self):
         with self.assertRaises(RenameImpactError):
