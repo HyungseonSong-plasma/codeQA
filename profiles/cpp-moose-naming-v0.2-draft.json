@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.2-draft",
+  "profile_id": "codeqa.cpp.moose.naming.v02-draft",
+  "cpp_parser_status": "NOT_EVALUATED",
+  "moose_grammar_status": "NOT_EVALUATED",
+  "moose_framework_revision_status": "NOT_EVALUATED",
+  "compiler_status": "CONTROLLED_FIXTURES_ONLY",
+  "reserved_moose_blocks": [
+    "Kernels"
+  ],
+  "custom_application_identifiers": [],
+  "automatic_rename": false
+}
