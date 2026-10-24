@@ -10,7 +10,7 @@
 2. Read local `docs/operating_system/README.md` and
    `docs/operating_system/central_skills.json`; reject floating or mixed pins.
 3. Fetch and verify the exact central `chatgpt-operation` commit
-   `9b335e3fbb9c5e8e323e382daeec56fa25336822`; read the Samuel index, `ESSENTIAL_RULES.md`,
+   `059050330a549fce0b543687e2e9d4dca6c3f624`; read the Samuel index, `ESSENTIAL_RULES.md`,
    `session-bootstrap` and `state-refresh` at this commit. Verify their
    expected blob SHA values before using them.
 4. **Always** fetch and verify both `skills/catalog.json` and
@@ -57,3 +57,7 @@ request. It is permanently present and triggers after a change to the
 version-controlled exact-SHA request manifest on protected `main`;
 it may also be manually dispatched. The manifest is empty by default.
 A request is a separate reviewed mutation; `codeQA-init` never edits it.
+
+## GitHub mutation execution (separate from read-only init)
+
+The exact pinned capability registry resolves `GITHUB_BRANCH_CREATE`, `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE` through `repository-mutation`, and `GITHUB_PR_CREATE` through `pull-request-create`. Resolve the owning skill, read the target branch/blob, use the registered provider order, and verify the resulting identity. `codeQA-init` remains read-only.
