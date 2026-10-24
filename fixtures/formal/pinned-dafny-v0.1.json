@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "fixture_id": "codeqa.formal.payment_add_one.generated_python",
+  "dafny_version": "4.11.0",
+  "release_tag": "v4.11.0",
+  "linux_release_asset": "dafny-4.11.0-x64-ubuntu-22.04.zip",
+  "release_archive_sha256": "a46a9ff7cdd720f7955854c78e95df13f4cfe6b80691b05f8654fe19e8267179",
+  "source_path": "fixtures/formal/payment_add_one.dfy",
+  "source_sha256": "8f2558fab98a418ce9c07d8fc09befabd72e6dbe1bff32c5164eb7ac2dcd98ee",
+  "proof_scope": "whole_selected_dafny_program",
+  "required_property": "payment.AddOne.postcondition",
+  "generated_target": "py",
+  "required_runtime_output": "42",
+  "assurance_level": "CONTROLLED_GENERATED_PYTHON_FIXTURE_ONLY",
+  "accepts_manual_translation": false
+}

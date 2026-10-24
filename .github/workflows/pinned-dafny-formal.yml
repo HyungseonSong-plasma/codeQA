@@ -1,0 +1,62 @@
+name: Pinned Dafny Formal Binding Conformance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-dafny-python-codegen:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: .NET 8 runtime
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install codeQA
+        run: python -m pip install --disable-pip-version-check -e .
+
+      - name: Download exact pinned Dafny 4.11.0 and verify upstream asset SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dafny-dist"
+          curl --fail --location --show-error --silent --retry 3 \
+            -o "$RUNNER_TEMP/dafny-release.zip" \
+            "https://github.com/dafny-lang/dafny/releases/download/v4.11.0/dafny-4.11.0-x64-ubuntu-22.04.zip"
+          echo "a46a9ff7cdd720f7955854c78e95df13f4cfe6b80691b05f8654fe19e8267179  $RUNNER_TEMP/dafny-release.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/dafny-release.zip" -d "$RUNNER_TEMP/dafny-dist"
+          test -x "$RUNNER_TEMP/dafny-dist/dafny/dafny"
+          "$RUNNER_TEMP/dafny-dist/dafny/dafny" --version
+
+      - name: Verify real Dafny proof, code generation, runtime and conservative Gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/dafny_formal_conformance.py \
+            --dafny "$RUNNER_TEMP/dafny-dist/dafny/dafny" \
+            --release-archive "$RUNNER_TEMP/dafny-release.zip" \
+            --output "$RUNNER_TEMP/dafny-conformance"
+
+      - name: Upload independently inspectable proof and generated fixture receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-dafny-proof-to-generated-python
+          path: ${{ runner.temp }}/dafny-conformance/
+          if-no-files-found: warn
+          retention-days: 30
