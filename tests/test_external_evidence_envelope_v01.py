@@ -50,6 +50,8 @@ class ExternalEvidenceV01Tests(unittest.TestCase):
             "execution": {
                 "state": "COMPLETED", "exit_code": 0,
                 "exit_classification": "VALID_RESULT",
+                "started_at": "2026-10-24T20:00:00+00:00",
+                "finished_at": "2026-10-24T20:00:02+00:00",
             },
             "scope": {
                 "expected_files": [{"path": "src/sample.py", "sha256": digest(source)}],
@@ -93,6 +95,31 @@ class ExternalEvidenceV01Tests(unittest.TestCase):
         self.assertEqual(envelope.schema_version, "0.1")
         self.assertEqual(self.schema["$id"],
                          "urn:codeqa:evidence:external-envelope:v0.1")
+
+    def test_schema_round_trip_is_json_compatible(self):
+        original = self.example()
+        parsed = parse_external_evidence(original, self.schema)
+        restored = json.loads(canonical_external_json(parsed))
+        Draft202012Validator(self.schema).validate(restored)
+        self.assertEqual(parse_external_evidence(restored, self.schema), parsed)
+
+    def test_execution_timestamp_order_and_timezone_are_validated(self):
+        base = self.example()
+        for bad in ("bad time", "2026-10-24T20:00:00"):
+            with self.subTest(bad=bad):
+                doc = deepcopy(base)
+                doc["execution"]["started_at"] = bad
+                with self.assertRaises(ExternalEvidenceError):
+                    parse_external_evidence(doc, self.schema)
+        doc = deepcopy(base)
+        doc["execution"]["finished_at"] = "2026-10-24T19:59:59+00:00"
+        with self.assertRaises(ExternalEvidenceError):
+            parse_external_evidence(doc, self.schema)
+
+    def test_missing_end_receipt_is_indeterminate(self):
+        doc = self.example()
+        doc["execution"]["finished_at"] = None
+        self.assert_reason(doc, "INDETERMINATE", "EXECUTION_END_UNRECORDED")
 
     def test_nonzero_exit_with_pinned_valid_classifier_is_not_automatic_crash(self):
         doc = self.example()
