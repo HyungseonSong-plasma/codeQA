@@ -7,8 +7,9 @@ import json
 from pathlib import Path
 import unittest
 
-from codeqa.adapters.semgrep_json import SemgrepAdapterError, parse_semgrep_json
+from codeqa.adapters.semgrep_json import (SemgrepAdapterError, parse_semgrep_json, link_semgrep_ccg, validate_semgrep_sarif_parity)
 from codeqa.core.external_evidence import ToolIdentity, assess_external_evidence
+from codeqa.core.evidence import EvidenceIndex, EvidenceFact
 from codeqa.evaluation.evidence_gate import (
     EvidenceRun, evaluate_gate, parse_gate_policy,
 )
@@ -192,6 +193,63 @@ class SemgrepAdapterTests(unittest.TestCase):
         native["results"][0]["check_id"] = "other.rule"
         with self.assertRaises(SemgrepAdapterError):
             self.adapted(native)
+
+
+    def test_semgrep_json_sarif_parity_clean_and_single_finding(self):
+        clean, _ = self.adapted()
+        clean_sarif = json.dumps({
+            "version": "2.1.0", "runs": [{"results": []}]
+        }).encode()
+        self.assertEqual(validate_semgrep_sarif_parity(clean, clean_sarif), 0)
+
+        finding, _ = self.adapted(self.native(issue=True))
+        result = {
+            "ruleId": "security.high", "level": "error",
+            "locations": [{
+                "physicalLocation": {
+                    "artifactLocation": {"uri": "src/test.py"},
+                    "region": {"startLine": 1},
+                },
+            }],
+        }
+        document = {"version": "2.1.0", "runs": [{"results": [result]}]}
+        self.assertEqual(
+            validate_semgrep_sarif_parity(
+                finding, json.dumps(document).encode()
+            ), 1,
+        )
+        document["runs"][0]["results"][0]["ruleId"] = "unexpected"
+        with self.assertRaises(SemgrepAdapterError):
+            validate_semgrep_sarif_parity(finding, json.dumps(document).encode())
+
+    def test_semgrep_ccg_source_link_is_opt_in_exact_and_not_runtime(self):
+        envelope, _ = self.adapted(self.native(issue=True))
+        evidence = EvidenceIndex(
+            snapshot_id="git:repo@pinned",
+            facts=(EvidenceFact("syntax-witness", "src/test.py", 1, 0,
+                                "call", "eval"),),
+            relations=(),
+        )
+        links = link_semgrep_ccg(envelope, evidence)
+        self.assertEqual(len(links), 1)
+        self.assertEqual(links[0].evidence_id, "syntax-witness")
+        self.assertEqual(links[0].resolution, "EXACT_SOURCE_LINE")
+        missing = link_semgrep_ccg(envelope, EvidenceIndex(
+            snapshot_id="git:repo@pinned", facts=(), relations=(),
+        ))
+        self.assertEqual(missing[0].resolution, "NO_SOURCE_FACT")
+        ambiguous = link_semgrep_ccg(envelope, EvidenceIndex(
+            snapshot_id="git:repo@pinned",
+            facts=(*evidence.facts, EvidenceFact("other", "src/test.py", 1, 8,
+                                                "call", "second")),
+            relations=(),
+        ))
+        self.assertIsNone(ambiguous[0].evidence_id)
+        self.assertEqual(ambiguous[0].resolution, "AMBIGUOUS_LINE")
+        with self.assertRaises(SemgrepAdapterError):
+            link_semgrep_ccg(envelope, EvidenceIndex(
+                snapshot_id="different", facts=evidence.facts, relations=(),
+            ))
 
 
 if __name__ == "__main__":
