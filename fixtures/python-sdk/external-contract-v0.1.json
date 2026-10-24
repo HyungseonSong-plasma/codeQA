@@ -4,7 +4,7 @@
   "packages": {
     "Pydantic": "2.13.5",
     "SQLAlchemy": "2.0.50",
-    "Pyright": "1.1.414"
+    "pyright": "1.1.414"
   },
   "expected_pydantic": {
     "input": {
