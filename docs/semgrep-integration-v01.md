@@ -70,17 +70,20 @@ The wheel/sdist remain independent of Semgrep. No production code is modified.
 
 ## SARIF and advanced scan scope
 
-Semgrep can export SARIF; v0.1 ingests the native **JSON** format as the
-complete typed source for tested scan coverage. A SARIF artifact can be
-retained as an additional raw artifact in the orchestrator, but SARIF alone
-does not independently attest complete selected-file/rule execution.
-An independently versioned SARIF parser or verified dual-format parity test
-is needed before claiming that arbitrary Semgrep SARIF is sufficient for
-a complete Gate PASS.
+Semgrep can export SARIF; v0.1 ingests native **JSON** as the typed
+source for tested scan coverage. The optional
+\`validate_semgrep_sarif_parity(envelope, sarif_bytes)\` parses SARIF 2.1.0
+and compares exact rule IDs, paths, line numbers and native severity with
+the already-admitted JSON findings. Independent real CLI CI runs JSON and
+SARIF scans over the same pinned fixture and verifies their parity.
+**SARIF alone does not independently attest selected-file/rule execution**
+and cannot produce a Gate PASS. SARIF format versions or variants outside
+this restricted parity contract require a new compatibility review.
 
-**Important:** Semgrep JSON's source locations can reference the existing CCG
-source selection, but they are **source anchors**, not evidence of verified
-Python runtime calls. No new CCG edge is inferred.
+**Important:** Semgrep JSON source locations can optionally be linked through
+\`link_semgrep_ccg\` to an **exact same-snapshot, unique path+line** witness
+in the existing EvidenceIndex. Ambiguous and missing witnesses remain
+unresolved; this does not imply runtime call proof or create a new CCG edge.
 
 ## Separation from other issues
 
