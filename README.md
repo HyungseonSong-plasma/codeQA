@@ -198,3 +198,13 @@ Issue #28 introduces versioned public schemas `qa_result_schema` and
 and strict compatibility checks for descriptive review-count deltas.
 Old Python reports and CCG v0.1 remain unchanged. See
 [QA Result and Delta](docs/contracts/qa-result-0.1.md).
+
+## Python distribution preview
+
+A **codeqa 0.2.0a1** candidate wheel, sdist and separately hashed policy
+resource bundle are built and smoke-tested by
+[Python Package CI](.github/workflows/python-package.yml).
+For isolated install instructions, explicit resource-root usage and release
+boundaries, see [Python package](docs/python-package.md). The package is not
+a public PyPI release; full external framework and migration compatibility
+remain tracked in Naming v0.3 issues #91–#94.

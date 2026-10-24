@@ -78,16 +78,16 @@ class PydanticEffectiveRuntimeTests(unittest.TestCase):
                      "NOT_EVALUATED: requires pinned SQLAlchemy 2.0.50")
 class SqlAlchemyPhysicalColumnTests(unittest.TestCase):
     def model(self):
-        from sqlalchemy import String
-        from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+        from sqlalchemy import Integer, String
+        from sqlalchemy.orm import DeclarativeBase, mapped_column
 
         class Base(DeclarativeBase):
             pass
 
         class Record(Base):
             __tablename__ = "records"
-            id: Mapped[int] = mapped_column(primary_key=True)
-            orm_name: Mapped[str] = mapped_column(
+            id = mapped_column(Integer, primary_key=True)
+            orm_name = mapped_column(
                 "db_name", String, key="column_key")
         return Record
 
