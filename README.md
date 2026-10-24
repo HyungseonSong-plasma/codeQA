@@ -71,6 +71,14 @@ assumptions; its strict admission validator **never** issues a quality PASS.
 External Semgrep adapters, Policy Gates and proof-to-implementation binding
 remain follow-up issues #100, #99 and #102.
 
+## Evidence Policy Gate v0.1 (opt-in)
+
+The independent [fail-closed Policy Gate](docs/evidence-gate-v01.md) consumes
+admitted external evidence with an exact, pinned source/policy context and
+returns scoped PASS/FAIL/UNKNOWN plus Decision Trace. It does **not** execute
+external scanners or merge pull requests. Live Semgrep and formal binding
+remain #100 and #102.
+
 ## Validation
 
 ```bash
