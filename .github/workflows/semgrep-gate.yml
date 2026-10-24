@@ -1,0 +1,33 @@
+name: Pinned Semgrep External Gate Conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep-evidence-gate:
+    name: semgrep-evidence-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SEMGREP_SEND_METRICS: "off"
+      SEMGREP_ENABLE_VERSION_CHECK: "0"
+      DO_NOT_TRACK: "1"
+    steps:
+      - name: Checkout pinned codeQA revision
+        uses: actions/checkout@v4
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install codeQA and exact Semgrep CLI
+        run: python -m pip install --disable-pip-version-check -e . 'semgrep==1.182.1'
+      - name: Run native evidence and Gate negative-control unit tests
+        run: python -m unittest tests.test_external_evidence_envelope_v01 tests.test_evidence_gate_v01 tests.test_semgrep_adapter_v01 -v
+      - name: Execute real isolated Semgrep scans through Evidence Gate
+        run: python .github/scripts/semgrep_gate_smoke.py
