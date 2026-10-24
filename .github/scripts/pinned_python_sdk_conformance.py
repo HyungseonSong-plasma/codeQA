@@ -236,9 +236,9 @@ def test_runtime(contract: dict) -> dict:
 
     class Record(Base):
         __tablename__ = "sdk_records"
-        id: Mapped[int] = mapped_column(Integer, primary_key=True)
-        python_label: Mapped[str] = mapped_column("DB_LABEL", String(30), key="db_key")
-        quantity: Mapped[int] = mapped_column(Integer)
+        id = mapped_column(Integer, primary_key=True)
+        python_label = mapped_column("DB_LABEL", String(30), key="db_key")
+        quantity = mapped_column(Integer)
 
     observed = []
     @event.listens_for(Record, "before_insert")
