@@ -105,7 +105,7 @@ def main() -> None:
         built = run([cli, "build", "--target:py", proof_spec.name], build_root, expected_ok=True)
         py_files = sorted(build_root.rglob("payment_add_one.py"))
         if len(py_files) != 1:
-            raise RuntimeError(f"expected exactly one Dafny-generated target module, got {py_files}")
+            raise RuntimeError(f"expected exactly one Dafny-generated target module, got {py_files}; build stdout={built.stdout!r}; build stderr={built.stderr!r}; files={[str(p.relative_to(build_root)) for p in build_root.rglob('*') if p.is_file()]}")
         generated_path = py_files[0]
         generated = generated_path.read_bytes()
         runtime = run([sys.executable, str(generated_path)], generated_path.parent, expected_ok=True)
