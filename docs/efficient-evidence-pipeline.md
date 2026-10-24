@@ -28,6 +28,13 @@ and the language-neutral Core model remain unchanged.
    efficiency counters and optional impact. Full `to_document()` retains
    separate graph, QA, dependency, evidence and impact detail.
 
+For an optional **trusted POSIX persistent extraction-only cache** and
+conservative full-semantics invalidation plan see
+[persistent CCG cache v0.1](persistent-ccg-cache-v01.md) and
+[ADR 0007](adr/0007-persistent-ccg-cache-safety.md). It does not persist
+ASTs or snapshot-wide relationships and cannot prove safe affected-test
+selection.
+
 ## Usage
 
 ```python
