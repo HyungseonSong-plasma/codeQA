@@ -1,6 +1,6 @@
 # Central Samuel skills — codeQA consumer
 
-**Source:** `HyungseonSong-plasma/chatgpt-operation@9b335e3fbb9c5e8e323e382daeec56fa25336822`
+**Source:** `HyungseonSong-plasma/chatgpt-operation@059050330a549fce0b543687e2e9d4dca6c3f624`
 
 ## Required init
 
@@ -44,3 +44,7 @@ from exact pinned evidence rather than chat memory.
 
 Other skills load only when triggered (e.g., `GITHUB_PR_MERGE`,
 `GITHUB_ACTIONS_EXECUTION`, `GITHUB_ACTIONS_OBSERVATION`).
+
+## GitHub creation and update routing
+
+Samuel `059050330a549fce0b543687e2e9d4dca6c3f624` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled by `pull-request-create` through `github-connector` only. Existing `GITHUB_BRANCH_DELETE` native-first and `GITHUB_PR_MERGE` guarded routes are unchanged. A successful create action does not certify CI, domain semantics, or human acceptance. Read exact target identities before and after any mutation; do not modify the capability registry with the native repository mutation workflow, whose protected policy explicitly denies that path.
