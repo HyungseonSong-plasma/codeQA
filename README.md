@@ -87,6 +87,15 @@ Gate conformance, without a runtime Semgrep dependency or universal safety
 claim. It does not scan user code until a caller supplies a trusted isolated
 execution environment and pinned policy.
 
+## Conservative persistent CCG cache (opt-in)
+
+The [persistent file-local CCG cache](docs/persistent-ccg-cache-v01.md) safely
+reuses exact-source extraction facts with trusted-store locking and checksum
+validation. Snapshot-wide CCG relationships and QA verdicts are always
+recomputed; real-codeQA p50/p95 and full-oracle differential benchmarks run
+in a separate conformance workflow. This is not a claim of complete
+incremental semantic analysis.
+
 ## Validation
 
 ```bash

@@ -1,0 +1,40 @@
+name: Conservative Persistent CCG Cache Conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  persistent-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact Git revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install codeQA
+        run: python -m pip install --disable-pip-version-check -e .
+      - name: Persistent cache, corruption, mutation and full-oracle tests
+        run: python -m unittest discover -s tests -p 'test_persistent_ccg_cache_v01.py' -v
+      - name: Benchmark cold/full vs persistent warm on pinned real codeQA sources
+        env:
+          CODEQA_BENCHMARK_OUTPUT: ${{ runner.temp }}/incremental-ccg-benchmark.json
+        run: python .github/scripts/incremental_ccg_benchmark.py
+      - name: Upload reproducible benchmark measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-ccg-cache-benchmark
+          path: ${{ runner.temp }}/incremental-ccg-benchmark.json
+          retention-days: 30
+          if-no-files-found: warn
