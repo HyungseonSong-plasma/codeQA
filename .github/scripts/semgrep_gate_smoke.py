@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import tempfile
 
-from codeqa.adapters.semgrep_json import parse_semgrep_json
+from codeqa.adapters.semgrep_json import (parse_semgrep_json, validate_semgrep_sarif_parity)
 from codeqa.core.external_evidence import ToolIdentity
 from codeqa.evaluation.evidence_gate import (
     EvidenceRun, evaluate_gate, parse_gate_policy,
@@ -144,6 +144,25 @@ def run_one(
             )
         if decision.requirements[0].admission_status != "ADMISSIBLE":
             raise AssertionError("real Semgrep native output was not admissible")
+
+        # SARIF alone cannot attest source coverage. Compare an independently
+        # executed pinned SARIF output against the admitted native JSON scan.
+        sarif_args = ["--sarif" if arg == "--json" else arg for arg in args]
+        sarif_process = subprocess.run(
+            sarif_args, cwd=directory, env=env, capture_output=True,
+            timeout=90, check=False,
+        )
+        if sarif_process.returncode != 0:
+            raise AssertionError(
+                f"Semgrep SARIF process failed: {sarif_process.returncode} "
+                f"{sarif_process.stderr.decode(errors='replace')[-1400:]}"
+            )
+        parity = validate_semgrep_sarif_parity(
+            envelope, sarif_process.stdout
+        )
+        if parity != len(envelope.observations):
+            raise AssertionError("native JSON/SARIF result cardinality drift")
+
         if expected_verdict == "FAIL" and not envelope.observations:
             raise AssertionError("real Semgrep did not report any issue")
 
