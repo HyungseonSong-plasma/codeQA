@@ -248,10 +248,11 @@ def link_semgrep_ccg(
 def validate_semgrep_sarif_parity(
     envelope: ExternalEvidence, sarif_raw: bytes,
 ) -> int:
-    """Verify source-location + severity parity of a *separate* SARIF artifact.
+    """Verify source-location parity of an independent SARIF artifact.
 
-    SARIF alone CANNOT attest exact scan scope. It is only a secondary cross-
-    check of already source-attested native JSON, never another Gate PASS.
+    SARIF result.level is optional (SARIF 2.1.0 §3.27.10), so only compare
+    severity when it is EXPLICITLY present. Do not guess native severity from
+    an absent level. JSON is the authoritative severity/coverage source.
     """
     if not isinstance(sarif_raw, bytes) or not sarif_raw:
         raise SemgrepAdapterError("missing SARIF companion artifact")
@@ -275,7 +276,8 @@ def validate_semgrep_sarif_parity(
         rule = item.get("ruleId")
         level_name = item.get("level")
         locs = item.get("locations")
-        if (not isinstance(rule, str) or level_name not in level or
+        if (not isinstance(rule, str) or
+            (level_name is not None and level_name not in level) or
             not isinstance(locs, list) or len(locs) != 1 or
             not isinstance(locs[0], dict)):
             raise SemgrepAdapterError("SARIF finding missing supported attributes")
@@ -289,11 +291,20 @@ def validate_semgrep_sarif_parity(
         line = region.get("startLine")
         if type(line) is not int or line < 1:
             raise SemgrepAdapterError("invalid SARIF line")
-        matched.append((rule, _relative(artifact.get("uri")), line, level[level_name]))
+        matched.append((rule, _relative(artifact.get("uri")), line,
+                        level[level_name] if level_name is not None else None))
     expected = [
         (item.rule_id, item.path, item.line, item.native_status)
         for item in envelope.observations if item.kind == "STATIC_FINDING"
     ]
-    if sorted(expected) != sorted(matched):
-        raise SemgrepAdapterError("Semgrep JSON/SARIF findings are not equivalent")
+    if (sorted((a, b, c) for a, b, c, _ in expected) !=
+        sorted((a, b, c) for a, b, c, _ in matched)):
+        raise SemgrepAdapterError("Semgrep JSON/SARIF source findings differ")
+    # An explicit SARIF level can be cross-checked; absent means severity
+    # parity NOT_ATTESTED, never an invented default or a Gate permission.
+    native = set(expected)
+    for rule, path, line, explicit_severity in matched:
+        if (explicit_severity is not None and
+            (rule, path, line, explicit_severity) not in native):
+            raise SemgrepAdapterError("Semgrep JSON/SARIF severity mismatch")
     return len(matched)
