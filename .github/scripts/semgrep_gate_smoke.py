@@ -157,14 +157,6 @@ def run_one(
                 f"Semgrep SARIF process failed: {sarif_process.returncode} "
                 f"{sarif_process.stderr.decode(errors='replace')[-1400:]}"
             )
-        if case_name == "unsafe-eval":
-            # Synthetic fixture only. Temporary diagnostic for confirming the
-            # actual native SARIF shape before tightening the parser.
-            sarif_report = json.loads(sarif_process.stdout.decode("utf-8"))
-            print("SEMGREP_SARIF_STRUCTURE=" + json.dumps(
-                sarif_report.get("runs", [{}])[0].get("results", [])[:1],
-                ensure_ascii=False, sort_keys=True,
-            )[:3200], flush=True)
         parity = validate_semgrep_sarif_parity(
             envelope, sarif_process.stdout
         )
