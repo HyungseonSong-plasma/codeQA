@@ -9,10 +9,12 @@ rule execution or exhaustive language semantics.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from hashlib import sha256
 import json
 from typing import Any
 
+from codeqa.core.evidence import EvidenceIndex
 from codeqa.core.external_evidence import (
     ExternalEvidence, ExternalEvidenceError, ToolIdentity,
     parse_external_evidence,
@@ -201,3 +203,97 @@ def parse_semgrep_json(
         return parse_external_evidence(document, schema)
     except ExternalEvidenceError as exc:
         raise SemgrepAdapterError("unsafe native scan receipt: " + str(exc)) from exc
+
+
+@dataclass(frozen=True, slots=True)
+class SemgrepSourceLink:
+    """Optional precise source witness, NEVER a proven runtime CCG edge."""
+    rule_id: str
+    path: str
+    line: int
+    evidence_id: str | None
+    resolution: str  # EXACT_SOURCE_LINE | AMBIGUOUS_LINE | NO_SOURCE_FACT
+
+
+def link_semgrep_ccg(
+    envelope: ExternalEvidence, index: EvidenceIndex,
+) -> tuple[SemgrepSourceLink, ...]:
+    """Link only unique same-snapshot syntax witnesses by exact path+line.
+
+    A Semgrep match can span syntax nodes; ambiguous same-line evidence is
+    unlinked, not guessed. This optional companion does not create graph edges
+    or assert semantic/runtime equivalence.
+    """
+    if envelope.snapshot_id != index.snapshot_id:
+        raise SemgrepAdapterError("CCG evidence and scan source snapshots differ")
+    by_line: dict[tuple[str, int], set[str]] = {}
+    for fact in index.facts:
+        by_line.setdefault((fact.path, fact.line), set()).add(fact.evidence_id)
+    links: list[SemgrepSourceLink] = []
+    for item in envelope.observations:
+        if item.kind != "STATIC_FINDING":
+            continue
+        witnesses = by_line.get((item.path, item.line), set())
+        if len(witnesses) == 1:
+            ref, resolution = next(iter(witnesses)), "EXACT_SOURCE_LINE"
+        elif witnesses:
+            ref, resolution = None, "AMBIGUOUS_LINE"
+        else:
+            ref, resolution = None, "NO_SOURCE_FACT"
+        links.append(SemgrepSourceLink(item.rule_id, item.path, item.line,
+                                       ref, resolution))
+    return tuple(sorted(links, key=lambda x: (x.path, x.line, x.rule_id, x.resolution)))
+
+
+def validate_semgrep_sarif_parity(
+    envelope: ExternalEvidence, sarif_raw: bytes,
+) -> int:
+    """Verify source-location + severity parity of a *separate* SARIF artifact.
+
+    SARIF alone CANNOT attest exact scan scope. It is only a secondary cross-
+    check of already source-attested native JSON, never another Gate PASS.
+    """
+    if not isinstance(sarif_raw, bytes) or not sarif_raw:
+        raise SemgrepAdapterError("missing SARIF companion artifact")
+    try:
+        doc = json.loads(sarif_raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise SemgrepAdapterError("malformed SARIF companion") from exc
+    if not isinstance(doc, dict) or doc.get("version") != "2.1.0":
+        raise SemgrepAdapterError("unsupported SARIF format/version")
+    runs = doc.get("runs")
+    if not isinstance(runs, list) or len(runs) != 1 or not isinstance(runs[0], dict):
+        raise SemgrepAdapterError("expected exactly one SARIF run")
+    records = runs[0].get("results")
+    if not isinstance(records, list):
+        raise SemgrepAdapterError("SARIF result list absent")
+    level = {"error": "ERROR", "warning": "WARNING", "note": "INFO"}
+    matched = []
+    for item in records:
+        if not isinstance(item, dict):
+            raise SemgrepAdapterError("invalid SARIF result")
+        rule = item.get("ruleId")
+        level_name = item.get("level")
+        locs = item.get("locations")
+        if (not isinstance(rule, str) or level_name not in level or
+            not isinstance(locs, list) or len(locs) != 1 or
+            not isinstance(locs[0], dict)):
+            raise SemgrepAdapterError("SARIF finding missing supported attributes")
+        physical = locs[0].get("physicalLocation")
+        if not isinstance(physical, dict):
+            raise SemgrepAdapterError("SARIF source location missing")
+        artifact = physical.get("artifactLocation")
+        region = physical.get("region")
+        if not isinstance(artifact, dict) or not isinstance(region, dict):
+            raise SemgrepAdapterError("SARIF source region missing")
+        line = region.get("startLine")
+        if type(line) is not int or line < 1:
+            raise SemgrepAdapterError("invalid SARIF line")
+        matched.append((rule, _relative(artifact.get("uri")), line, level[level_name]))
+    expected = [
+        (item.rule_id, item.path, item.line, item.native_status)
+        for item in envelope.observations if item.kind == "STATIC_FINDING"
+    ]
+    if sorted(expected) != sorted(matched):
+        raise SemgrepAdapterError("Semgrep JSON/SARIF findings are not equivalent")
+    return len(matched)
