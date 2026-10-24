@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.2-draft",
+  "profile_id": "codeqa.rust.naming.draft.manual.v02",
+  "mode": "manual_curated_fixture",
+  "parser_status": "NOT_EVALUATED",
+  "compiler_status": "NOT_EVALUATED",
+  "trait_resolution_status": "NOT_EVALUATED",
+  "project_overrides": [],
+  "rules": {
+    "crate": "snake_case",
+    "module": "snake_case",
+    "function": "snake_case",
+    "method": "snake_case",
+    "field": "snake_case",
+    "type": "PascalCase",
+    "trait": "PascalCase",
+    "constant": "UPPER_SNAKE_CASE",
+    "static": "UPPER_SNAKE_CASE",
+    "macro": "snake_case",
+    "lifetime": "snake_case",
+    "raw_identifier": "snake_case"
+  }
+}
