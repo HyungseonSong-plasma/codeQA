@@ -17,7 +17,7 @@ This opt-in envelope has independent version `0.1` and holds:
 - Immutable caller-attested `snapshot_id`; independently supplied expected
   file SHA-256 map and tool/config/ruleset identity are required for **admission**.
 - Tool binary digest, version, adapter version, command/config digest, ruleset
-  digest and exit-code classifier identity. **Never infer a successful run from
+  digest, offset-aware start/end times and exit-code classifier identity. **Never infer a successful run from
   exit code 0 or nonzero alone**; the adapter classifier has tool/version/mode
   semantics and is trusted only when its identity matches caller expectations.
 - Explicit expected/scanned file paths and SHA-256 digests, skipped paths,
