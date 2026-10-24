@@ -26,6 +26,10 @@ from codeqa.evaluation.evidence_gate import (
     EvidenceRun, evaluate_gate, parse_gate_policy,
 )
 from codeqa.evaluation.formal_binding import parse_binding, verify_binding
+from codeqa.evaluation.formal_generated_gate import (
+    evaluate_generated_fixture_gate, parse_generated_fixture_policy,
+    python_tree_manifest,
+)
 from codeqa.infrastructure.resources import ResourceRegistry
 
 
@@ -252,6 +256,71 @@ def main() -> None:
         if gate.status != "UNKNOWN" or gate.authorization != "BLOCK":
             raise RuntimeError("formal implementation policy Gate was falsely allowed: " + gate.canonical_json())
 
+        # Separate, opt-in policy can PASS only a pinned generated *fixture*,
+        # never the production implementation verified predicate in #99.
+        fixture_policy_doc = {
+            "version": "0.1",
+            "scope": "CONTROLLED_GENERATED_PYTHON_FIXTURE",
+            "snapshot_id": snapshot_id,
+            "specification_path": manifest["source_path"],
+            "specification_sha256": manifest["source_sha256"],
+            "required_properties": [manifest["required_property"]],
+            "required_rule_ids": manifest["required_rule_ids"],
+            "accepted_assumptions": manifest["accepted_assumptions"],
+            "required_generated_paths": manifest["required_generated_paths"],
+            "tool": tool,
+            "expected_build_configuration_sha256": build_config_sha,
+            "attestation_id": attestation_id,
+        }
+        fixture_policy = parse_generated_fixture_policy(fixture_policy_doc)
+        def python_files(folder: Path) -> dict[str, bytes]:
+            return {
+                item.relative_to(folder).as_posix(): item.read_bytes()
+                for item in sorted(folder.rglob("*.py")) if item.is_file()
+            }
+
+        gen_files = python_files(generated_dir)
+        dep_files = python_files(deployed)
+        if python_tree_manifest(gen_files) != generated:
+            raise RuntimeError("generated source set does not match frozen manifest")
+        frozen_args = {
+            "policy": fixture_policy,
+            "expected_policy_sha256": fixture_policy.fingerprint(),
+            "expected_snapshot_id": snapshot_id,
+            "expected_tool": ToolIdentity(**tool),
+            "evidence": env, "raw_verifier_log": raw,
+            "specification_bytes": spec_bytes,
+            "generated_files": gen_files,
+            "deployed_files": dep_files,
+            "binding": typed,
+        }
+        fixture_gate = evaluate_generated_fixture_gate(**frozen_args)
+        if (fixture_gate.status, fixture_gate.authorization) != (
+            "PASS", "ALLOW_FIXTURE_ONLY",
+        ):
+            raise RuntimeError("controlled generated fixture incorrectly blocked: "
+                               + fixture_gate.canonical_json())
+
+        # Critical property: a still-green source proof does NOT authorize a
+        # changed executable, extra generated module or stale source bytes.
+        changed = dict(dep_files)
+        changed["__main__.py"] = changed["__main__.py"] + b"\n# modified after proof\n"
+        changed_gate = evaluate_generated_fixture_gate(
+            **{**frozen_args, "deployed_files": changed},
+        )
+        if changed_gate.authorization != "BLOCK":
+            raise RuntimeError("tampered deployed fixture incorrectly authorized")
+        stale_gate = evaluate_generated_fixture_gate(
+            **{**frozen_args, "specification_bytes": spec_bytes + b"\n// stale\n"},
+        )
+        if stale_gate.authorization != "BLOCK":
+            raise RuntimeError("outdated Dafny specification incorrectly authorized")
+        wrong_tool_gate = evaluate_generated_fixture_gate(
+            **{**frozen_args, "expected_tool": None},
+        )
+        if wrong_tool_gate.authorization != "BLOCK":
+            raise RuntimeError("untrusted verifier identity incorrectly authorized")
+
         (args.output / "verification.log").write_text(full_log, encoding="utf-8")
         (args.output / "negative-proof.log").write_text(fail_log, encoding="utf-8")
         (args.output / "codegen.log").write_text(built.stdout + built.stderr, encoding="utf-8")
@@ -272,6 +341,9 @@ def main() -> None:
             "stale_spec_status": stale.status,
             "admission_source": asdict(admitted),
             "gate": gate.to_document(),
+            "generated_fixture_gate": asdict(fixture_gate),
+            "tampered_fixture_gate": asdict(changed_gate),
+            "stale_fixture_gate": asdict(stale_gate),
             "limitations": [
                 "No actual production deployment, signing or authenticated CI provenance",
                 "Dafny's successful proof is relative to specification and trusted axioms",
@@ -286,7 +358,8 @@ def main() -> None:
               + " proof_verified=" + success.group(1)
               + " generated_python_sha256=" + digest(generated)
               + " runtime=" + runtime.stdout.strip()
-              + " formal_gate=" + gate.status + "/" + gate.authorization)
+              + " formal_gate=" + gate.status + "/" + gate.authorization
+              + " fixture_gate=" + fixture_gate.status + "/" + fixture_gate.authorization)
 
 
 if __name__ == "__main__":
