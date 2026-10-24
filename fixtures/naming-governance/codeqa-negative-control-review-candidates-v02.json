@@ -1,0 +1,61 @@
+{
+  "schema_version": "0.2-draft-review-candidates",
+  "source_repository": "HyungseonSong-plasma/codeQA",
+  "source_commit": "dfd94bb25d52642bb2e46766b1ebe074c2f82803",
+  "source_path": "src/codeqa/core/naming_glossary.py",
+  "source_git_blob_sha": "e5da126ead5f25c2eb3be5bb0e16d1c09a430df4",
+  "source_sha256": "09b89f5f492f6d449257e1c6baa4bc1ea98dedd17e93b9f13ced1c62fbcd9d2c",
+  "review_status": "AWAITING_HUMAN_REVIEW",
+  "coverage_claim": "SINGLE_PINNED_SOURCE_NEGATIVE_CONTROL_CANDIDATES",
+  "candidates": [
+    {
+      "name": "NamingGlossaryError",
+      "kind": "class",
+      "line": 12,
+      "reason": "External ValueError inheritance is not proof of a safe API rename",
+      "human_review_outcome": null
+    },
+    {
+      "name": "TOKEN",
+      "kind": "module_constant",
+      "line": 16,
+      "reason": "Compiled regex constant is not a declared domain synonym",
+      "human_review_outcome": null
+    },
+    {
+      "name": "tokenize_identifier",
+      "kind": "function",
+      "line": 19,
+      "reason": "Lexical helper does not establish a domain role",
+      "human_review_outcome": null
+    },
+    {
+      "name": "GlossaryTerm",
+      "kind": "class",
+      "line": 33,
+      "reason": "Public dataclass fields may be consumed externally",
+      "human_review_outcome": null
+    },
+    {
+      "name": "NamingGlossaryProfile",
+      "kind": "class",
+      "line": 40,
+      "reason": "Profile API compatibility is unverified",
+      "human_review_outcome": null
+    },
+    {
+      "name": "from_mapping",
+      "kind": "method",
+      "line": 47,
+      "reason": "Method homonym is not a cross-module alias",
+      "human_review_outcome": null
+    },
+    {
+      "name": "fingerprint",
+      "kind": "method",
+      "line": 100,
+      "reason": "Public method external binding remains unknown",
+      "human_review_outcome": null
+    }
+  ]
+}
