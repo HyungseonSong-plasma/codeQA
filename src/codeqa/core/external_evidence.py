@@ -114,7 +114,15 @@ class ExternalEvidence:
     observations: tuple[TypedObservation, ...]
 
     def to_document(self) -> dict[str, Any]:
-        return asdict(self)
+        def normalize(value: Any) -> Any:
+            if isinstance(value, tuple):
+                return [normalize(item) for item in value]
+            if isinstance(value, list):
+                return [normalize(item) for item in value]
+            if isinstance(value, dict):
+                return {key: normalize(item) for key, item in value.items()}
+            return value
+        return normalize(asdict(self))
 
 
 @dataclass(frozen=True, slots=True)
