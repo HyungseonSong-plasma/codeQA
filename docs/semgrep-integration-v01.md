@@ -73,8 +73,10 @@ The wheel/sdist remain independent of Semgrep. No production code is modified.
 Semgrep can export SARIF; v0.1 ingests native **JSON** as the typed
 source for tested scan coverage. The optional
 \`validate_semgrep_sarif_parity(envelope, sarif_bytes)\` parses SARIF 2.1.0
-and compares exact rule IDs, paths, line numbers and native severity with
-the already-admitted JSON findings. Independent real CLI CI runs JSON and
+and compares exact rule IDs, paths and line numbers with the already-admitted
+JSON findings. SARIF 2.1.0 permits an omitted result.level; severity is
+cross-checked **only if explicitly present**, otherwise JSON native severity
+remains authoritative without an invented SARIF severity. Independent real CLI CI runs JSON and
 SARIF scans over the same pinned fixture and verifies their parity.
 **SARIF alone does not independently attest selected-file/rule execution**
 and cannot produce a Gate PASS. SARIF format versions or variants outside
