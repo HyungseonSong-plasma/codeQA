@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Non-mutating naming rename impact proposal v0.2 draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "revision",
+    "policy_id",
+    "selected_paths",
+    "old_name",
+    "proposed_name",
+    "verdict",
+    "blockers",
+    "unknowns",
+    "lexical_reference_count",
+    "migration_plan",
+    "mutation_performed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2-draft"
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[a-f0-9]{40}$"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selected_paths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "old_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "proposed_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "enum": [
+        "BLOCKED_CONTRACT_REVIEW",
+        "UNVERIFIED_PROPOSAL"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "lexical_reference_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "migration_plan": {
+      "const": "HUMAN_REVIEW_REQUIRED"
+    },
+    "mutation_performed": {
+      "const": false
+    }
+  }
+}
