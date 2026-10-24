@@ -1,0 +1,103 @@
+{
+  "schema_version": "0.2-draft",
+  "producer": "manual_curated_fixture",
+  "source_path": "fixtures/rust-naming/synthetic.rs.txt",
+  "source_sha256": "4bb527d0aae5542df0b253c94ffb2dee7a2912ce7c34b6cc7a60e67acf46a8c9",
+  "scope": "synthetic_fixture_only",
+  "source_revision_status": "NOT_EVALUATED",
+  "parser_status": "NOT_EVALUATED",
+  "trait_resolution_status": "NOT_EVALUATED",
+  "compiler_status": "NOT_EVALUATED",
+  "witnesses": [
+    {
+      "name": "RuntimeApi",
+      "kind": "trait",
+      "line": 1,
+      "context": "declaration"
+    },
+    {
+      "name": "processInput",
+      "kind": "method",
+      "line": 2,
+      "context": "trait_required"
+    },
+    {
+      "name": "ExampleType",
+      "kind": "type",
+      "line": 4,
+      "context": "declaration"
+    },
+    {
+      "name": "processInput",
+      "kind": "method",
+      "line": 6,
+      "context": "trait_impl"
+    },
+    {
+      "name": "helper_function",
+      "kind": "method",
+      "line": 9,
+      "context": "inherent"
+    },
+    {
+      "name": "BadHelper",
+      "kind": "method",
+      "line": 10,
+      "context": "inherent"
+    },
+    {
+      "name": "MAX_RETRIES",
+      "kind": "constant",
+      "line": 12,
+      "context": "declaration"
+    },
+    {
+      "name": "GLOBAL_COUNTER",
+      "kind": "static",
+      "line": 13,
+      "context": "declaration"
+    },
+    {
+      "name": "generate_item",
+      "kind": "macro",
+      "line": 14,
+      "context": "macro_definition"
+    },
+    {
+      "name": "ExternalThing",
+      "kind": "type",
+      "line": 15,
+      "context": "external_reexport"
+    },
+    {
+      "name": "raw_example",
+      "kind": "function",
+      "line": 16,
+      "context": "declaration"
+    },
+    {
+      "name": "r#type",
+      "kind": "raw_identifier",
+      "line": 17,
+      "context": "raw_identifier"
+    },
+    {
+      "name": "with_lifetime",
+      "kind": "function",
+      "line": 19,
+      "context": "declaration"
+    },
+    {
+      "name": "ctx",
+      "kind": "lifetime",
+      "line": 19,
+      "context": "lifetime"
+    },
+    {
+      "name": "GeneratedItem",
+      "kind": "type",
+      "line": 20,
+      "context": "macro_invocation"
+    }
+  ]
+}
