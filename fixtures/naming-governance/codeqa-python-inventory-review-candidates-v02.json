@@ -96,7 +96,7 @@
       "adjudication": null
     },
     {
-      "name": "dataclass(frozen=True, slots=True)",
+      "name": "dataclass(frozen=True,slots=True)",
       "kind": "decorator",
       "line": 32,
       "owner": "GlossaryTerm",
@@ -131,7 +131,7 @@
       "adjudication": null
     },
     {
-      "name": "dataclass(frozen=True, slots=True)",
+      "name": "dataclass(frozen=True,slots=True)",
       "kind": "decorator",
       "line": 39,
       "owner": "NamingGlossaryProfile",
