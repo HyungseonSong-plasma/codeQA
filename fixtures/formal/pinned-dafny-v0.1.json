@@ -12,5 +12,17 @@
   "generated_target": "py",
   "required_runtime_output": "42",
   "assurance_level": "CONTROLLED_GENERATED_PYTHON_FIXTURE_ONLY",
-  "accepts_manual_translation": false
+  "accepts_manual_translation": false,
+  "required_generated_paths": [
+    "System_/__init__.py",
+    "__main__.py",
+    "_dafny/__init__.py",
+    "module_.py"
+  ],
+  "accepted_assumptions": [
+    "Dafny 4.11.0 trusted verifier/compiler/solver and Python runtime"
+  ],
+  "required_rule_ids": [
+    "dafny:verified-selected-program"
+  ]
 }
