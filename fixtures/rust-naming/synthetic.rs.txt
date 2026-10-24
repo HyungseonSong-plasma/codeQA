@@ -1,0 +1,20 @@
+pub trait RuntimeApi {
+    fn processInput(&self);
+}
+pub struct ExampleType;
+impl RuntimeApi for ExampleType {
+    fn processInput(&self) {}
+}
+impl ExampleType {
+    fn helper_function(&self) {}
+    fn BadHelper(&self) {}
+}
+const MAX_RETRIES: usize = 3;
+static GLOBAL_COUNTER: u32 = 0;
+macro_rules! generate_item { () => {} }
+pub use crate::external::Thing as ExternalThing;
+pub fn raw_example() {
+    let r#type = 1;
+}
+pub fn with_lifetime<'ctx>(input: &'ctx str) -> &'ctx str { input }
+generate_item!(GeneratedItem);
