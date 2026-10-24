@@ -79,6 +79,14 @@ returns scoped PASS/FAIL/UNKNOWN plus Decision Trace. It does **not** execute
 external scanners or merge pull requests. Live Semgrep and formal binding
 remain #100 and #102.
 
+## Pinned Semgrep pilot (opt-in)
+
+The [Semgrep 1.182.1 JSON adapter](docs/semgrep-integration-v01.md) has a
+separate GitHub Actions workflow for actual local-rule scans and evidence
+Gate conformance, without a runtime Semgrep dependency or universal safety
+claim. It does not scan user code until a caller supplies a trusted isolated
+execution environment and pinned policy.
+
 ## Validation
 
 ```bash
