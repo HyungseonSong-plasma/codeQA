@@ -78,6 +78,16 @@ def observe_pydantic_fixture(
     if not isinstance(emitted, dict) or not all(isinstance(k, str) for k in emitted):
         raise RuntimeMappingWitnessError("non-string serializer field keys")
     field_aliases = []
+    output_names = []
+    for key, field in model.model_fields.items():
+        emitted_name = (field.serialization_alias or field.alias or key) if by_alias else key
+        output_names.append(emitted_name)
+    if hasattr(model, "model_computed_fields"):
+        for key, computed in model.model_computed_fields.items():
+            emitted_name = (computed.alias or key) if by_alias else key
+            output_names.append(emitted_name)
+    if len(output_names) != len(set(output_names)):
+        raise RuntimeMappingWitnessError("effective output alias collision")
     for key, field in model.model_fields.items():
         field_aliases.append((
             key, repr(field.alias), repr(field.validation_alias),
