@@ -221,6 +221,15 @@ def compare_naming_snapshots(
                 or old_key in renamed_old or new_key in renamed_new
                 or old_key==new_key):
             raise NamingDeltaError("rename claim lacks matching source declarations")
+        # A user-declared mapping is not proof of a lexical rename when
+        # the old or target identity survives on both sides. Do not suppress
+        # either declaration just because an unrelated file changed.
+        # Byte-identical files cannot prove a non-module lexical rename;
+        # path-derived module names are the narrow verified path exception.
+        if (old_key in new or new_key in old
+                or (before_hashes[item.before_path] == after_hashes[item.after_path]
+                    and (item.before_path == item.after_path or item.kind != "module"))):
+            raise NamingDeltaError("unverified or ambiguous lexical rename")
         renamed_old[old_key]=new_key
         renamed_new.add(new_key)
     results=[]
