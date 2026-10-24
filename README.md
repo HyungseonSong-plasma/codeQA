@@ -63,6 +63,14 @@ The separate CI frozen-policy guard compares policy contents against the Git
 base commit, irrespective of their paths. See `docs/repository-structure.md`
 for its enforcement boundaries and [package structure](docs/codeqa-package-architecture.md).
 
+## External Evidence v0.1 (opt-in)
+
+The independent [typed external evidence contract](docs/external-evidence-v01.md)
+records tool execution, source/scan coverage, artifact hashes and proof
+assumptions; its strict admission validator **never** issues a quality PASS.
+External Semgrep adapters, Policy Gates and proof-to-implementation binding
+remain follow-up issues #100, #99 and #102.
+
 ## Validation
 
 ```bash
