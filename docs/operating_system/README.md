@@ -3,7 +3,7 @@
 **Consumer:** `HyungseonSong-plasma/codeQA`  
 **Central authority:** `HyungseonSong-plasma/chatgpt-operation`  
 **Expected OS:** Samuel  
-**Immutable revision:** `9b335e3fbb9c5e8e323e382daeec56fa25336822`
+**Immutable revision:** `059050330a549fce0b543687e2e9d4dca6c3f624`
 
 ## codeQA-init
 
@@ -35,3 +35,7 @@ The permanent consumer execution path is
 `.github/workflows/samuel-branch-delete.yml`, consuming
 `.github/requests/branch-delete-request.json`. The obsolete one-shot cleanup
 workflow is retired. See [CENTRAL_SKILLS.md](CENTRAL_SKILLS.md).
+
+## Creation and pull-request routing
+
+This explicit Samuel adoption registers GitHub file create/update, branch create and pull-request create, in addition to the existing PR merge, branch delete and workflow dispatch. Creation does not imply approval, and all QA/scientific contracts remain consumer-owned.
