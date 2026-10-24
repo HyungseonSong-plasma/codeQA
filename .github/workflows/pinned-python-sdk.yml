@@ -1,0 +1,75 @@
+name: Pinned Python SDK Typecheck and Runtime Contracts
+
+on:
+  pull_request:
+    paths:
+      - 'fixtures/python-sdk/**'
+      - '.github/scripts/pinned_python_sdk_conformance.py'
+      - '.github/workflows/pinned-python-sdk.yml'
+      - 'src/codeqa/core/external_evidence.py'
+      - 'src/codeqa/evaluation/evidence_gate.py'
+      - 'src/codeqa/evaluation/dto_orm_runtime_v02.py'
+      - 'docs/python-sdk-conformance.md'
+  push:
+    branches: [main]
+    paths:
+      - 'fixtures/python-sdk/**'
+      - '.github/scripts/pinned_python_sdk_conformance.py'
+      - '.github/workflows/pinned-python-sdk.yml'
+      - 'src/codeqa/core/external_evidence.py'
+      - 'src/codeqa/evaluation/evidence_gate.py'
+      - 'src/codeqa/evaluation/dto_orm_runtime_v02.py'
+      - 'docs/python-sdk-conformance.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-pyright-sdk-and-runtime:
+    name: pinned-pyright-pydantic-sqlalchemy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact codeQA source
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Node 22 for pinned upstream Pyright
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install actual pinned SDK dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -e .
+          python -m pip install --disable-pip-version-check 'pydantic==2.13.5' 'SQLAlchemy==2.0.50'
+          python -m pip check
+
+      - name: Install real pinned Pyright npm CLI
+        run: |
+          set -euo pipefail
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund pyright@1.1.414
+          test -f node_modules/pyright/dist/pyright.js
+          node_modules/.bin/pyright --version
+
+      - name: Real Pyright positive/negative, #98 evidence, #99 Gate and SDK runtime mapping
+        run: |
+          set -euo pipefail
+          python .github/scripts/pinned_python_sdk_conformance.py \
+            --pyright node_modules/.bin/pyright \
+            --output "$RUNNER_TEMP/pinned-python-sdk-conformance"
+
+      - name: Upload complete pinned SDK receipts, including native diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-python-sdk-pyright-orm-evidence
+          path: ${{ runner.temp }}/pinned-python-sdk-conformance/
+          if-no-files-found: warn
+          retention-days: 30
