@@ -139,7 +139,9 @@
       "required": [
         "state",
         "exit_code",
-        "exit_classification"
+        "exit_classification",
+        "started_at",
+        "finished_at"
       ],
       "properties": {
         "state": {
@@ -162,6 +164,21 @@
             "VALID_RESULT",
             "EXECUTION_FAILURE",
             "UNDETERMINED"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
