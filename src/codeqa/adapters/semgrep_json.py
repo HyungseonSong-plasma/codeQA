@@ -131,6 +131,8 @@ def parse_semgrep_json(
         sev = extra.get("severity")
         if not isinstance(rule_id, str) or not rule_id or type(line) is not int or line < 1:
             raise SemgrepAdapterError("finding has invalid rule or location")
+        if rule_id not in attested_rules:
+            raise SemgrepAdapterError("finding refers to a rule absent from the pinned ruleset")
         if sev not in _SEVERITY:
             raise SemgrepAdapterError("native severity requires explicit mapping")
         observations.append({
