@@ -272,6 +272,11 @@ def evaluate_gate(
             reasons.update(admission.reasons)
             if admission.status != "ADMISSIBLE":
                 reasons.add("EVIDENCE_NOT_ADMISSIBLE")
+            elif caller_reasons:
+                # The policy/source authority itself is not verified.
+                # Even an otherwise admitted observation cannot authorize or
+                # certify a violation against a mismatched policy context.
+                reasons.add("UNTRUSTED_GATE_CONTEXT")
             else:
                 allowed = {(w.path, w.rule_id): w for w in req.exceptions}
                 if req.predicate == "STATIC_NO_HIGH_FINDINGS":
