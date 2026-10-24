@@ -6,7 +6,7 @@ verified runtime/API/ABI bindings.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from hashlib import sha256
 from collections.abc import Mapping
 import re
@@ -62,6 +62,12 @@ class RenameImpactReport:
     lexical_reference_count: int
     migration_plan: str = "HUMAN_REVIEW_REQUIRED"
     mutation_performed: bool = False
+
+    def to_document(self) -> dict[str, object]:
+        raw = asdict(self)
+        for key in ("selected_paths", "blockers", "unknowns"):
+            raw[key] = list(raw[key])
+        return raw
 
 
 def _valid_path(value: str) -> bool:
