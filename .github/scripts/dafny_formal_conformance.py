@@ -7,6 +7,7 @@ It does NOT make a hand-translated C++/Python implementation formally verified.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 from dataclasses import asdict
 from hashlib import sha256
 import json
@@ -79,9 +80,11 @@ def main() -> None:
         proof_spec = build_root / "payment_add_one.dfy"
         proof_spec.write_bytes(spec_bytes)
         verify_args = [cli, "verify", proof_spec.name]
+        verified_started = datetime.now(timezone.utc).isoformat()
         verified = run(verify_args, build_root, expected_ok=True)
+        verified_finished = datetime.now(timezone.utc).isoformat()
         full_log = verified.stdout + verified.stderr
-        success = re.search(r"(\\d+) verified,\\s*0 errors?", full_log, re.IGNORECASE)
+        success = re.search(r"(\d+) verified,\s*0 errors?", full_log, re.IGNORECASE)
         if not success or int(success.group(1)) < 1:
             raise RuntimeError("Dafny did not report a positive number of verified obligations and zero errors:\n" + full_log)
 
@@ -96,7 +99,7 @@ def main() -> None:
         bad.write_text(adversarial, encoding="utf-8")
         rejected = run([cli, "verify", bad.name], build_root, expected_ok=False)
         fail_log = rejected.stdout + rejected.stderr
-        if not re.search(r"\\b[1-9]\\d* errors?\\b|postcondition might not hold|assertion might not hold", fail_log, re.IGNORECASE):
+        if not re.search(r"\b[1-9]\d* errors?\b|postcondition might not hold|assertion might not hold", fail_log, re.IGNORECASE):
             raise RuntimeError("negative case exited nonzero for an unrecognized reason: " + fail_log)
 
         built = run([cli, "build", "--target:py", proof_spec.name], build_root, expected_ok=True)
@@ -176,8 +179,8 @@ def main() -> None:
             "execution": {
                 "state": "COMPLETED", "exit_code": verified.returncode,
                 "exit_classification": "VALID_RESULT",
-                "started_at": "2026-10-24T00:00:00+00:00",
-                "finished_at": "2026-10-24T00:00:01+00:00",
+                "started_at": verified_started,
+                "finished_at": verified_finished,
             },
             "scope": {
                 "expected_files": [{"path": manifest["source_path"], "sha256": source_hash}],
@@ -226,7 +229,7 @@ def main() -> None:
             expected_policy_sha256=policy.fingerprint(),
             expected_snapshot_id=snapshot_id,
             expected_sources={manifest["source_path"]: source_hash},
-            evaluated_at="2026-10-24T00:00:05+00:00",
+            evaluated_at=datetime.now(timezone.utc).isoformat(),
         )
         if gate.status != "UNKNOWN" or gate.authorization != "BLOCK":
             raise RuntimeError("formal implementation policy Gate was falsely allowed: " + gate.canonical_json())
