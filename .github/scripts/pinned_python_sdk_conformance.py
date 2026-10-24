@@ -43,13 +43,20 @@ def need(condition: bool, message: str) -> None:
 
 def check_versions() -> dict[str, str]:
     reported = {}
-    for name, expected in PIN.items():
+    for name in ("Pydantic", "SQLAlchemy"):
+        expected = PIN[name]
         found = metadata.version(name)
         need(found == expected, f"WRONG_VERSION {name}: wanted {expected}, got {found}")
         dist = metadata.distribution(name)
         metadata_bytes = dist.read_text("METADATA")
         need(metadata_bytes is not None, f"missing wheel metadata: {name}")
         reported[name] = digest(metadata_bytes.encode("utf-8"))
+    package = ROOT / "node_modules/pyright/package.json"
+    need(package.is_file(), "PYRIGHT_PACKAGE_MANIFEST_MISSING")
+    manifest = json.loads(package.read_bytes())
+    need(manifest.get("name") == "pyright" and manifest.get("version") == PIN["pyright"],
+         "PYRIGHT_NPM_PACKAGE_VERSION_DRIFT")
+    reported["pyright-npm-package-json"] = digest(package.read_bytes())
     return reported
 
 
