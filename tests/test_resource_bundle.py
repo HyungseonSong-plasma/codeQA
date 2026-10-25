@@ -112,6 +112,16 @@ class ResourceBundleTests(unittest.TestCase):
         with self.assertRaises(ResourceBundleError):
             self.unpack(self.bundle(), sha="main")
 
+    def test_symlinked_destination_is_rejected(self):
+        with tempfile.TemporaryDirectory() as outside:
+            link = self.root / "extracted"
+            try:
+                link.symlink_to(outside, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlink creation unavailable")
+            with self.assertRaises(ResourceBundleError):
+                self.unpack(self.bundle())
+
     def test_destination_not_empty_fails_closed(self):
         target = self.root / "extracted"
         target.mkdir()
