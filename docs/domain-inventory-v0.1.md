@@ -30,3 +30,29 @@ Only propose named, individually reviewable module moves after a concrete
 consumer compatibility inventory and exact-head regression baseline exist.
 Preserve CCG v0.1, Mechanical defaults and frozen QA Result v0.1. Unknowns
 remain NOT_EVALUATED rather than being treated as evidence of isolation.
+
+## Same-analyzer frozen-source comparison
+
+The optional `--baseline-source-sha` path uses the **same installed
+`analyze_domain_inventory` implementation and current mapping/role profiles**
+for the immutable baseline and current source. The baseline tree is enumerated
+with `git ls-tree` and content read via `GitReader.read_file`; the current
+checkout must match the supplied exact SHA and have clean tracked changes.
+The comparison records source-file/import-site count deltas, added/removed/
+modified path witnesses, both source identities and the current analyzer SHA.
+It is deliberately `NOT_EVALUATED` for design quality and public compatibility.
+
+```bash
+python3 .github/scripts/domain_audit.py \
+  --sha "$(git rev-parse HEAD)" \
+  --baseline-source-sha 6a6676e70ed60f440cfc00a878f24ef6ee2b91a5 \
+  --output domain-inventory.json \
+  --comparison-output domain-inventory-comparison.json
+```
+
+The Self Audit workflow uploads both JSON reports in
+`codeqa-domain-inventory`. On `pull_request`, the default GitHub checkout
+is a synthetic **merge revision**, not the raw PR head; report
+`source_after_sha` and `analyzer_sha` must be read from the artifact/log
+and must not be relabeled as the PR head. This CI witness is a merge-context
+analysis, not independent direct-head execution or a human usability study.
