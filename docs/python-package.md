@@ -91,7 +91,7 @@ The wheel and sdist smoke now use the shared, opt-in
 `codeqa.infrastructure.resource_bundle.unpack_verified_resource_bundle`
 validator. It verifies the exact version/source SHA, bundled registry against
 `pyproject.toml`, every registered resource path and SHA-256, duplicate/unsafe
-ZIP names, symlinks and bounded extraction sizes **before writing files**.
+ZIP names, archive/destination symlinks and bounded extraction sizes **before writing files**.
 No checkout-local resource fallback is added. A separate isolated-wheel CI
 step corrupts the actual produced resource ZIP (wrong version/source, content
 tamper, missing and extra resources) and requires all five negative cases to
