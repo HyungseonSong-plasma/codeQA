@@ -81,3 +81,23 @@ Naming, Mechanical or QA contract is rewritten.
 **CI:** `.github/workflows/pinned-python-sdk.yml`; entrypoint
 `.github/scripts/pinned_python_sdk_conformance.py`. Evidence is uploaded as
 a bounded artifact with native JSON diagnostics and structured result receipt.
+
+## Additional directional DTO runtime witnesses (#92 incremental)
+
+The pinned Pydantic 2.13.5 runtime fixture now exercises
+`AliasPath("envelope", "orderId")`, the `to_camel` alias generator,
+nested model serialization aliases, `Field(exclude=True)` and an
+explicitly rejected missing inbound alias path. Expected by-alias and
+by-field-name documents are versioned under
+`expected_pydantic_nested` in the controlled
+`fixtures/python-sdk/external-contract-v0.1.json` contract.
+The real pinned Python SDK workflow runs these checks and emits their
+mapping scope in `sdk-conformance.json`.
+
+This verifies **only the selected in-memory DTO fixture**. An effective
+Pydantic input mapping can differ from its output serialization shape;
+do not assume round-trip equivalence or that these aliases match an
+unseen public consumer. External API schema baselines, versioned
+compatibility windows, dynamic validators, ORM migration history and
+real database compatibility remain `NOT_EVALUATED` until independent
+consumer artifacts are provided. No public DTO/DB mutation is authorized.
