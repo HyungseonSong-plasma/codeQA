@@ -97,6 +97,7 @@ class AnalysisResponse:
     analysis: PythonAnalysis
     options_fingerprint: str
     companion_states: Mapping[str, str]
+    profile_fingerprints: Mapping[str, str] = field(default_factory=dict)
     schema_version: str = "0.1"
 
     def summary_document(self) -> dict[str, Any]:
