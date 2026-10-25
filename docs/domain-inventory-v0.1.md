@@ -56,3 +56,10 @@ is a synthetic **merge revision**, not the raw PR head; report
 `source_after_sha` and `analyzer_sha` must be read from the artifact/log
 and must not be relabeled as the PR head. This CI witness is a merge-context
 analysis, not independent direct-head execution or a human usability study.
+
+The comparison also records added/removed **syntactic `__init__.py` import
+candidates**. A removed candidate produces
+`init_import_change_review.status=REVIEW_REQUIRED`, never a verified public
+API break or a compatibility PASS. Candidate absence or incomplete source
+coverage remains `NOT_EVALUATED`; dynamic `__getattr__`, reflection, re-exports
+through other modules and actual downstream imports need independent review.
