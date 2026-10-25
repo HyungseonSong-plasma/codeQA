@@ -104,7 +104,9 @@ def unpack_verified_resource_bundle(
     except (BadZipFile, OSError, KeyError, UnicodeError, json.JSONDecodeError, tomllib.TOMLDecodeError) as exc:
         raise ResourceBundleError("unreadable or malformed resource archive") from exc
     destination = Path(destination)
-    if destination.exists() and any(destination.iterdir()):
+    if destination.is_symlink() or any(parent.is_symlink() for parent in destination.parents):
+        raise ResourceBundleError("resource extraction destination must not traverse symlinks")
+    if destination.exists() and (not destination.is_dir() or any(destination.iterdir())):
         raise ResourceBundleError("destination must be an empty isolated directory")
     destination.mkdir(parents=True, exist_ok=True)
     for name, data in payloads.items():
