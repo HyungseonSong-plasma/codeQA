@@ -24,6 +24,9 @@ class DomainInventoryTests(unittest.TestCase):
             "src/codeqa/adapters/python.py": "from codeqa.core.graph import Graph\n",
             "src/codeqa/evaluation/formal_evidence.py": "x = 1\n",
             "src/codeqa/core/__init__.py": "from .graph import Graph\n",
+            "src/codeqa/pipeline/__init__.py": "",
+            "src/codeqa/governance/__init__.py": "",
+            "src/codeqa/infrastructure/__init__.py": "",
         }
         self.edges = (
             StaticDependency("src/codeqa/evaluation/mechanical.py", "src/codeqa/core/naming.py", 1, "from codeqa.core.naming import NamingProfile", "top_level"),
