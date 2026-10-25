@@ -54,6 +54,13 @@ def _token(value: object, field: str) -> str:
     return value
 
 
+def _symbol(value: object) -> str:
+    if (not isinstance(value, str)
+            or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", value)):
+        raise NamingPrecedenceError("symbol must be an ASCII Python-style identifier")
+    return value
+
+
 def _repository(value: object) -> str:
     if (not isinstance(value, str) or not _REPO.fullmatch(value)
             or any(x in {".", ".."} for x in value.split("/"))):
@@ -86,7 +93,7 @@ class NamingRule:
              symbol_kind if key == "symbol_kind" else
              symbol if key == "symbol" else
              path if key == "path" else
-             (path if path == val or path.startswith(val + "/") else None))
+             (val if path == val or path.startswith(val + "/") else None))
             == val
             for key, val in values.items()
         )
@@ -151,7 +158,7 @@ class NamingPrecedencePolicy:
             if rule_id in ids:
                 raise NamingPrecedenceError("duplicate rule identity")
             ids.add(rule_id)
-            if item["action"] not in _ACTIONS:
+            if not isinstance(item["action"], str) or item["action"] not in _ACTIONS:
                 raise NamingPrecedenceError("no PASS/ALLOW or automatic rename actions")
             selector = item["selector"]
             if not isinstance(selector, Mapping) or set(selector) != _SELECTORS[level]:
@@ -162,6 +169,8 @@ class NamingPrecedencePolicy:
                     selected[key] = _repository(value)
                 elif key in {"path", "path_prefix"}:
                     selected[key] = _path(value)
+                elif key == "symbol":
+                    selected[key] = _symbol(value)
                 else:
                     selected[key] = _token(value, key)
             identity = (level, tuple(sorted(selected.items())))
@@ -213,7 +222,7 @@ class NamingPrecedencePolicy:
     def resolve(self, *, revision: str, repository: str, sources: Mapping[str, str],
                 path: str, language: str, symbol_kind: str, symbol: str,
                 as_of: date, catalog_sha256: str, profile_sha256: str,
-                expected_policy_sha256: str) -> NamingPrecedenceResult:
+                expected_policy_sha256: str, expected_source_sha256: str) -> NamingPrecedenceResult:
         if not isinstance(revision, str) or not (m := _REV.fullmatch(revision)):
             raise NamingPrecedenceError("exact immutable repository revision required")
         repo = _repository(repository)
@@ -222,7 +231,7 @@ class NamingPrecedencePolicy:
         _path(path)
         _token(language, "language")
         _token(symbol_kind, "symbol_kind")
-        _token(symbol, "symbol")
+        _symbol(symbol)
         if not isinstance(as_of, date) or isinstance(as_of, type):
             raise NamingPrecedenceError("explicit review date required")
         if (not isinstance(sources, Mapping) or path not in sources
@@ -235,6 +244,8 @@ class NamingPrecedencePolicy:
                 or _digest(expected_policy_sha256, "policy_sha256") != self.policy_sha256):
             raise NamingPrecedenceError("stale catalog, profile or policy identity")
         source_sha = sha256(sources[path].encode("utf-8")).hexdigest()
+        if _digest(expected_source_sha256, "source_sha256") != source_sha:
+            raise NamingPrecedenceError("stale source file identity")
         matches: dict[str, list[NamingRule]] = {level: [] for level in _LEVELS}
         for rule in self.rules:
             if rule.matches(language=language, repository=repo, path=path,
