@@ -1,4 +1,5 @@
 name: Samuel codeQA Read-only Handoff Preflight
+run-name: samuel-codeqa-handoff:source-${{ inputs.source_run_id || github.run_id }}
 
 on:
   pull_request:
@@ -8,6 +9,10 @@ on:
       - 'tests/test_samuel_target_preflight.py'
   workflow_dispatch:
     inputs:
+      source_run_id:
+        description: Samuel originating GitHub workflow run ID
+        type: string
+        required: true
       controller_sha:
         description: Exact source Controller main commit (40 hex)
         type: string
@@ -52,6 +57,7 @@ jobs:
           DISPATCH_WORK_ID: ${{ inputs.work_id }}
           ACTOR: ${{ github.actor }}
           RUN_ID: ${{ github.run_id }}
+          DISPATCH_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -61,18 +67,20 @@ jobs:
           source_sha="$(gh api "repos/HyungseonSong-plasma/chatgpt-operation/commits/main" --jq '.sha')"
           target_sha="$(gh api "repos/HyungseonSong-plasma/codeQA/commits/main" --jq '.sha')"
           if [ "$EVENT" = "workflow_dispatch" ]; then
+            source_run_id="$DISPATCH_SOURCE_RUN_ID"
             test "$DISPATCH_CONTROLLER_SHA" = "$source_sha"
             controller_sha="$DISPATCH_CONTROLLER_SHA"
             expected_target_sha="$DISPATCH_EXPECTED_TARGET_SHA"
             work_id="$DISPATCH_WORK_ID"
           else
+            source_run_id="$RUN_ID"
             # PR-origin preflight checks live read-only handoff but is NOT
             # evidence of a Samuel-origin cross-repository dispatch.
             controller_sha="$source_sha"
             expected_target_sha="$target_sha"
             work_id="github:HyungseonSong-plasma/codeQA:issue:92"
           fi
-          export controller_sha expected_target_sha target_sha work_id
+          export controller_sha expected_target_sha target_sha work_id source_run_id
           PYTHONPATH=src python - <<'PY'
           import json, os
           from pathlib import Path
@@ -88,6 +96,7 @@ jobs:
               actual_target_sha=os.environ["target_sha"],
               actor=os.environ["ACTOR"],
               github_run_id=os.environ["RUN_ID"],
+              source_run_id=os.environ["source_run_id"],
           )
           output = result.to_document()
           output["origin"] = (
