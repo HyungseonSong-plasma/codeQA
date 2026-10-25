@@ -1,0 +1,219 @@
+{
+  "schema_version": "0.1",
+  "baseline_source_sha": "f7859c7f742ba55025bf1633ef7438d18e8a9416",
+  "evidence_level": "SOURCE_AND_WORKFLOW_DECLARATION_ONLY_NO_IMPLICIT_CI_PASS",
+  "languages": [
+    {
+      "language": "Python",
+      "layers": [
+        {
+          "layer": "parser",
+          "status": "SUPPORTED_SCOPED",
+          "source": "src/codeqa/adapters/python.py",
+          "entrypoint": "codeqa.adapters.python:adapt_python_sources",
+          "workflow": ".github/workflows/layout.yml",
+          "limitation": "caller-supplied Python AST syntax only"
+        },
+        {
+          "layer": "ccg",
+          "status": "SUPPORTED_SCOPED",
+          "source": "src/codeqa/pipeline/python.py",
+          "entrypoint": "codeqa.pipeline.python:analyze_python",
+          "workflow": ".github/workflows/layout.yml",
+          "limitation": "CCG v0.1 source facts, unresolved runtime calls"
+        },
+        {
+          "layer": "mechanical_p1p3",
+          "status": "SUPPORTED_SCOPED",
+          "source": "src/codeqa/pipeline/python.py",
+          "entrypoint": "codeqa.pipeline.python:analyze_python",
+          "workflow": ".github/workflows/layout.yml",
+          "limitation": "heuristic P1/P3 only, no P1-P8 certificate"
+        },
+        {
+          "layer": "naming",
+          "status": "PARTIAL_FIXTURE",
+          "source": "src/codeqa/evaluation/naming.py",
+          "entrypoint": "codeqa.evaluation.naming:evaluate_naming",
+          "workflow": ".github/workflows/naming-python-conformance.yml",
+          "limitation": "opt-in safe declaration spelling; human glossary and external SDK unverified"
+        },
+        {
+          "layer": "formal_gate",
+          "status": "FIXTURE_ONLY",
+          "source": "src/codeqa/evaluation/formal_generated_gate.py",
+          "entrypoint": "codeqa.evaluation.formal_generated_gate:evaluate_generated_fixture_gate",
+          "workflow": ".github/workflows/pinned-dafny-formal.yml",
+          "limitation": "only controlled Dafny-generated Python fixture"
+        },
+        {
+          "layer": "production_abi",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no independently reviewed external SDK/public consumer or DB compatibility"
+        }
+      ]
+    },
+    {
+      "language": "Rust",
+      "layers": [
+        {
+          "layer": "parser",
+          "status": "PARTIAL_FIXTURE",
+          "source": "tests/test_rust_ccg_reference.py",
+          "entrypoint": null,
+          "workflow": ".github/workflows/rust-ccg-conformance.yml",
+          "limitation": "pinned reference-source syntax fixture, not production parser plugin"
+        },
+        {
+          "layer": "ccg",
+          "status": "PARTIAL_FIXTURE",
+          "source": "tests/test_rust_ccg_reference.py",
+          "entrypoint": null,
+          "workflow": ".github/workflows/rust-ccg-conformance.yml",
+          "limitation": "golden CCG subset and negative fixture only"
+        },
+        {
+          "layer": "mechanical_p1p3",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no full Rust Mechanical P1/P3 pipeline"
+        },
+        {
+          "layer": "naming",
+          "status": "PARTIAL_FIXTURE",
+          "source": "tests/test_rust_naming_manual_v02.py",
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "manual naming evidence, no production parser ABI"
+        },
+        {
+          "layer": "formal_gate",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no Rust formal production Gate"
+        },
+        {
+          "layer": "production_abi",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no independently verified Rust framework/ABI consumer"
+        }
+      ]
+    },
+    {
+      "language": "C++/MOOSE",
+      "layers": [
+        {
+          "layer": "parser",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no production C++/MOOSE parser adapter contract"
+        },
+        {
+          "layer": "ccg",
+          "status": "PARTIAL_FIXTURE",
+          "source": null,
+          "entrypoint": null,
+          "workflow": ".github/workflows/mixed-source-conformance.yml",
+          "limitation": "pinned mixed-source fixture, not full C++ CCG parser"
+        },
+        {
+          "layer": "mechanical_p1p3",
+          "status": "PARTIAL_FIXTURE",
+          "source": null,
+          "entrypoint": null,
+          "workflow": ".github/workflows/moose-p3-refactor-conformance.yml",
+          "limitation": "selected P3 fixture review only, not runnable C++ Mechanical pipeline"
+        },
+        {
+          "layer": "naming",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "manual framework naming and ABI not independently attested"
+        },
+        {
+          "layer": "formal_gate",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no production MOOSE formal Gate"
+        },
+        {
+          "layer": "production_abi",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "real MOOSE framework/DSL ABI not independently pinned"
+        }
+      ]
+    },
+    {
+      "language": "Dafny-generated Python",
+      "layers": [
+        {
+          "layer": "parser",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "Dafny verifier is not a generic CCG parser"
+        },
+        {
+          "layer": "ccg",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no Dafny language CCG pipeline"
+        },
+        {
+          "layer": "mechanical_p1p3",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "not a Dafny Mechanical P1/P3 implementation"
+        },
+        {
+          "layer": "naming",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "no Dafny naming correctness assessment"
+        },
+        {
+          "layer": "formal_gate",
+          "status": "FIXTURE_ONLY",
+          "source": "src/codeqa/evaluation/formal_generated_gate.py",
+          "entrypoint": "codeqa.evaluation.formal_generated_gate:evaluate_generated_fixture_gate",
+          "workflow": ".github/workflows/pinned-dafny-formal.yml",
+          "limitation": "ALLOW_FIXTURE_ONLY never production approval"
+        },
+        {
+          "layer": "production_abi",
+          "status": "NOT_EVALUATED",
+          "source": null,
+          "entrypoint": null,
+          "workflow": null,
+          "limitation": "semantic preservation and deployment not established"
+        }
+      ]
+    }
+  ]
+}
