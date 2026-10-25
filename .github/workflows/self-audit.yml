@@ -48,6 +48,20 @@ jobs:
             --before self-audit-pinned-baseline.json \
             --after self-audit-report.json \
             --output self-audit-comparison.json
+      - name: Measure domain mapping and static dependency witnesses
+        env:
+          CODEQA_SNAPSHOT_SHA: ${{ github.sha }}
+        run: |
+          python3 .github/scripts/domain_audit.py \
+            --sha "$CODEQA_SNAPSHOT_SHA" \
+            --output domain-inventory.json
+      - name: Store domain inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeqa-domain-inventory
+          path: domain-inventory.json
+          if-no-files-found: warn
       - name: Store structured report
         if: always()
         uses: actions/upload-artifact@v4
