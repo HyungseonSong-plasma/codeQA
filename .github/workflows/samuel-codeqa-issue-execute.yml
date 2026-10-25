@@ -55,7 +55,7 @@ jobs:
 
       - name: Execute negative permission and scope tests
         run: |
-          python -m unittest discover -s tests -p 'test_samuel_issue92_target_executor.py' -v
+          PYTHONPATH=src python -m unittest discover -s tests -p 'test_samuel_issue92_target_executor.py' -v
 
       - name: Execute only after target and source readback independently pass
         if: ${{ github.event_name == 'workflow_dispatch' }}
