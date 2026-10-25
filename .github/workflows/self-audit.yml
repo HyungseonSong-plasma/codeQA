@@ -54,13 +54,17 @@ jobs:
         run: |
           python3 .github/scripts/domain_audit.py \
             --sha "$CODEQA_SNAPSHOT_SHA" \
-            --output domain-inventory.json
+            --output domain-inventory.json \
+            --baseline-source-sha "6a6676e70ed60f440cfc00a878f24ef6ee2b91a5" \
+            --comparison-output domain-inventory-comparison.json
       - name: Store domain inventory
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codeqa-domain-inventory
-          path: domain-inventory.json
+          path: |
+            domain-inventory.json
+            domain-inventory-comparison.json
           if-no-files-found: warn
       - name: Store structured report
         if: always()
