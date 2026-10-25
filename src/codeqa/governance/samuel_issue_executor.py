@@ -168,6 +168,10 @@ def validate_target_execution(
             or issue.get("url") != f"https://api.github.com/repos/{repository}/issues/{number}"):
             raise TargetExecutionError("source or target Issue identity invalid")
     ledger = load_ledger(source_comments)
+    live_issue_body = target_issue.get("body") if isinstance(target_issue, Mapping) else None
+    if (not isinstance(live_issue_body, str)
+        or sha256(live_issue_body.encode("utf-8")).hexdigest() != ledger.get("issue_sha")):
+        raise TargetExecutionError("target Issue content changed since Controller admission")
     if (ledger.get("work_id") != WORK_ID
         or ledger.get("phase") not in {"dispatch_ready", "dispatched"}
         or ledger.get("base_sha") != BASE_SHA
