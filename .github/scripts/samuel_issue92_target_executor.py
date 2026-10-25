@@ -16,7 +16,7 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from codeqa.governance.samuel_issue_executor import (
-    BASE_SHA, HEAD_BRANCH, SOURCE, TARGET, TargetExecutionError,
+    HEAD_BRANCH, SOURCE, TARGET, TargetExecutionError,
     validate_target_execution,
 )
 
@@ -106,7 +106,7 @@ def run() -> dict:
         "work_id":plan["research_id"],
         "action_id":verified.action_id,
         "source_run_id":source_run_id,
-        "base_sha":BASE_SHA,
+        "base_sha":verified.base_sha,
         "target_repository":TARGET,
         "operations":[],
         "merge_performed":False,
@@ -124,7 +124,7 @@ def run() -> dict:
         existing_ref=None
     if existing_ref is None:
         api.call("POST",t+"/git/refs",{
-            "ref":"refs/heads/"+HEAD_BRANCH,"sha":BASE_SHA,
+            "ref":"refs/heads/"+HEAD_BRANCH,"sha":verified.base_sha,
         })
         result["operations"].append("branch_created")
         record()
@@ -168,7 +168,7 @@ def run() -> dict:
     head=api.get(ref_path).get("object",{}).get("sha")
     if not isinstance(head,str) or len(head)!=40:
         raise TargetExecutionError("target branch HEAD unavailable")
-    diff=api.get(t+"/compare/"+BASE_SHA+"..."+head)
+    diff=api.get(t+"/compare/"+verified.base_sha+"..."+head)
     changed=diff.get("files")
     if (not isinstance(changed,list) or len(changed)!=1
         or changed[0].get("filename")!=verified.path
@@ -178,14 +178,14 @@ def run() -> dict:
         or diff.get("too_large") is True):
         raise TargetExecutionError("unauthorized base-to-head file changes detected")
     # Revalidate main has not advanced during mutation.
-    if api.get(t+"/git/ref/heads/main").get("object",{}).get("sha")!=BASE_SHA:
+    if api.get(t+"/git/ref/heads/main").get("object",{}).get("sha")!=verified.base_sha:
         raise TargetExecutionError("target main advanced before Draft PR")
     title="[Samuel #220 / codeQA #92] Reviewed foreign ActionPlan conformance"
     body=(
         "Foreign codeQA Issue #92 governed ActionPlan\n\n"
         "Source run: "+str(source_run_id)+"\n"
         "Action ID: "+verified.action_id+"\n"
-        "Pinned base: "+BASE_SHA+"\n"
+        "Pinned base: "+verified.base_sha+"\n"
         "One exact file: "+verified.path+"\n\n"
         "DRAFT ONLY. No merge authority or acceptance claim."
     )
