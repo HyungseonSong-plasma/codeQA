@@ -72,8 +72,15 @@ def verify_origin_workflow(
         raise PreflightError("origin was not explicit governed workflow dispatch")
     if run.get("head_sha") != controller_sha:
         raise PreflightError("origin controller SHA mismatch")
+    # GitHub Actions REST workflow-run.path can be the bare workflow path;
+    # some historical responses include the fully qualified branch ref.
+    # Verify the independently returned branch identity separately rather than
+    # requiring that the branch suffix be embedded in the file path.
+    if run.get("head_branch") != "main":
+        raise PreflightError("origin controller ref is not main")
     path = run.get("path")
-    if path != ".github/workflows/samuel-codeqa-preflight.yml@refs/heads/main":
+    approved_path = ".github/workflows/samuel-codeqa-preflight.yml"
+    if path not in (approved_path, approved_path + "@refs/heads/main"):
         raise PreflightError("origin workflow is not approved controller preflight")
     repository = run.get("repository")
     if not isinstance(repository, Mapping) or repository.get("full_name") != SOURCE_REPO:
