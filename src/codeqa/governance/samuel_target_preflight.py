@@ -38,6 +38,7 @@ class PreflightReceipt:
     controller_sha: str
     target_sha: str
     dispatch_actor: str
+    source_run_id: str
     execution_mode: str
     evidence_sha256: str
     allowed_mutations: tuple[str, ...]
@@ -65,7 +66,7 @@ def evaluate_handoff(
     source_repository: str, target_repository: str,
     work_id: str, controller_sha: str,
     expected_target_sha: str, actual_target_sha: str,
-    actor: str, github_run_id: str,
+    actor: str, github_run_id: str, source_run_id: str,
 ) -> PreflightReceipt:
     if source_repository != SOURCE_REPO or target_repository != TARGET_REPO:
         raise PreflightError("wrong cross-repository owner/scope")
@@ -79,6 +80,8 @@ def evaluate_handoff(
         raise PreflightError("dispatch actor not explicitly approved")
     if not isinstance(github_run_id, str) or not github_run_id.isdecimal() or int(github_run_id) <= 0:
         raise PreflightError("missing real GitHub run identity")
+    if not isinstance(source_run_id, str) or not source_run_id.isdecimal() or int(source_run_id) <= 0:
+        raise PreflightError("missing source workflow run identity")
     _issue(source_issue, repo=SOURCE_REPO, number=SOURCE_ISSUE)
     _issue(target_issue, repo=TARGET_REPO, number=TARGET_ISSUE)
     witness = {
@@ -89,6 +92,7 @@ def evaluate_handoff(
         "work_id": work_id,
         "actor": actor,
         "github_run_id": github_run_id,
+        "source_run_id": source_run_id,
     }
     digest = sha256(json.dumps(witness, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return PreflightReceipt(
@@ -97,6 +101,7 @@ def evaluate_handoff(
         target_repository=TARGET_REPO, target_issue=TARGET_ISSUE,
         work_id=WORK_ID, controller_sha=controller_sha,
         target_sha=actual_target_sha, dispatch_actor=actor,
+        source_run_id=source_run_id,
         execution_mode="READ_ONLY_NO_PR_NO_MERGE",
         evidence_sha256=digest, allowed_mutations=(),
     )
