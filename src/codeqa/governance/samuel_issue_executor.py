@@ -59,7 +59,8 @@ def load_ledger(comments: Any) -> dict[str, Any]:
         raise TargetExecutionError("untrusted source ledger inventory")
     match = [
         c for c in comments if isinstance(c, dict)
-        and LEDGER_MARKER in str(c.get("body", ""))
+        and isinstance(c.get("body"), str)
+        and c["body"].startswith(LEDGER_MARKER)
     ]
     if len(match) != 1:
         raise TargetExecutionError("missing or ambiguous source ledger")

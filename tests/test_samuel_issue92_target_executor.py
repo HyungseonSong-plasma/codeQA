@@ -129,6 +129,32 @@ class TargetExecutorTests(unittest.TestCase):
         self.assertIsNone(result.expected_sha)
         self.assertEqual(load_ledger(args["source_comments"])["revision"],2)
 
+    def test_issue_220_incident_comment_quoting_marker_not_duplicate(self):
+        data=params()
+        extra={
+            "id":6403235073,
+            "user":{"login":"HyungseonSong-plasma","id":9999},
+            "body":"Only one `<!-- samuel-codeqa-foreign-work-ledger-v1 -->` state comment was created.",
+        }
+        data["source_comments"].append(extra)
+        self.assertIn(LEDGER_MARKER,extra["body"])
+        approved=validate_target_execution(**data)
+        self.assertEqual(approved.action_id,data["requested_action_id"])
+        # Marker mentioned only in prose must never authorize action.
+        with self.assertRaisesRegex(TargetExecutionError,"missing or ambiguous"):
+            load_ledger([extra])
+        # Two actual leading marker envelopes still hard-stop.
+        with self.assertRaisesRegex(TargetExecutionError,"missing or ambiguous"):
+            load_ledger(data["source_comments"]+[data["source_comments"][0]])
+        # An invalid leading envelope is denied, not silently ignored.
+        malformed={
+            "id":6403217419,
+            "user":{"login":"github-actions[bot]","id":41898282},
+            "body":LEDGER_MARKER+" explanatory text, not an envelope",
+        }
+        with self.assertRaisesRegex(TargetExecutionError,"malformed"):
+            load_ledger([malformed])
+
     def test_disabled_target_policy_prevents_any_mutation(self):
         args=params()
         args["target_policy"]["enabled"]=False
