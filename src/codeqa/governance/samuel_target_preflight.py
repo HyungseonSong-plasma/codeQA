@@ -59,6 +59,32 @@ def _issue(payload: Mapping[str, object], *, repo: str, number: int) -> None:
         raise PreflightError("GitHub issue repository identity mismatch")
 
 
+def verify_origin_workflow(
+    run: Mapping[str, object], *, source_run_id: str, controller_sha: str,
+) -> None:
+    """Read-back a real controller-side workflow run, never trust input only."""
+    if not isinstance(run, Mapping):
+        raise PreflightError("origin workflow record missing")
+    if (not isinstance(source_run_id, str) or not source_run_id.isdecimal()
+            or int(source_run_id) <= 0 or run.get("id") != int(source_run_id)):
+        raise PreflightError("origin workflow run identity mismatch")
+    if run.get("event") != "workflow_dispatch":
+        raise PreflightError("origin was not explicit governed workflow dispatch")
+    if run.get("head_sha") != controller_sha:
+        raise PreflightError("origin controller SHA mismatch")
+    path = run.get("path")
+    if not isinstance(path, str) or not path.startswith(
+        ".github/workflows/samuel-codeqa-preflight.yml@"
+    ):
+        raise PreflightError("origin workflow is not approved controller preflight")
+    repository = run.get("repository")
+    if not isinstance(repository, Mapping) or repository.get("full_name") != SOURCE_REPO:
+        raise PreflightError("origin workflow repository mismatch")
+    actor = run.get("actor")
+    if not isinstance(actor, Mapping) or actor.get("login") not in _APPROVED:
+        raise PreflightError("origin workflow actor not approved")
+
+
 def evaluate_handoff(
     *,
     source_issue: Mapping[str, object],
