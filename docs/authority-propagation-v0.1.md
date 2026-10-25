@@ -26,3 +26,21 @@ receipt, unknown Gate, mismatched policy/source, invalid CI link and fixture
 promotion negatives. This is the first boundary-validation milestone only:
 **actual CI artifact readback, independent source-to-deployment binding and
 human-reviewed Formal soundness are still required by #121 and #102**.
+
+## Real Dafny receipt consumer round-trip (incremental CI witness)
+
+The pinned real Dafny Actions workflow now invokes
+`.github/scripts/authority_consumer_smoke.py` **after** generating its
+`formal-evidence.json`. The consumer reconstructs typed Gate/fixture decisions
+from serialized JSON, checks exact snapshot SHA and lossless serialization,
+then requires the production/general Gate to remain `UNKNOWN/BLOCK` while
+the generated fixture stays `PASS/ALLOW_FIXTURE_ONLY`. It writes
+`authority-consumer-audit.json` into the same uploaded workflow artifact.
+
+This is a real producer→JSON→consumer path on an actually executed pinned
+Dafny verifier, not merely an isolated hand-constructed unit fixture. However
+the supplied GitHub run ID is **not** a remote API readback or a cryptographic
+attestation. The result's authority is explicitly
+`CALLER_SUPPLIED_RUN_CONTEXT_NOT_REMOTE_ATTESTATION`. Independent CI readback,
+review of the actual deployed target and human production policy approval
+remain necessary. No general Gate `ALLOW` is inferred from fixture success.
