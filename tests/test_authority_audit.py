@@ -1,0 +1,107 @@
+"""Adversarial typed Gate→consumer propagation controls (#121)."""
+from __future__ import annotations
+
+from dataclasses import replace
+from hashlib import sha256
+import unittest
+
+from codeqa.evaluation.authority_audit import audit_authority_propagation
+from codeqa.evaluation.evidence_gate import GateDecision
+from codeqa.evaluation.formal_generated_gate import GeneratedFixtureDecision
+
+
+POLICY = "a" * 64
+SOURCE = "b" * 40
+SNAPSHOT = "git:test@sha"
+CI_URL = "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/40242127832"
+
+
+class AuthorityPropagationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.gate = GateDecision(
+            schema_version="0.1", policy_id="test", policy_fingerprint=POLICY,
+            snapshot_id=SNAPSHOT, evaluated_at="2026-10-25T00:00:00Z",
+            status="PASS", authorization="ALLOW", requirements=(), reasons=(),
+        )
+        self.fixture = GeneratedFixtureDecision(
+            version="0.1", scope="CONTROLLED_GENERATED_PYTHON_FIXTURE",
+            snapshot_id=SNAPSHOT, policy_fingerprint=POLICY, status="PASS",
+            authorization="ALLOW_FIXTURE_ONLY", reasons=(),
+            evidence_artifact_sha256="c" * 64,
+            generated_manifest_sha256="d" * 64,
+            deployed_manifest_sha256="d" * 64,
+            requirement_ids=("proof",),
+        )
+
+    def receipt(self, decision, producer):
+        return {
+            "schema_version": "0.1", "producer": producer,
+            "decision_sha256": sha256(decision.canonical_json().encode()).hexdigest(),
+            "snapshot_id": SNAPSHOT, "policy_fingerprint": POLICY,
+            "source_sha": SOURCE, "ci_run_url": CI_URL,
+        }
+
+    def check(self, decision, receipt):
+        return audit_authority_propagation(
+            decision, expected_snapshot_id=SNAPSHOT,
+            expected_policy_fingerprint=POLICY,
+            expected_source_sha=SOURCE, receipt=receipt,
+        )
+
+    def test_scoped_gate_allow_is_not_merge_authorization(self) -> None:
+        result = self.check(self.gate, self.receipt(self.gate, "codeqa.evidence_gate"))
+        self.assertEqual(result.consumer_authorization, "SCOPED_GATE_ALLOW")
+        self.assertFalse(result.production_merge_authorized)
+        self.assertEqual(result.status, "LIMITED")
+
+    def test_formal_fixture_only_never_becomes_production_allow(self) -> None:
+        result = self.check(self.fixture, self.receipt(self.fixture, "codeqa.formal_generated_gate"))
+        self.assertEqual(result.consumer_authorization, "FIXTURE_ONLY")
+        self.assertFalse(result.production_merge_authorized)
+        self.assertIn("PRODUCTION_AUTHORITY_NOT_ESTABLISHED_BY_FIXTURE", result.reasons)
+
+    def test_missing_receipt_blocks_even_when_gate_passes(self) -> None:
+        self.assertEqual(self.check(self.gate, None).consumer_authorization, "BLOCK")
+
+    def test_replayed_decision_digest_blocks(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.evidence_gate")
+        receipt["decision_sha256"] = "f" * 64
+        self.assertEqual(self.check(self.gate, receipt).consumer_authorization, "BLOCK")
+
+    def test_wrong_issuer_blocks(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.formal_generated_gate")
+        self.assertEqual(self.check(self.gate, receipt).consumer_authorization, "BLOCK")
+
+    def test_wrong_source_sha_blocks(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.evidence_gate")
+        receipt["source_sha"] = "e" * 40
+        self.assertEqual(self.check(self.gate, receipt).consumer_authorization, "BLOCK")
+
+    def test_unknown_gate_cannot_be_promoted(self) -> None:
+        unknown = replace(self.gate, status="UNKNOWN", authorization="BLOCK")
+        self.assertEqual(
+            self.check(unknown, self.receipt(unknown, "codeqa.evidence_gate")).consumer_authorization,
+            "BLOCK",
+        )
+
+    def test_policy_mismatch_blocks(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.evidence_gate")
+        result = audit_authority_propagation(
+            self.gate, expected_snapshot_id=SNAPSHOT,
+            expected_policy_fingerprint="e" * 64,
+            expected_source_sha=SOURCE, receipt=receipt,
+        )
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+
+    def test_missing_remote_run_reference_blocks(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.evidence_gate")
+        receipt["ci_run_url"] = "https://example.com/pretend"
+        self.assertEqual(self.check(self.gate, receipt).consumer_authorization, "BLOCK")
+
+    def test_untyped_json_cannot_be_a_trusted_decision(self) -> None:
+        with self.assertRaises(TypeError):
+            self.check(self.gate.to_document(), self.receipt(self.gate, "codeqa.evidence_gate"))
+
+
+if __name__ == "__main__":
+    unittest.main()
