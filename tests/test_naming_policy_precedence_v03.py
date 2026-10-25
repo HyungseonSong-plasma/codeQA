@@ -64,6 +64,7 @@ def args(policy, **changes):
         "symbol": "plasma_density", "as_of": TODAY,
         "catalog_sha256": CATALOG, "profile_sha256": PROFILE,
         "expected_policy_sha256": policy.policy_sha256,
+        "expected_source_sha256": sha256(SOURCES["src/codeqa/physics/electron.py"].encode()).hexdigest(),
     }
     values.update(changes)
     return values
@@ -91,11 +92,13 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
             "src/codeqa/physics_extra/field.py": "def density(): pass\n",
         })
         a = p.resolve(**args(p, sources=new,
-            path="src/codeqa/physics/experimental/field.py", symbol="density"))
+            path="src/codeqa/physics/experimental/field.py", symbol="density",
+            expected_source_sha256=sha256(new["src/codeqa/physics/experimental/field.py"].encode()).hexdigest()))
         self.assertEqual(a.status, "REVIEW_REQUIRED")
         self.assertEqual(a.selected_rule_id, "physics-narrower")
         b = p.resolve(**args(p, sources=new,
-            path="src/codeqa/physics_extra/field.py", symbol="density"))
+            path="src/codeqa/physics_extra/field.py", symbol="density",
+            expected_source_sha256=sha256(new["src/codeqa/physics_extra/field.py"].encode()).hexdigest()))
         self.assertEqual(b.status, "NOT_EVALUATED")
         self.assertIsNone(b.selected_rule_id)
 
@@ -130,6 +133,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
             {"catalog_sha256": "a" * 64},
             {"profile_sha256": "a" * 64},
             {"expected_policy_sha256": "a" * 64},
+            {"expected_source_sha256": "a" * 64},
             {"revision": "git:other/repo@" + "a" * 40},
             {"revision": "main"},
             {"sources": {}},
@@ -138,11 +142,16 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(NamingPrecedenceError):
                 p.resolve(**args(p, **change))
 
-    def test_changed_source_bytes_change_evidence_digest_without_approval(self):
+    def test_changed_source_bytes_fail_until_independently_reattested(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
         new = {"src/codeqa/physics/electron.py": SOURCE + "\n# changed\n"}
         before = p.resolve(**args(p))
-        after = p.resolve(**args(p, sources=new))
+        with self.assertRaisesRegex(NamingPrecedenceError, "stale source"):
+            p.resolve(**args(p, sources=new))
+        after = p.resolve(**args(
+            p, sources=new, expected_source_sha256=sha256(new[
+                "src/codeqa/physics/electron.py"].encode()).hexdigest(),
+        ))
         self.assertNotEqual(before.source_sha256, after.source_sha256)
         self.assertTrue(after.human_review_required)
         self.assertFalse(after.semantic_proven)
@@ -206,6 +215,15 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
         raw["rules"][-1]["owner"] = ""
         with self.assertRaises(NamingPrecedenceError):
             NamingPrecedencePolicy.from_mapping(raw)
+
+    def test_private_ascii_identifiers_supported_but_unicode_rejected(self):
+        raw = sample()
+        raw["rules"][-1]["selector"]["symbol"] = "__init__"
+        p = NamingPrecedencePolicy.from_mapping(raw)
+        self.assertEqual(p.resolve(**args(p, symbol="__init__")).status,
+                         "EXCLUDE_CANDIDATE")
+        with self.assertRaises(NamingPrecedenceError):
+            p.resolve(**args(p, symbol="рlasma_density"))
 
     def test_lexical_only_not_policy_gate_or_source_mutation(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
