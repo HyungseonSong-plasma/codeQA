@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import asdict
+import json
 import unittest
 
 from codeqa.evaluation.evidence_gate import GateDecision, RequirementDecision
@@ -45,10 +46,11 @@ class AuthorityConsumerSmokeTests(unittest.TestCase):
             deployed_manifest_sha256="f" * 64,
             requirement_ids=("Example.postcondition",),
         )
-        self.document = {
+        # CI reads JSON bytes, not Python tuples from dataclass.asdict.
+        self.document = json.loads(json.dumps({
             "gate": gate.to_document(),
             "generated_fixture_gate": asdict(fixture),
-        }
+        }))
 
     def evaluate(self, **kwargs):
         return module.consume_dafny_authority_artifact(
