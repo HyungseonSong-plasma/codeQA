@@ -94,8 +94,9 @@ validator. It verifies the exact version/source SHA, bundled registry against
 ZIP names, archive/destination symlinks and bounded extraction sizes **before writing files**.
 No checkout-local resource fallback is added. A separate isolated-wheel CI
 step corrupts the actual produced resource ZIP (wrong version/source, content
-tamper, missing and extra resources) and requires all five negative cases to
-fail closed. Standalone unit tests exercise additional malformed inputs.
+tamper, missing and extra resources) and also checks that an unknown
+resource profile ID fails after unpacking the real verified bundle. All six
+negative cases must fail closed. Standalone unit tests exercise additional malformed inputs.
 
 Consumers must pin and verify the bundle against their selected package
 release/commit; neither this validator nor the SHA256SUMS artifact independently
