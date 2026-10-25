@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "policy_id": "codeqa-samuel-issue92-target-executor-v1",
+  "enabled": false,
+  "repository": "HyungseonSong-plasma/codeQA",
+  "repository_id": 1424293498,
+  "base_branch": "main",
+  "head_branch": "samuel/92-governed-implementation",
+  "path_prefixes": [
+    "fixtures/python-sdk/",
+    "src/codeqa/evaluation/",
+    "tests/test_samuel_issue92_",
+    "docs/python-sdk-"
+  ],
+  "operations": [
+    "file.create",
+    "file.update",
+    "pr.create"
+  ],
+  "merge_enabled": false,
+  "base_rule": "source_ledger_and_live_main"
+}

@@ -1,0 +1,79 @@
+name: Samuel codeQA #92 Target-owned ActionPlan Executor
+run-name: samuel-codeqa-issue92:${{ inputs.samuel_action_id || github.run_id }}
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/samuel-codeqa-issue-execute.yml'
+      - '.github/scripts/samuel_issue92_target_executor.py'
+      - 'src/codeqa/governance/samuel_issue_executor.py'
+      - 'tests/test_samuel_issue92_target_executor.py'
+      - 'profiles/samuel-issue92-target-executor-v1.json'
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        type: string
+        description: Independently verified successful Samuel source admission run
+        required: true
+      base_sha:
+        type: string
+        description: Pinned codeQA main at reviewed policy
+        required: true
+      samuel_action_id:
+        type: string
+        description: SHA256 semantic ActionPlan ID; must match source ledger
+        required: true
+      plan_json:
+        type: string
+        description: Typed reviewed repository mutation ActionPlan
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+  issues: read
+
+concurrency:
+  group: samuel-codeqa-issue92-target-execution
+  cancel-in-progress: false
+
+jobs:
+  bounded-executor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact codeQA workflow revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Execute negative permission and scope tests
+        run: |
+          PYTHONPATH=src python -m unittest discover -s tests -p 'test_samuel_issue92_target_executor.py' -v
+          python -m py_compile .github/scripts/samuel_issue92_target_executor.py src/codeqa/governance/samuel_issue_executor.py
+
+      - name: Execute only after target and source readback independently pass
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          INPUT_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          INPUT_BASE_SHA: ${{ inputs.base_sha }}
+          INPUT_SAMUEL_ACTION_ID: ${{ inputs.samuel_action_id }}
+          INPUT_PLAN_JSON: ${{ inputs.plan_json }}
+        run: |
+          PYTHONPATH=src python .github/scripts/samuel_issue92_target_executor.py
+
+      - name: Preserve target-owned completed or failure receipt
+        if: always() && hashFiles('samuel-issue92-target-execution-receipt.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: samuel-codeqa-issue92-target-receipt-${{ github.run_id }}
+          path: samuel-issue92-target-execution-receipt.json
+          retention-days: 30
+          if-no-files-found: error
