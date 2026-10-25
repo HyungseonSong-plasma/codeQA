@@ -43,8 +43,10 @@ class DomainInventoryTests(unittest.TestCase):
         )
 
     def test_deterministic_inventory_and_explicit_ambiguity(self) -> None:
-        left = analyze_domain_inventory(self.sources, self._graph(), POLICY, ROLES)
-        right = analyze_domain_inventory(dict(reversed(list(self.sources.items()))), self._graph(), POLICY, ROLES)
+        overlapping = deepcopy(POLICY)
+        overlapping["rules"][2]["pattern"] += r"|(?:^|/)formal_evidence\.py$"
+        left = analyze_domain_inventory(self.sources, self._graph(), overlapping, ROLES)
+        right = analyze_domain_inventory(dict(reversed(list(self.sources.items()))), self._graph(), overlapping, ROLES)
         self.assertEqual(left, right)
         by_path = {x["path"]: x for x in left["inventory"]}
         self.assertEqual(by_path["src/codeqa/evaluation/formal_evidence.py"]["domain"], "AMBIGUOUS")
