@@ -76,13 +76,17 @@ class SamuelCrossRepositoryHandoffTests(unittest.TestCase):
         original = {
             "id": 100, "event": "workflow_dispatch",
             "head_sha": "a" * 40,
-            "path": ".github/workflows/samuel-codeqa-preflight.yml@refs/heads/main",
+            "head_branch": "main",
+            # Exact observed value from real GitHub Actions run #40186929214.
+            "path": ".github/workflows/samuel-codeqa-preflight.yml",
             "repository": {"full_name": SRC},
             "actor": {"login": "HyungseonSong-plasma"},
         }
         verify_origin_workflow(original, source_run_id="100", controller_sha="a" * 40)
         controls = [
             ("event", "push"), ("head_sha", "b" * 40),
+            ("head_branch", "develop"), ("head_branch", "v1.0.0"),
+            ("head_branch", None),
             ("path", ".github/workflows/samuel-bootstrap.yml@refs/heads/main"),
             ("path", ".github/workflows/samuel-codeqa-preflight.yml@refs/tags/v1"),
             ("repository", {"full_name": DST}),
@@ -90,12 +94,30 @@ class SamuelCrossRepositoryHandoffTests(unittest.TestCase):
             ("id", 101),
         ]
         for name, substitute in controls:
-            with self.subTest(name=name):
+            with self.subTest(name=name, substitute=str(substitute)):
                 wrong = deepcopy(original)
                 wrong[name] = substitute
                 with self.assertRaises(PreflightError):
                     verify_origin_workflow(wrong, source_run_id="100",
                                            controller_sha="a" * 40)
+        # Accept the legacy branch-qualified API representation, but never
+        # infer trusted branch identity from path alone.
+        qualified = deepcopy(original)
+        qualified["path"] += "@refs/heads/main"
+        verify_origin_workflow(qualified, source_run_id="100",
+                               controller_sha="a" * 40)
+        qualified["head_branch"] = "develop"
+        with self.assertRaisesRegex(PreflightError, "main"):
+            verify_origin_workflow(qualified, source_run_id="100",
+                                   controller_sha="a" * 40)
+        # Actual REST payload from GitHub run; no need for path suffix.
+        actual = {
+            **original,
+            "id": 40186929214,
+            "head_sha": "f31ae39f9b95d87a34a69b46b7d2ec12edbb638f",
+        }
+        verify_origin_workflow(actual, source_run_id="40186929214",
+                               controller_sha=actual["head_sha"])
 
     def test_same_handoff_produces_deterministic_evidence(self):
         self.assertEqual(evaluate_handoff(**self.params), evaluate_handoff(**self.params))
