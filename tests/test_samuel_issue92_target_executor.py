@@ -7,7 +7,7 @@ import json
 import unittest
 
 from codeqa.governance.samuel_issue_executor import (
-    BASE_SHA, HEAD_BRANCH, SOURCE, TARGET, WORK_ID, LEDGER_MARKER,
+    HEAD_BRANCH, SOURCE, TARGET, WORK_ID, LEDGER_MARKER,
     ALLOWED_TARGET_PREFIXES, TargetExecutionError,
     load_ledger, validate_target_execution,
 )
@@ -44,7 +44,7 @@ def policy(enabled=True):
         "schema_version":1,
         "policy_id":"codeqa-samuel-issue92-target-executor-v1",
         "enabled":enabled,"repository":TARGET,"repository_id":1424293498,
-        "base_branch":"main","base_sha":BASE_SHA,
+        "base_branch":"main","base_rule":"source_ledger_and_live_main",
         "head_branch":HEAD_BRANCH,"path_prefixes":list(ALLOWED_TARGET_PREFIXES),
         "operations":["file.create","file.update","pr.create"],
         "merge_enabled":False,
@@ -73,6 +73,7 @@ def target_run():
     }
 
 
+BASE_SHA="b48b50e00e0be6dd2b66181a8deed046a2c18ce0"
 ISSUE92_BODY="## Acceptance\\n- Require pinned external SDK consumer evidence\\n"
 
 
@@ -137,7 +138,7 @@ class TargetExecutorTests(unittest.TestCase):
     def test_no_broadening_policy_fields_or_paths(self):
         for k,v in [
             ("merge_enabled",True),("repository",SOURCE),
-            ("repository_id",1),("base_sha","c"*40),
+            ("repository_id",1),("base_rule","unverified"),
             ("head_branch","main"),("operations",["file.create","pr.merge"]),
             ("path_prefixes",["src/"]),("enabled",False),
         ]:
