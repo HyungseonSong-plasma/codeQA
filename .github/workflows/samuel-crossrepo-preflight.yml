@@ -68,6 +68,18 @@ jobs:
           target_sha="$(gh api "repos/HyungseonSong-plasma/codeQA/commits/main" --jq '.sha')"
           if [ "$EVENT" = "workflow_dispatch" ]; then
             source_run_id="$DISPATCH_SOURCE_RUN_ID"
+            gh api "repos/HyungseonSong-plasma/chatgpt-operation/actions/runs/$source_run_id" > source-run.json
+            SOURCE_RUN_PATH=source-run.json PYTHONPATH=src python - <<'PY'
+          import json, os
+          from codeqa.governance.samuel_target_preflight import verify_origin_workflow
+          run=json.load(open(os.environ["SOURCE_RUN_PATH"]))
+          verify_origin_workflow(
+              run,
+              source_run_id=os.environ["DISPATCH_SOURCE_RUN_ID"],
+              controller_sha=os.environ["DISPATCH_CONTROLLER_SHA"],
+          )
+          print("SAMUEL_SOURCE_RUN=VERIFIED")
+          PY
             test "$DISPATCH_CONTROLLER_SHA" = "$source_sha"
             controller_sha="$DISPATCH_CONTROLLER_SHA"
             expected_target_sha="$DISPATCH_EXPECTED_TARGET_SHA"
