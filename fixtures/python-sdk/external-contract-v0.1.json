@@ -63,5 +63,38 @@
     "No external API consumer baseline",
     "No user-supplied model execution",
     "No real SDK callback semantics inferred solely from Pyright"
-  ]
+  ],
+  "expected_pydantic_nested": {
+    "input": {
+      "envelope": {
+        "orderId": 11
+      },
+      "nested": {
+        "item_code": "sample"
+      },
+      "privateNote": "secret"
+    },
+    "serialization_by_alias": {
+      "orderId": 11,
+      "nested": {
+        "itemCode": "sample"
+      }
+    },
+    "serialization_by_name": {
+      "order_id": 11,
+      "nested": {
+        "item_code": "sample"
+      }
+    },
+    "invalid_missing_alias_path": {
+      "envelope": {
+        "wrongOrderId": 11
+      },
+      "nested": {
+        "item_code": "sample"
+      },
+      "privateNote": "secret"
+    },
+    "mapping_scope": "CONTROLLED_DIRECTIONAL_MAPPING_ONLY"
+  }
 }
