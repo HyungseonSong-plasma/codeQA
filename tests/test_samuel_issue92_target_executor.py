@@ -148,6 +148,21 @@ class TargetExecutorTests(unittest.TestCase):
                 with self.assertRaisesRegex(TargetExecutionError,"policy"):
                     validate_target_execution(**a)
 
+    def test_main_sha_may_move_only_if_source_ledger_and_dispatch_pin_it(self):
+        a=params()
+        new_base="e"*40
+        a["source_comments"][0]["body"]=a["source_comments"][0]["body"].replace(
+            BASE_SHA,new_base,
+        )
+        a["requested_base_sha"]=new_base
+        a["target_main_sha"]=new_base
+        a["target_workflow_run"]["head_sha"]=new_base
+        observed=validate_target_execution(**a)
+        self.assertEqual(observed.base_sha,new_base)
+        a["target_main_sha"]=BASE_SHA
+        with self.assertRaisesRegex(TargetExecutionError,"main changed"):
+            validate_target_execution(**a)
+
     def test_untrusted_source_run_actor_path_or_event_rejected(self):
         for k,v in [
             ("id",15),("event","pull_request"),
