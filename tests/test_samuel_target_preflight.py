@@ -84,6 +84,7 @@ class SamuelCrossRepositoryHandoffTests(unittest.TestCase):
         controls = [
             ("event", "push"), ("head_sha", "b" * 40),
             ("path", ".github/workflows/samuel-bootstrap.yml@refs/heads/main"),
+            ("path", ".github/workflows/samuel-codeqa-preflight.yml@refs/tags/v1"),
             ("repository", {"full_name": DST}),
             ("actor", {"login": "unauthorized"}),
             ("id", 101),
