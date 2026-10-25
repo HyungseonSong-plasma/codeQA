@@ -166,6 +166,21 @@ def audit_support_surface(
         feature = next(item for item in features if item["id"] == fid)
         if (feature["mode"], feature["authority"], feature["scope"]) != expected:
             _reject("protected feature activation/authority drift: " + fid)
+    # Source-level guard: the default Python Mechanical path must not import
+    # opt-in Naming. Dynamic dispatch and runtime effects remain NOT_EVALUATED.
+    default_source = _path(root, "src/codeqa/pipeline/python.py")
+    default_ast = ast.parse(default_source.read_text(encoding="utf-8"))
+    for node in ast.walk(default_ast):
+        if isinstance(node, ast.Import):
+            paths = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            paths = [node.module or ""]
+            paths += [(node.module or "") + "." + alias.name for alias in node.names]
+        else:
+            continue
+        if any(any(part.startswith("naming") or part == "python_naming"
+                   for part in name.split(".")) for name in paths):
+            _reject("default Python Mechanical module imports opt-in Naming")
     if ids < REQUIRED:
         _reject("mandatory negative capability not declared")
     by_id = {f["id"]: f for f in features}
