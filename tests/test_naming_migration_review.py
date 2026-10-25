@@ -82,6 +82,22 @@ class MigrationReviewTests(unittest.TestCase):
                            after_sha256={"src/b.py": sha256(SOURCE2.encode()).hexdigest()})
         self.assertIn("selected_source_path_coverage_drift", report.unknowns)
 
+    def test_unchanged_source_bytes_do_not_certify_rename(self):
+        report = self.make(
+            after_sources={"src/a.py": SOURCE1},
+            after_sha256={"src/a.py": sha256(SOURCE1.encode()).hexdigest()},
+        )
+        self.assertIn("unchanged_source_bytes_do_not_prove_rename", report.unknowns)
+        self.assertEqual(report.status, "HUMAN_REVIEW_REQUIRED")
+
+    def test_incomplete_contract_checkpoint_inventory_rejected(self):
+        with self.assertRaises(MigrationPlanError):
+            self.make(boundary_checkpoints={"public_api": "NOT_EVALUATED"})
+
+    def test_invalid_or_ambiguous_file_rename_rejected(self):
+        with self.assertRaises(MigrationPlanError):
+            self.make(path_renames={"src/a.py": "src/a.py"})
+
     def test_invalid_unverified_proposal_rejected(self):
         report = self.make()
         old = {"src/a.py": SOURCE1}
