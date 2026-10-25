@@ -21,7 +21,7 @@ class SamuelCrossRepositoryHandoffTests(unittest.TestCase):
             source_repository=SRC, target_repository=DST,
             work_id="github:HyungseonSong-plasma/codeQA:issue:92",
             controller_sha="a" * 40, expected_target_sha="b" * 40,
-            actual_target_sha="b" * 40, actor="HyungseonSong-plasma", github_run_id="123")
+            actual_target_sha="b" * 40, actor="HyungseonSong-plasma", github_run_id="123", source_run_id="100")
 
     def test_authorized_read_only_handoff(self):
         got = evaluate_handoff(**self.params)
@@ -67,6 +67,10 @@ class SamuelCrossRepositoryHandoffTests(unittest.TestCase):
             evaluate_handoff(**{**self.params, "actor": "unknown-bot[bot]"})
         with self.assertRaisesRegex(PreflightError, "run identity"):
             evaluate_handoff(**{**self.params, "github_run_id": "0"})
+
+    def test_missing_source_run_provenance_rejected(self):
+        with self.assertRaisesRegex(PreflightError, "source workflow run identity"):
+            evaluate_handoff(**{**self.params, "source_run_id": "0"})
 
     def test_same_handoff_produces_deterministic_evidence(self):
         self.assertEqual(evaluate_handoff(**self.params), evaluate_handoff(**self.params))
