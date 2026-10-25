@@ -52,6 +52,17 @@ jobs:
             --release-archive "$RUNNER_TEMP/dafny-release.zip" \
             --output "$RUNNER_TEMP/dafny-conformance"
 
+      - name: Consume real Dafny Gate and fixture receipt without authority escalation
+        env:
+          CODEQA_SOURCE_SHA: ${{ github.sha }}
+          CODEQA_RUN_ID: ${{ github.run_id }}
+        run: |
+          python .github/scripts/authority_consumer_smoke.py \
+            --input "$RUNNER_TEMP/dafny-conformance/formal-evidence.json" \
+            --output "$RUNNER_TEMP/dafny-conformance/authority-consumer-audit.json" \
+            --source-sha "$CODEQA_SOURCE_SHA" \
+            --run-id "$CODEQA_RUN_ID"
+
       - name: Upload independently inspectable proof and generated fixture receipts
         if: always()
         uses: actions/upload-artifact@v4
