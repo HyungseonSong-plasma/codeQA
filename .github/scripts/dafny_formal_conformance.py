@@ -26,6 +26,7 @@ from codeqa.evaluation.evidence_gate import (
     EvidenceRun, evaluate_gate, parse_gate_policy,
 )
 from codeqa.evaluation.formal_binding import parse_binding, verify_binding
+from codeqa.evaluation.formal_proof_receipt import assess_formal_proof_evidence
 from codeqa.evaluation.formal_generated_gate import (
     evaluate_generated_fixture_gate, parse_generated_fixture_policy,
     python_tree_manifest,
@@ -233,6 +234,22 @@ def main() -> None:
         )
         if admitted.status != "ADMISSIBLE":
             raise RuntimeError("source proof receipt rejected: " + str(admitted))
+        # The actual Dafny verifier receipt is source-scoped. The bundled
+        # solver executable/version is not independently attested here, so
+        # do not silently fill in a fictitious solver identity.
+        proof_receipt = assess_formal_proof_evidence(
+            env, expected_snapshot_id=snapshot_id,
+            expected_specification_path=manifest["source_path"],
+            expected_specification_sha256=source_hash,
+            expected_tool=ToolIdentity(**tool), expected_rules=(rule,),
+            required_obligations=(manifest["required_property"],),
+            accepted_assumptions=tuple(manifest["accepted_assumptions"]),
+            raw_verifier_log=raw, observed_solver=None, expected_solver=None,
+        )
+        if (proof_receipt.status != "NOT_EVALUATED"
+                or proof_receipt.implementation_authorization != "BLOCK"
+                or "SOLVER_PROVENANCE_NOT_EVALUATED" not in proof_receipt.reasons):
+            raise RuntimeError("solver/deployment uncertainty was incorrectly promoted")
         policy_raw = {
             "schema_version": "0.1",
             "policy_id": "pinned-dafny-formal-v0.1",
@@ -340,6 +357,7 @@ def main() -> None:
             "tampered_deployment_status": corrupted.status,
             "stale_spec_status": stale.status,
             "admission_source": asdict(admitted),
+            "typed_formal_proof_receipt": proof_receipt.to_document(),
             "gate": gate.to_document(),
             "generated_fixture_gate": asdict(fixture_gate),
             "tampered_fixture_gate": asdict(changed_gate),
