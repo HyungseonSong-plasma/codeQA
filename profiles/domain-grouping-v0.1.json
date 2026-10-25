@@ -1,0 +1,23 @@
+{
+  "version": "0.1",
+  "scope": "src/codeqa/",
+  "meaning": "DECLARED_FILENAME_DOMAIN_HINTS_NOT_SEMANTIC_COHESION",
+  "rules": [
+    {
+      "domain": "naming",
+      "pattern": "(?:^|/)(?:python_)?naming[^/]*\\.py$|(?:^|/)(?:pinned_ancestor|directional_fields|source_delta)[^/]*\\.py$"
+    },
+    {
+      "domain": "formal",
+      "pattern": "(?:^|/)(?:formal|dafny)[^/]*\\.py$"
+    },
+    {
+      "domain": "evidence",
+      "pattern": "(?:^|/)(?:evidence|external_evidence|semgrep|gate)[^/]*\\.py$"
+    },
+    {
+      "domain": "mechanical",
+      "pattern": "(?:^|/)(?:mechanical|complexity|duplication|dependency|impact|layout|contextual|metrics)[^/]*\\.py$"
+    }
+  ]
+}
