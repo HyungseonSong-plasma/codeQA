@@ -104,6 +104,7 @@ class AnalysisResponse:
         return {
             "schema_version": self.schema_version,
             "options_fingerprint": self.options_fingerprint,
+            "profile_fingerprints": dict(sorted(self.profile_fingerprints.items())),
             "companion_states": dict(self.companion_states),
             "analysis": self.analysis.summary_document(),
             "interpretation": "OPTIONAL_PYTHON_PIPELINE_NOT_UNIVERSAL_QA_RESULT",
