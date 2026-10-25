@@ -197,7 +197,8 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
 
 def test_runtime(contract: dict) -> dict:
     # This execution is explicitly controlled and is never used on untrusted code.
-    from pydantic import AliasChoices, BaseModel, ConfigDict, Field, computed_field
+    from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, ValidationError, computed_field
+    from pydantic.alias_generators import to_camel
     from sqlalchemy import Integer, String, create_engine, event, inspect
     from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
     from sqlalchemy.schema import CreateTable
@@ -230,6 +231,44 @@ def test_runtime(contract: dict) -> dict:
 
     colliding = Collision(first=1, second=2).model_dump(by_alias=True)
     need(len(colliding) != 2, "COLLISION_NEGATIVE_CONTROL_FAILED")
+
+    # Controlled, direction-specific AliasPath and alias_generator witnesses.
+    # A serializer's output aliases are not automatically accepted as input.
+    class NestedPayload(BaseModel):
+        item_code: str = Field(serialization_alias="itemCode")
+
+    class EnvelopePayload(BaseModel):
+        model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+        order_id: int = Field(
+            validation_alias=AliasPath("envelope", "orderId"),
+            serialization_alias="orderId",
+        )
+        nested: NestedPayload
+        private_note: str = Field(exclude=True)
+
+    nested_contract = contract["expected_pydantic_nested"]
+    need(nested_contract["mapping_scope"] == "CONTROLLED_DIRECTIONAL_MAPPING_ONLY",
+         "UNREVIEWED_NESTED_MAPPING_SCOPE")
+    nested = EnvelopePayload.model_validate(nested_contract["input"])
+    nested_by_alias = nested.model_dump(by_alias=True)
+    nested_by_name = nested.model_dump(by_alias=False)
+    need(nested_by_alias == nested_contract["serialization_by_alias"],
+         "PYDANTIC_NESTED_ALIAS_OR_EXCLUSION_DRIFT")
+    need(nested_by_name == nested_contract["serialization_by_name"],
+         "PYDANTIC_NESTED_FIELD_NAME_DRIFT")
+    need("privateNote" not in nested_by_alias and "private_note" not in nested_by_name,
+         "EXCLUDED_FIELD_LEAKED_IN_DTO")
+    alias_path = EnvelopePayload.model_fields["order_id"].validation_alias
+    need(isinstance(alias_path, AliasPath) and alias_path.path == ["envelope", "orderId"],
+         "ALIAS_PATH_EFFECTIVE_MAPPING_DRIFT")
+    need(EnvelopePayload.model_fields["private_note"].alias == "privateNote",
+         "ALIAS_GENERATOR_EFFECTIVE_MAPPING_DRIFT")
+    try:
+        EnvelopePayload.model_validate(nested_contract["invalid_missing_alias_path"])
+    except ValidationError:
+        pass
+    else:
+        raise RuntimeError("MISSING_ALIAS_PATH_NEGATIVE_CONTROL_FAILED")
 
     class Base(DeclarativeBase):
         pass
@@ -277,6 +316,7 @@ def test_runtime(contract: dict) -> dict:
     return {
         "scope": "CONTROLLED_FIXTURE_ONLY",
         "pydantic_alias_mapping": dto,
+        "pydantic_nested_directional_mapping": nested_contract,
         "sqlalchemy_fields": fields,
         "sqlite_reflected_columns": reflected,
         "sqlite_ddl_sha256": digest(ddl.encode()),
