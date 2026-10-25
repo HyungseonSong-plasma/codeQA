@@ -34,5 +34,7 @@ The new `AnalysisResponse.summary_document()` is a wrapper with an options
 SHA-256 fingerprint and explicit companion states, **not** a replacement for
 frozen `QA Result v0.1`. Default before/after equality and adversarial
 option negatives are exercised in `tests/test_analysis_request.py`.
-Actual installed-wheel option invocation and independently reviewed public
-request serialization compatibility remain `NOT_EVALUATED` until tested.
+The existing isolated Python wheel/sdist smoke now also exercises an explicit
+impact-bearing AnalysisRequest and verifies unchanged Mechanical output on the
+installed package (subject to exact-head CI). Independently reviewed public
+request serialization compatibility remains `NOT_EVALUATED`.
