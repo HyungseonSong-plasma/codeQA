@@ -73,9 +73,7 @@ def verify_origin_workflow(
     if run.get("head_sha") != controller_sha:
         raise PreflightError("origin controller SHA mismatch")
     path = run.get("path")
-    if not isinstance(path, str) or not path.startswith(
-        ".github/workflows/samuel-codeqa-preflight.yml@"
-    ):
+    if path != ".github/workflows/samuel-codeqa-preflight.yml@refs/heads/main":
         raise PreflightError("origin workflow is not approved controller preflight")
     repository = run.get("repository")
     if not isinstance(repository, Mapping) or repository.get("full_name") != SOURCE_REPO:
