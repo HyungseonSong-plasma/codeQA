@@ -252,6 +252,44 @@ def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, An
         "before": len(original), "after": len(current),
         "delta": len(current) - len(original),
     }
+
+    def public_import_candidates(report: Mapping[str, Any]) -> set[tuple[str, str, str, str]] | None:
+        items = report.get("init_import_candidates")
+        if items is None:
+            return None
+        if not isinstance(items, list):
+            raise DomainInventoryError("invalid __init__ import candidate list")
+        found = set()
+        for item in items:
+            if not isinstance(item, dict):
+                raise DomainInventoryError("invalid __init__ import candidate")
+            path, origin, name, alias = (
+                item.get("path"), item.get("from"), item.get("name"), item.get("asname")
+            )
+            if (not _safe_source_path(path) or not path.endswith("/__init__.py")
+                    or not isinstance(origin, str) or not origin
+                    or not isinstance(name, str) or not name
+                    or alias is not None and (not isinstance(alias, str) or not alias)):
+                raise DomainInventoryError("invalid __init__ import witness")
+            found.add((path, origin, name, alias or ""))
+        return found
+
+    earlier = public_import_candidates(before)
+    later = public_import_candidates(after)
+    if earlier is None or later is None:
+        init_import_review = {
+            "status": "NOT_EVALUATED", "removed_candidates": [],
+            "added_candidates": [], "reason": "IMPORT_CANDIDATE_COVERAGE_MISSING",
+        }
+    else:
+        removed = sorted(earlier - later)
+        added = sorted(later - earlier)
+        init_import_review = {
+            "status": "REVIEW_REQUIRED" if removed else "NOT_EVALUATED",
+            "removed_candidates": [list(entry) for entry in removed],
+            "added_candidates": [list(entry) for entry in added],
+            "reason": "SYNTACTIC_IMPORT_CHANGES_NOT_PROVEN_PUBLIC_API_BREAKAGE",
+        }
     return {
         "schema_version": "0.1",
         "status": "NOT_EVALUATED",
@@ -262,6 +300,7 @@ def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, An
         "domain_policy_sha256": after["domain_policy_sha256"],
         "role_policy_sha256": after["role_policy_sha256"],
         "source_status": {"before": before["status"], "after": after["status"]},
+        "init_import_change_review": init_import_review,
         "metrics": numbers,
         "added_paths": sorted(set(current) - set(original)),
         "removed_paths": sorted(set(original) - set(current)),
