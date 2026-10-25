@@ -26,3 +26,22 @@ an end-to-end production support claim. Review stale entries and archived
 experiments before retirement; preserve pinned SHA witnesses. Any workflow
 addition, deletion or upload-action change must update this catalog in the
 same reviewed PR.
+
+## Parallel PR integration witness (#119 / #124)
+
+PR #128 changes `.github/workflows/self-audit.yml` from one to two
+`actions/upload-artifact@v4` steps by adding `codeqa-domain-inventory`.
+PR #130's catalog currently records **one** upload at the unchanged main
+baseline. The concurrent changes therefore cannot be merged independently
+without reconciling this exact entry; the Layout guard is expected to reject
+the combined tree until the catalog's `artifact_upload_count` is updated
+to **two** in the reviewed integration change. The
+`test_workflow_catalog_cross_pr.py` regression exercises the mismatch, not
+a simulated GitHub Actions success. Keep the category `experimental` and
+`INFORMATIONAL_ONLY` artifact authority: the new domain inventory is
+not required CI, a semantic design verdict or production authorization.
+
+At merge review, refresh the current main revision, verify the actual YAML,
+update the manifest in the same reviewed commit as the workflow change,
+and rerun Layout at the **combined exact HEAD**. No automatic protection or
+workflow setting mutation is authorized by this document.
