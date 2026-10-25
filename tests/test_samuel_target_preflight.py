@@ -3,7 +3,7 @@ from dataclasses import asdict
 from copy import deepcopy
 import unittest
 
-from codeqa.governance.samuel_target_preflight import evaluate_handoff, PreflightError
+from codeqa.governance.samuel_target_preflight import evaluate_handoff, verify_origin_workflow, PreflightError
 
 
 SRC = "HyungseonSong-plasma/chatgpt-operation"
@@ -71,6 +71,30 @@ class SamuelCrossRepositoryHandoffTests(unittest.TestCase):
     def test_missing_source_run_provenance_rejected(self):
         with self.assertRaisesRegex(PreflightError, "source workflow run identity"):
             evaluate_handoff(**{**self.params, "source_run_id": "0"})
+
+    def test_actual_samuel_origin_run_readback(self):
+        original = {
+            "id": 100, "event": "workflow_dispatch",
+            "head_sha": "a" * 40,
+            "path": ".github/workflows/samuel-codeqa-preflight.yml@refs/heads/main",
+            "repository": {"full_name": SRC},
+            "actor": {"login": "HyungseonSong-plasma"},
+        }
+        verify_origin_workflow(original, source_run_id="100", controller_sha="a" * 40)
+        controls = [
+            ("event", "push"), ("head_sha", "b" * 40),
+            ("path", ".github/workflows/samuel-bootstrap.yml@refs/heads/main"),
+            ("repository", {"full_name": DST}),
+            ("actor", {"login": "unauthorized"}),
+            ("id", 101),
+        ]
+        for name, substitute in controls:
+            with self.subTest(name=name):
+                wrong = deepcopy(original)
+                wrong[name] = substitute
+                with self.assertRaises(PreflightError):
+                    verify_origin_workflow(wrong, source_run_id="100",
+                                           controller_sha="a" * 40)
 
     def test_same_handoff_produces_deterministic_evidence(self):
         self.assertEqual(evaluate_handoff(**self.params), evaluate_handoff(**self.params))
