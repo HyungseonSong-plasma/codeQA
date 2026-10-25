@@ -73,9 +73,13 @@ def target_run():
     }
 
 
+ISSUE92_BODY="## Acceptance\\n- Require pinned external SDK consumer evidence\\n"
+
+
 def issue(repo,number):
     return {
         "number":number,"state":"open",
+        "body":ISSUE92_BODY if repo==TARGET else "Controller policy Issue",
         "url":f"https://api.github.com/repos/{repo}/issues/{number}",
     }
 
@@ -86,7 +90,7 @@ def comments(p=None,*,phase="dispatch_ready",author="github-actions[bot]",
     ledger={
         "schema_version":1,"work_id":WORK_ID,
         "phase":phase,"revision":2,"admission_run_id":40233488526,
-        "base_sha":BASE_SHA,"issue_sha":"a"*64,"criteria_sha":"b"*64,
+        "base_sha":BASE_SHA,"issue_sha":hashlib.sha256(ISSUE92_BODY.encode()).hexdigest(),"criteria_sha":"b"*64,
         "action_plan":p,"action_id":action_id(p),
         "receipt":None,"target_pr":None,"ci_evidence":[],
         "last_failure":None,
@@ -192,6 +196,12 @@ class TargetExecutorTests(unittest.TestCase):
         a=params()
         a["source_comments"][0]["body"]="malformed"
         with self.assertRaises(TargetExecutionError):
+            validate_target_execution(**a)
+
+    def test_changed_live_issue_body_denies_stale_ledger_plan(self):
+        a=params()
+        a["target_issue"]["body"]+="\n- New unreviewed requirement"
+        with self.assertRaisesRegex(TargetExecutionError,"content changed"):
             validate_target_execution(**a)
 
     def test_action_id_is_immutable_and_plan_cannot_be_substituted(self):
