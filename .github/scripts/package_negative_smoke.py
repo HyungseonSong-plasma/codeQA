@@ -12,6 +12,7 @@ from zipfile import ZipFile
 from codeqa.infrastructure.resource_bundle import (
     ResourceBundleError, unpack_verified_resource_bundle,
 )
+from codeqa.infrastructure.resources import ResourceRegistry, ResourceResolutionError
 
 
 def main():
@@ -51,7 +52,20 @@ def main():
             except ResourceBundleError:
                 continue
             raise SystemExit("PACKAGE_NEGATIVE_SMOKE=FAIL " + label)
-    print("PACKAGE_NEGATIVE_SMOKE=PASS cases=", len(cases))
+        # Reuse the real, verified installed bundle: the registry must not
+        # treat arbitrary consumer names as discoverable resource IDs.
+        installed_root = Path(tmp) / "validated-resource-root"
+        unpack_verified_resource_bundle(
+            args.bundle, installed_root,
+            version=args.version, source_revision=args.source_revision,
+        )
+        try:
+            ResourceRegistry(installed_root).load_json("unknown_profile")
+        except ResourceResolutionError:
+            pass
+        else:
+            raise SystemExit("PACKAGE_NEGATIVE_SMOKE=FAIL unknown-profile")
+    print("PACKAGE_NEGATIVE_SMOKE=PASS cases=", len(cases) + 1)
 
 
 if __name__ == "__main__":
