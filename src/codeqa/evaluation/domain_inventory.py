@@ -203,3 +203,73 @@ def analyze_domain_inventory(
             "before/after quality comparisons require one pinned analyzer and identical policy",
         ],
     }
+
+
+def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, Any],
+                               *, analyzer_sha: str) -> dict[str, Any]:
+    """Read-only, identical-policy static metrics; no quality or runtime verdict."""
+    if not re.fullmatch(r"[0-9a-f]{40}", analyzer_sha):
+        raise DomainInventoryError("exact analyzer SHA required")
+    if not isinstance(before, Mapping) or not isinstance(after, Mapping):
+        raise DomainInventoryError("two inventory mappings required")
+    for field in ("schema_version", "source_scope", "domain_policy_sha256",
+                  "role_policy_sha256", "interpretation"):
+        if field not in before or before[field] != after.get(field):
+            raise DomainInventoryError("incomparable inventory field: " + field)
+    if before["schema_version"] != "0.1":
+        raise DomainInventoryError("unsupported inventory schema")
+    for report in (before, after):
+        if (not isinstance(report.get("snapshot_id"), str)
+                or not re.fullmatch(r"[0-9a-f]{40}", report["snapshot_id"])
+                or report.get("status") not in {"NOT_EVALUATED", "VIOLATION"}):
+            raise DomainInventoryError("invalid pinned snapshot or status")
+    if before["snapshot_id"] == after["snapshot_id"]:
+        raise DomainInventoryError("identical revisions cannot be an evolution comparison")
+
+    def source_hashes(report: Mapping[str, Any]) -> dict[str, str]:
+        items = report.get("inventory")
+        if not isinstance(items, list):
+            raise DomainInventoryError("missing source inventory")
+        result = {}
+        for item in items:
+            if (not isinstance(item, dict) or not _safe_source_path(item.get("path"))
+                    or not isinstance(item.get("sha256"), str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", item["sha256"])
+                    or item["path"] in result):
+                raise DomainInventoryError("invalid or duplicate source hash")
+            result[item["path"]] = item["sha256"]
+        return result
+
+    original, current = source_hashes(before), source_hashes(after)
+    numbers = {}
+    for field in ("observed_import_sites", "classified_intra_import_sites",
+                  "classified_cross_import_sites"):
+        left, right = before.get(field), after.get(field)
+        if type(left) is not int or type(right) is not int or min(left, right) < 0:
+            raise DomainInventoryError("unverified metric: " + field)
+        numbers[field] = {"before": left, "after": right, "delta": right - left}
+    numbers["source_files"] = {
+        "before": len(original), "after": len(current),
+        "delta": len(current) - len(original),
+    }
+    return {
+        "schema_version": "0.1",
+        "status": "NOT_EVALUATED",
+        "meaning": "STATIC_COUNT_DELTA_NOT_DESIGN_QUALITY_OR_COMPATIBILITY",
+        "analyzer_sha": analyzer_sha,
+        "source_before_sha": before["snapshot_id"],
+        "source_after_sha": after["snapshot_id"],
+        "domain_policy_sha256": after["domain_policy_sha256"],
+        "role_policy_sha256": after["role_policy_sha256"],
+        "source_status": {"before": before["status"], "after": after["status"]},
+        "metrics": numbers,
+        "added_paths": sorted(set(current) - set(original)),
+        "removed_paths": sorted(set(original) - set(current)),
+        "modified_paths": sorted(p for p in set(current) & set(original)
+                                 if current[p] != original[p]),
+        "limitations": [
+            "same-process pinned analyzer is caller obligation",
+            "static import counts do not establish runtime coupling or cohesion",
+            "public compatibility and human review burden NOT_EVALUATED",
+        ],
+    }
