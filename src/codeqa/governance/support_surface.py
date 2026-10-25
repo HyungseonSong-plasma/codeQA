@@ -36,6 +36,16 @@ REQUIRED = {
     "non_python_mechanical", "formal_generated_fixture",
 }
 
+# Protected public meanings cannot change through an internally consistent
+# README/manifest edit without a separately reviewed versioned contract.
+PROTECTED_BOUNDARIES = {
+    "python_naming_safe": ("OPT_IN", "SCOPED_REVIEW", "PYTHON_DECLARATION_SPELLING_ONLY"),
+    "naming_companions": ("OPT_IN", "SCOPED_REVIEW", "EXPERIMENTAL_DECLARATION_WITNESSES"),
+    "external_evidence_gate": ("OPT_IN", "SCOPED_GATE", "PINNED_ADMITTED_EXTERNAL_EVIDENCE_ONLY"),
+    "qa_result_contract": ("CONTRACT_ONLY", "CONTRACT_ONLY", "SCOPED_MECHANICAL_EXCHANGE_ONLY"),
+    "formal_generated_fixture": ("FIXTURE_ONLY", "FIXTURE_ONLY", "CONTROLLED_GENERATED_PYTHON_FIXTURE"),
+}
+
 
 def _reject(message: str) -> None:
     raise SupportSurfaceError(message)
@@ -150,6 +160,12 @@ def audit_support_surface(
         if (mode != "NOT_IMPLEMENTED" and feature["principles"]
                 and set(feature["languages"]) & {"Rust", "C++", "MOOSE"}):
             _reject("unverified non-Python Mechanical support")
+    if not set(PROTECTED_BOUNDARIES).issubset(ids):
+        _reject("missing protected feature boundary")
+    for fid, expected in PROTECTED_BOUNDARIES.items():
+        feature = next(item for item in features if item["id"] == fid)
+        if (feature["mode"], feature["authority"], feature["scope"]) != expected:
+            _reject("protected feature activation/authority drift: " + fid)
     if ids < REQUIRED:
         _reject("mandatory negative capability not declared")
     by_id = {f["id"]: f for f in features}
