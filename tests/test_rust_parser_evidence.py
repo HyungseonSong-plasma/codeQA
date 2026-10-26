@@ -1,0 +1,78 @@
+"""#93: optional real Rust grammar parser, not a compiler or trait resolver."""
+from __future__ import annotations
+
+from hashlib import sha256
+from importlib.util import find_spec
+from pathlib import Path
+import unittest
+
+from codeqa.adapters.rust_parser_evidence import (
+    RustParserEvidenceError, parse_rust_syntax,
+)
+
+
+ROOT = Path(__file__).resolve().parents[1]
+REVISION = "ce40af4ffda17feaef99f4de328c9a37b6019553"
+REPOSITORY = "HyungseonSong-plasma/sol-adapter-moose"
+PARSER_AVAILABLE = find_spec("tree_sitter") is not None and find_spec("tree_sitter_rust") is not None
+
+
+@unittest.skipUnless(PARSER_AVAILABLE, "optional Rust parser not installed; dedicated CI must run unskipped")
+class RustParserEvidenceTests(unittest.TestCase):
+    def parse(self, source: bytes, **changes):
+        kwargs = {
+            "source_repository": REPOSITORY, "source_revision": REVISION,
+            "source_path": "src/example.rs",
+            "expected_source_sha256": sha256(source).hexdigest(),
+        }
+        kwargs.update(changes)
+        return parse_rust_syntax(source, **kwargs)
+
+    def test_real_pinned_rust_source_fixture_is_parser_backed(self):
+        path = ROOT / "fixtures/rust/sol-adapter-moose/src/lib.rs.txt"
+        data = path.read_bytes()
+        result = self.parse(data, source_path="src/lib.rs")
+        self.assertEqual(result.source_sha256, sha256(data).hexdigest())
+        self.assertTrue(result.declarations)
+        self.assertIn("TRAIT_IMPL_RESOLUTION_NOT_EVALUATED", result.unknowns)
+        self.assertEqual(result.authority, "PARSER_SYNTAX_ONLY_NOT_COMPILER_OR_TRAIT_PROOF")
+
+    def test_trait_and_impl_method_spelling_is_lexical_only(self):
+        source = b"trait Action { fn processInput(&self); }\nstruct Engine;\nimpl Action for Engine { fn processInput(&self) {} }\n"
+        result = self.parse(source)
+        names = [(d.name, d.kind, d.line) for d in result.declarations]
+        self.assertTrue(any(x[0] == "processInput" and x[2] == 1 for x in names))
+        self.assertTrue(any(x[0] == "processInput" and x[2] == 3 for x in names))
+        self.assertIn("TRAIT_IMPL_RESOLUTION_NOT_EVALUATED", result.unknowns)
+
+    def test_macro_and_reexport_do_not_claim_resolution(self):
+        result = self.parse(b"pub use crate::engine as external_engine;\nfoo!();\n")
+        self.assertIn("EXTERNAL_REEXPORT_OR_ALIAS_NOT_EVALUATED", result.unknowns)
+        self.assertIn("MACRO_EXPANSION_NOT_EVALUATED", result.unknowns)
+
+    def test_raw_identifier_preserves_source_spelling(self):
+        result = self.parse(b"fn r#type() {}\n")
+        self.assertTrue(any(d.name == "r#type" for d in result.declarations))
+        self.assertIn("RAW_IDENTIFIER_EQUIVALENCE_NOT_EVALUATED", result.unknowns)
+
+    def test_invalid_source_fails_without_partial_declarations(self):
+        with self.assertRaises(RustParserEvidenceError):
+            self.parse(b"fn broken( {\n")
+
+    def test_fabricated_source_hash_or_revision_is_rejected(self):
+        with self.assertRaises(RustParserEvidenceError):
+            self.parse(b"fn good() {}\n", expected_source_sha256="0" * 64)
+        with self.assertRaises(RustParserEvidenceError):
+            self.parse(b"fn good() {}\n", source_revision="main")
+
+    def test_nested_source_line_and_producer_are_deterministic(self):
+        source = b"struct Engine;\nimpl Engine {\n  fn internal_helper(&self) {}\n}\n"
+        first = self.parse(source)
+        second = self.parse(source)
+        self.assertEqual(first.canonical_json(), second.canonical_json())
+        self.assertTrue(any(d.name == "internal_helper" and d.line == 3 for d in first.declarations))
+        self.assertEqual(first.producer, "tree-sitter@0.25.2/tree-sitter-rust@0.24.0")
+
+
+if __name__ == "__main__":
+    unittest.main()

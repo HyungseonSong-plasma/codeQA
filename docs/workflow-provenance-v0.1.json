@@ -1,0 +1,96 @@
+{
+  "version": "0.1",
+  "source_main_sha": "f7859c7f742ba55025bf1633ef7438d18e8a9416",
+  "meaning": "GIT_BLOB_IDENTITY_NOT_CHECK_RUN_VERIFICATION",
+  "retirement_policy": "HUMAN_REVIEW_REQUIRED_PRESERVE_PINNED_EVIDENCE",
+  "workflows": [
+    {
+      "path": ".github/workflows/layout.yml",
+      "blob_sha": "19bb64efe07ac6974cc1f965ebf1ffb7fb4635f2"
+    },
+    {
+      "path": ".github/workflows/mixed-source-conformance.yml",
+      "blob_sha": "aa1adcea43a29ecdebc3f117574a67b7a3af36e5"
+    },
+    {
+      "path": ".github/workflows/moose-p3-refactor-conformance.yml",
+      "blob_sha": "9ccf9ceade093906ec4ce29d7bc9061d4798bf4f"
+    },
+    {
+      "path": ".github/workflows/moose-test-audit.yml",
+      "blob_sha": "d8a056b3861dffd6d2e0008a26f46bdf8d1e63ef"
+    },
+    {
+      "path": ".github/workflows/naming-coverage-v02.yml",
+      "blob_sha": "ecce606c2e95087ca16a530e5f99783e7b31c975"
+    },
+    {
+      "path": ".github/workflows/naming-directional-fields.yml",
+      "blob_sha": "3237de582bed1247d0b56a4b96ca9eab5691f148"
+    },
+    {
+      "path": ".github/workflows/naming-external-ancestor.yml",
+      "blob_sha": "f6bb465718a7b8481663218ff6b3499cb191ed84"
+    },
+    {
+      "path": ".github/workflows/naming-glossary.yml",
+      "blob_sha": "b0476e870442d384ee3055f1483adab339cbc788"
+    },
+    {
+      "path": ".github/workflows/naming-python-conformance.yml",
+      "blob_sha": "3249433af8fd5fcc477ba77efa35f7b44242f6cb"
+    },
+    {
+      "path": ".github/workflows/naming-source-delta.yml",
+      "blob_sha": "fe2fc371aeca6326d5a0a2557aa5e3e16d06bc70"
+    },
+    {
+      "path": ".github/workflows/persistent-ccg-cache.yml",
+      "blob_sha": "1435ea1fef67862ed2c46babb7a73ab2c52168be"
+    },
+    {
+      "path": ".github/workflows/pinned-dafny-formal.yml",
+      "blob_sha": "2e9208327121dd23b728cb43dad526b585a2bb62"
+    },
+    {
+      "path": ".github/workflows/pinned-python-sdk.yml",
+      "blob_sha": "a566814746fe56ae631ef44e303ae0ef7ac63ce1"
+    },
+    {
+      "path": ".github/workflows/python-package.yml",
+      "blob_sha": "83ffb533675c50967117c76ffaa6fca6a3f2a106"
+    },
+    {
+      "path": ".github/workflows/rust-ccg-conformance.yml",
+      "blob_sha": "cc1c14bac59cfb7ae44b799de6b76a5630cc4f7f"
+    },
+    {
+      "path": ".github/workflows/rust-parser-evidence.yml",
+      "blob_sha": "8ac6c19482a2163ad5960d14257a4de5c1a35a5c"
+    },
+    {
+      "path": ".github/workflows/samuel-adapter-conformance.yml",
+      "blob_sha": "144e1756b3bc16f447bc96a1feac5e344b3a3494"
+    },
+    {
+      "path": ".github/workflows/samuel-branch-delete.yml",
+      "blob_sha": "02d02538223dd581b56a222296739454ea2b7b52"
+    },
+    {
+      "path": ".github/workflows/samuel-codeqa-issue-execute.yml",
+      "blob_sha": "69a63c036f84e3edaebc43c95c64a0d5750c7b8f"
+    },
+    {
+      "path": ".github/workflows/samuel-crossrepo-preflight.yml",
+      "blob_sha": "7c08c0cb3848911387f479fb4c37922221384000"
+    },
+    {
+      "path": ".github/workflows/self-audit.yml",
+      "blob_sha": "dd9c27b60c6ead51cf6c098f9f1338bca78a4275"
+    },
+    {
+      "path": ".github/workflows/semgrep-gate.yml",
+      "blob_sha": "57394e831692740f23f5b9783799c5f91b180376"
+    }
+  ]
+}
