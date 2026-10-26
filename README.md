@@ -52,6 +52,10 @@ Formal `ALLOW_FIXTURE_ONLY` is never a production merge or semantic-preservation
 approval. Language-neutral CCG schemas are not full Rust/C++/MOOSE analyzers.
 The official Naming v0.5 opt-in policy applies to **one pinned Python field only**; the broader v0.3/v0.4 semantic candidate glossary remains unadopted. Human newcomer comprehension remains `NOT_EVALUATED` pending independent study.
 
+## Language execution coverage
+
+The [versioned per-language execution matrix](docs/language-execution-matrix-v0.1.md) distinguishes the language-neutral CCG **contract** from the actual Python AST pipeline. Rust and C++/MOOSE source fixtures and Dafny-generated Python Formal Gate receipts do not establish end-to-end non-Python Mechanical or production ABI support. Source/workflow references are checked, but actual matching-revision CI must be verified separately; unsupported capabilities remain `NOT_EVALUATED`.
+
 ## Repository status
 
 Foundation bootstrap. The canonical engineering principles, CCG v0.1 and Python adapter
