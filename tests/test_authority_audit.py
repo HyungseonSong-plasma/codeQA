@@ -90,6 +90,26 @@ class AuthorityPropagationTests(unittest.TestCase):
         self.assertEqual(result.consumer_authorization, "BLOCK")
         self.assertIn("GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING", result.reasons)
 
+    def test_forged_gate_selected_paths_cannot_escape_pinned_scope(self) -> None:
+        for unsafe in ("../secrets.py", "/tmp/secret.py", "src//a.py",
+                       "src/./a.py", "src\\\\a.py", "src/a.py:ads",
+                       "src/a.py\\n"):
+            with self.subTest(unsafe=unsafe):
+                forged = replace(self.gate, requirements=(replace(
+                    self.gate.requirements[0], scope=(unsafe,),
+                ),))
+                result = self.check(forged, self.receipt(forged, "codeqa.evidence_gate"))
+                self.assertEqual(result.consumer_authorization, "BLOCK")
+                self.assertIn("GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING", result.reasons)
+
+    def test_forged_gate_duplicate_selected_path_cannot_allow(self) -> None:
+        forged = replace(self.gate, requirements=(replace(
+            self.gate.requirements[0], scope=("a.py", "a.py"),
+        ),))
+        result = self.check(forged, self.receipt(forged, "codeqa.evidence_gate"))
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertIn("GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING", result.reasons)
+
     def test_duplicate_gate_requirement_ids_cannot_allow(self) -> None:
         forged = replace(self.gate, requirements=self.gate.requirements * 2)
         self.assertEqual(

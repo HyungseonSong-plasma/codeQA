@@ -41,6 +41,15 @@ def _sha256(value: bytes) -> str:
     return sha256(value).hexdigest()
 
 
+def _safe_selected_path(value: object) -> bool:
+    """A typed Gate receipt cannot invent a path outside Gate's path grammar."""
+    return (
+        isinstance(value, str)
+        and re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", value) is not None
+        and all(part not in (".", "..") for part in value.split("/"))
+    )
+
+
 def audit_authority_propagation(
     decision: GateDecision | GeneratedFixtureDecision,
     *,
@@ -68,7 +77,8 @@ def audit_authority_propagation(
                 isinstance(entry.id, str) and bool(entry.id)
                 and entry.status == "PASS" and entry.admission_status == "ADMISSIBLE"
                 and isinstance(entry.scope, tuple) and bool(entry.scope)
-                and all(isinstance(path, str) and bool(path) for path in entry.scope)
+                and all(_safe_selected_path(path) for path in entry.scope)
+                and len(entry.scope) == len(set(entry.scope))
                 and type(entry.observed_violations) is int and entry.observed_violations == 0
                 and type(entry.waived_violations) is int and entry.waived_violations == 0
                 and not entry.reasons
