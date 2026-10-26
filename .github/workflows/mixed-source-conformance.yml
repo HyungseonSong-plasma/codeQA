@@ -68,6 +68,53 @@ jobs:
           set -euo pipefail
           python3 -m pip install --disable-pip-version-check 'tree-sitter==0.25.2' 'tree-sitter-cpp==0.23.4'
           python3 -m pip check
+      - name: Require real C++ compiler override controls with no skipped tests
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          import json
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import unittest
+          compilers = {}
+          for name in ("clang++", "g++"):
+              binary = shutil.which(name)
+              if binary is None:
+                  raise SystemExit(f"CPP_COMPILER_UNAVAILABLE {name}")
+              run = subprocess.run([binary, "--version"], capture_output=True,
+                                   text=True, timeout=30, check=False)
+              if run.returncode != 0 or not run.stdout.strip():
+                  raise SystemExit(f"CPP_COMPILER_VERSION_UNVERIFIED {name}")
+              compilers[name] = {"path": binary,
+                                 "observed_version": run.stdout.splitlines()[0]}
+          suite = unittest.defaultTestLoader.discover(
+              start_dir="codeqa/tests", pattern="test_cpp_override_moose_draft_v02.py")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun < 3:
+              raise SystemExit(f"CPP_COMPILER=FAIL tests={result.testsRun} skipped={result.skipped}")
+          samples = {
+              path.name: sha256(path.read_bytes()).hexdigest()
+              for path in sorted(Path("codeqa/fixtures/cpp-override").glob("*.cpp"))
+          }
+          if len(samples) != 8:
+              raise SystemExit("CPP_COMPILER_FIXTURE_SET_DRIFT")
+          receipt = {
+              "schema_version": "0.1",
+              "scope": "CONTROLLED_CPP_OVERRIDE_FIXTURE_ONLY",
+              "toolchain_lock": "VERSION_OBSERVED_NOT_INDEPENDENTLY_PINNED",
+              "compilers": compilers,
+              "source_sha256": samples,
+              "flags": ["-std=c++17", "-fsyntax-only", "-Werror"],
+              "test_count": result.testsRun,
+              "skipped": len(result.skipped),
+              "public_abi": "NOT_EVALUATED",
+              "moose_framework_sdk": "NOT_EVALUATED",
+          }
+          Path("cpp-compiler-evidence.json").write_text(
+              json.dumps(receipt, sort_keys=True, indent=2) + "\n")
+          print("CPP_COMPILER=PASS fixture_matrix=8 toolchain_pin=NOT_EVALUATED abi=NOT_EVALUATED")
+          PY
       - name: Require parser-backed C++ controls with no skipped tests
         run: |
           python3 - <<'PY'
@@ -103,6 +150,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pinned-cpp-moose-syntax
-          path: cpp-parser-evidence.json
+          path: |
+            cpp-parser-evidence.json
+            cpp-compiler-evidence.json
           if-no-files-found: error
           retention-days: 30

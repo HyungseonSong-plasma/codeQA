@@ -40,3 +40,16 @@ release, input DSL grammar and reserved-vs-customizable key adjudication;
 Rust trait/compiler evidence and human Naming approval. All remain
 `NOT_EVALUATED` pending separate evidence. No source/DSL migration,
 rename or production authorization is issued.
+
+## Independent controlled C++ compiler check (non-production)
+
+The same mixed-source CI now **requires** available `clang++` and `g++`
+to execute all eight existing positive/negative C++17 virtual override
+fixtures, with `-fsyntax-only -Werror` and **zero skipped tests**. It
+uploads `cpp-compiler-evidence.json` beside the parser receipt, including
+observed compiler versions, exact fixture digests and the explicitly
+unlocked `VERSION_OBSERVED_NOT_INDEPENDENTLY_PINNED` toolchain status.
+The Ubuntu runner is not an immutable compiler binary/dependency manifest.
+This is **actual controlled compiler evidence**, but **not** proof of
+real MOOSE framework headers, SDK/DSL naming, public ABI, dynamic consumers
+or any production compatibility window. Those remain `NOT_EVALUATED`.
