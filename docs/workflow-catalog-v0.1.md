@@ -90,3 +90,13 @@ block-form YAML, **not** a full GitHub Actions YAML parser, a proof that a
 runner executed every command, or a substitute for live ruleset readback.
 A future legitimate change to the required job needs reviewed guard evolution
 and exact-head CI before any merge.
+
+## Required checkout source selection integrity
+
+The required `layout` workflow's checkout step must contain exactly one
+`actions/checkout@v4` action and the reviewed `fetch-depth: 0` option.
+A duplicate action key, unreviewed `ref`, alternate `repository`, or
+checkout `path` is rejected by the catalog's narrow static guard. Otherwise
+an unrelated source tree could be tested under the required `layout` context.
+This is a source-shape invariant, not a replacement for independently
+observed exact-head GitHub Actions and active branch ruleset evidence.
