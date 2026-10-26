@@ -10,6 +10,9 @@ on:
       - 'tests/test_naming_snapshot_coverage_v03.py'
       - 'tests/test_naming_review_worklist_v03.py'
       - 'tests/test_naming_batch1_contract_v03.py'
+      - 'tests/test_naming_field_classification_v03.py'
+      - 'src/codeqa/core/naming_field_classification_v03.py'
+      - 'docs/naming-field-classification-v03.md'
       - 'fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json'
       - 'docs/naming-review-worklist-v03.md'
       - 'fixtures/naming-governance/codeqa-ast-review-v03-proposal.json'
@@ -27,6 +30,9 @@ on:
       - 'tests/test_naming_snapshot_coverage_v03.py'
       - 'tests/test_naming_review_worklist_v03.py'
       - 'tests/test_naming_batch1_contract_v03.py'
+      - 'tests/test_naming_field_classification_v03.py'
+      - 'src/codeqa/core/naming_field_classification_v03.py'
+      - 'docs/naming-field-classification-v03.md'
       - 'fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json'
       - 'docs/naming-review-worklist-v03.md'
       - 'fixtures/naming-governance/codeqa-ast-review-v03-proposal.json'
@@ -57,6 +63,7 @@ jobs:
           CODEQA_NAMING_PINNED_REV: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           python -m unittest discover -s tests -p 'test_naming_batch1_contract_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_field_classification_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_snapshot_coverage_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_review_worklist_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_policy_precedence_v03.py' -v
