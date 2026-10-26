@@ -394,11 +394,22 @@ def test_extended_orm(contract: dict) -> dict:
     migration = expected["migration"]
     need(migration["from"] == "fixture_v0" and migration["to"] == "fixture_v1",
          "UNVERSIONED_CONTROLLED_MIGRATION")
-    need(after == sorted(expected["after_columns"])
-         and added == migration["added_columns"] and removed == migration["removed_columns"],
-         "VERSIONED_SQLITE_MIGRATION_DRIFT")
-    # A deliberately wrong versioned expected diff must be rejected.
-    need(added != ["renamed_or_missing_column"], "MIGRATION_NEGATIVE_CONTROL_FAILED")
+    def verify_migration(columns: list[str], added_expected: list[str],
+                         removed_expected: list[str]) -> None:
+        need(after == sorted(columns)
+             and added == added_expected and removed == removed_expected,
+             "VERSIONED_SQLITE_MIGRATION_DRIFT")
+    verify_migration(expected["after_columns"],
+                     migration["added_columns"], migration["removed_columns"])
+    # Negative: the exact same reflected DB cannot satisfy a forged migration.
+    try:
+        verify_migration(expected["after_columns"],
+                         ["renamed_or_missing_column"], migration["removed_columns"])
+    except RuntimeError as exc:
+        need(str(exc) == "VERSIONED_SQLITE_MIGRATION_DRIFT",
+             "MIGRATION_NEGATIVE_WRONG_FAILURE")
+    else:
+        raise RuntimeError("MIGRATION_NEGATIVE_CONTROL_FAILED")
     print("SQLALCHEMY_EXTENDED=PASS inheritance=JOINED computed=REFLECTED "
           "migration=fixture_v0_to_v1 compatibility=CONTROLLED_ONLY")
     engine.dispose()
