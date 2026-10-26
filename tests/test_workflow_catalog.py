@@ -111,6 +111,54 @@ class WorkflowCatalogTests(unittest.TestCase):
         )
         self._bad(lambda d: None, sources=sources)
 
+    def test_required_steps_cannot_be_disabled_individually(self):
+        path = ".github/workflows/layout.yml"
+        for step_name in (
+            "Verify CCG Core, contracts, layout and frozen policy tests",
+            "Evaluate directory roles and versioned semantic architecture evidence",
+        ):
+            with self.subTest(step_name=step_name):
+                sources = dict(self.sources)
+                sources[path] = sources[path].replace(
+                    "      - name: " + step_name + "\n",
+                    "      - name: " + step_name + "\n        if: false\n",
+                )
+                self._bad(lambda d: None, sources=sources)
+
+    def test_required_commands_must_execute_not_echo_or_ignore_errors(self):
+        path = ".github/workflows/layout.yml"
+        command = "python3 -m unittest discover -s tests -p 'test_*.py' -v"
+        for altered in ("echo " + command, command + " || true", "# " + command):
+            with self.subTest(altered=altered):
+                sources = dict(self.sources)
+                sources[path] = sources[path].replace(
+                    "run: " + command, "run: " + altered,
+                )
+                self._bad(lambda d: None, sources=sources)
+
+    def test_frozen_policy_step_cannot_be_skipped_or_replaced_by_echo(self):
+        path = ".github/workflows/layout.yml"
+        for original, replacement in (
+            ("if: github.event_name == 'pull_request' || github.event_name == 'push'",
+             "if: false"),
+            ("python3 -m codeqa.governance.frozen_policy",
+             "echo python3 -m codeqa.governance.frozen_policy"),
+            ("--resource-id repository_layout", "--resource-id repository_layout || true"),
+        ):
+            with self.subTest(replacement=replacement):
+                sources = dict(self.sources)
+                sources[path] = sources[path].replace(original, replacement)
+                self._bad(lambda d: None, sources=sources)
+
+    def test_duplicate_required_step_label_rejected(self):
+        path = ".github/workflows/layout.yml"
+        sources = dict(self.sources)
+        sources[path] = sources[path].replace(
+            "      - name: Evaluate directory roles and versioned semantic architecture evidence\n",
+            "      - name: Verify CCG Core, contracts, layout and frozen policy tests\n",
+        )
+        self._bad(lambda d: None, sources=sources)
+
     def test_artifact_upload_drift_rejected(self):
         self._bad(lambda d: next(e for e in d["workflows"] if e["path"].endswith("layout.yml")).update(
             artifact_upload_count=999

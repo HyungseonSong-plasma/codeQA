@@ -88,11 +88,57 @@ def _required_layout_executable(text: str) -> bool:
         return False
     if re.search(r"(?m)^[ \t]+continue-on-error:", body):
         return False
-    return all(marker in body for marker in (
-        "python3 -m unittest discover -s tests",
-        "python3 .github/scripts/semantic_layout_audit.py",
-        "--resource-id repository_layout",
-    ))
+    # A command merely present in a comment, echo, disabled step or
+    # ignored-error shell line does not constitute an executable guard.
+    # Parse the small, repository-owned required-job step shape strictly;
+    # this is intentionally NOT a general GitHub Actions interpreter.
+    if not re.search(r"(?m)^    steps:[ \\t]*$", body):
+        return False
+    parts = re.split(r"(?m)^      - name: ", body)
+    steps: dict[str, str] = {}
+    for raw in parts[1:]:
+        title, separator, content = raw.partition("\n")
+        if not separator or title in steps:
+            return False
+        steps[title] = content
+
+    mandatory = {
+        "Verify CCG Core, contracts, layout and frozen policy tests":
+            "python3 -m unittest discover -s tests -p 'test_*.py' -v",
+        "Evaluate directory roles and versioned semantic architecture evidence":
+            "python3 .github/scripts/semantic_layout_audit.py",
+    }
+    for name, expected in mandatory.items():
+        step = steps.get(name)
+        if step is None or re.search(r"(?m)^        (?:if|working-directory):", step):
+            return False
+        commands = re.findall(r"(?m)^        run: ([^\\n]*)$", step)
+        if commands != [expected]:
+            return False
+
+    checkout = steps.get("Checkout exact revision and policy baseline")
+    if (checkout is None or
+            not re.search(r"(?m)^        uses: actions/checkout@v4[ \\t]*$", checkout)
+            or re.search(r"(?m)^        (?:if|working-directory):", checkout)):
+        return False
+
+    frozen = steps.get("Compare frozen policy to trusted base commit")
+    if frozen is None:
+        return False
+    condition = re.findall(r"(?m)^        if: ([^\\n]*)$", frozen)
+    if condition != ["github.event_name == 'pull_request' || github.event_name == 'push'"]:
+        return False
+    if re.search(r"(?m)^        working-directory:", frozen):
+        return False
+    run = re.search(r"(?m)^        run: \\|[ \\t]*\\n((?:          .*\\n|[ \\t]*\\n)*)", frozen)
+    if run is None or len(re.findall(r"(?m)^        run:", frozen)) != 1:
+        return False
+    commands = [line[10:] for line in run.group(1).splitlines() if line.strip()]
+    return commands == [
+        "python3 -m codeqa.governance.frozen_policy " + chr(92),
+        '  --base-sha "$CODEQA_BASE_SHA" ' + chr(92),
+        "  --resource-id repository_layout",
+    ]
 
 
 def validate_workflow_catalog(
