@@ -125,27 +125,77 @@ def parse_cpp_syntax(
                 return result
         return None
 
-    def visit(node, context: str | None = None):
-        local = context
-        if node.type in ("preproc_include", "preproc_def", "preproc_call",
-                         "preproc_if", "preproc_ifdef"):
+    def has_function_declarator(node) -> bool:
+        """Classify a syntactic function declarator, not its resolved signature."""
+        if node is None:
+            return False
+        return (node.type == "function_declarator"
+                or any(has_function_declarator(c) for c in node.named_children))
+
+    def visit(node, owners: tuple[str, ...] = ()):
+        # The owner path is *lexical*. A qualified definition such as
+        # Engine::run still requires compiler name-resolution evidence.
+        local = owners
+        if node.type in ("preproc_include", "preproc_def", "preproc_function_def",
+                         "preproc_call", "preproc_if", "preproc_ifdef",
+                         "preproc_elif", "preproc_else"):
             unknowns.add("PREPROCESSOR_EXPANSION_NOT_EVALUATED")
         if node.type == "template_declaration":
             unknowns.add("TEMPLATE_BINDING_NOT_EVALUATED")
-        if node.type in kinds:
-            named = (node.child_by_field_name("name")
-                     if node.type != "function_definition" else None)
-            if node.type in ("function_definition", "field_declaration"):
-                named = node.child_by_field_name("declarator")
-            spelling = declarator_name(named)
-            if spelling:
+        if node.type == "linkage_specification":
+            unknowns.add("EXPORT_VISIBILITY_AND_ABI_NOT_EVALUATED")
+
+        # A macro name can be observed without expanding the macro.
+        if node.type in ("preproc_def", "preproc_function_def"):
+            line = decode(node).splitlines()[0]
+            match = re.match(r"#\s*define\s+([A-Za-z_][A-Za-z_0-9]*)", line)
+            if match:
                 declarations.append(CppDeclaration(
-                    kind=kinds[node.type], spelling=spelling,
-                    line=node.start_point.row + 1, container=context,
+                    kind="macro_definition", spelling=match.group(1),
+                    line=node.start_point.row + 1,
+                    container="::".join(owners) or None,
                 ))
-                if node.type in ("class_specifier", "struct_specifier",
-                                 "namespace_definition"):
-                    local = spelling
+            else:
+                unknowns.add("MACRO_NAME_NOT_EVALUATED")
+
+        owner_nodes = ("namespace_definition", "class_specifier",
+                       "struct_specifier", "union_specifier")
+        if node.type in kinds or node.type in ("declaration", "union_specifier"):
+            if node.type in ("function_definition", "field_declaration", "declaration"):
+                declarator = node.child_by_field_name("declarator")
+                spelling = declarator_name(declarator)
+            else:
+                name = node.child_by_field_name("name")
+                spelling = decode(name) if name else None
+                declarator = None
+
+            kind = kinds.get(node.type)
+            if node.type == "union_specifier":
+                kind = "union"
+            elif node.type == "declaration":
+                kind = ("function_declaration"
+                        if has_function_declarator(declarator) else None)
+            elif node.type == "field_declaration" and has_function_declarator(declarator):
+                kind = "method_declaration"
+
+            if spelling and kind:
+                declarations.append(CppDeclaration(
+                    kind=kind, spelling=spelling,
+                    line=node.start_point.row + 1,
+                    container="::".join(owners) or None,
+                ))
+                if "::" in spelling and node.type in ("function_definition", "declaration"):
+                    unknowns.add("QUALIFIED_MEMBER_BINDING_NOT_EVALUATED")
+
+            if node.type in owner_nodes:
+                if spelling:
+                    # Preserve every lexical scope, not just the nearest owner.
+                    local = (*owners, spelling)
+                else:
+                    # Anonymous scopes must not be silently collapsed.
+                    label = f"<unnamed-{node.type}@{node.start_point.row + 1}>"
+                    local = (*owners, label)
+                    unknowns.add("UNNAMED_OWNER_SCOPE_NOT_EVALUATED")
         for child in node.named_children:
             visit(child, local)
 
