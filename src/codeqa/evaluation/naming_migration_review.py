@@ -89,6 +89,9 @@ def prepare_migration_review_packet(
     verify(after_sources, after_sha256)
     if not set(proposal.selected_paths).issubset(before_sources):
         raise MigrationPlanError("rename proposal references unselected source")
+    if type(source_selection_complete) is not bool:
+        raise MigrationPlanError("source selection completeness must be a Boolean")
+
     if (not isinstance(compatibility_window, str) or not compatibility_window.strip()
             or not isinstance(staged_steps, tuple) or not staged_steps
             or not isinstance(rollback_steps, tuple) or not rollback_steps
@@ -106,6 +109,13 @@ def prepare_migration_review_packet(
         raise MigrationPlanError("invalid or ambiguous explicit source rename mapping")
     mapped = {path_renames.get(path, path) for path in before_sources}
     unknowns = set(proposal.unknowns)
+    # The v0.2 draft RenameImpactReport carries revision/path/name metadata
+    # but no complete source-manifest digest or applied policy fingerprint.
+    # Same revision string alone cannot bind that proposal to these bytes.
+    unknowns.add("proposal_source_manifest_binding_not_evaluated")
+    unknowns.add("proposal_policy_fingerprint_not_attested")
+    if set(proposal.selected_paths) != set(before_sources):
+        unknowns.add("proposal_source_selection_differs")
     if mapped != set(after_sources):
         unknowns.add("selected_source_path_coverage_drift")
     if not source_selection_complete:
