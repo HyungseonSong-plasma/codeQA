@@ -105,6 +105,18 @@ class RenameImpactTests(unittest.TestCase):
         Draft202012Validator(schema).validate(report.to_document())
         self.assertFalse(report.to_document()["mutation_performed"])
 
+    def test_invalid_python_target_identifier_is_not_a_migration_candidate(self):
+        for bad in ("class", "with space", "bad-name", "qualified.name",
+                    "bad/name", "line\nbreak", "9leading"):
+            with self.subTest(bad=repr(bad)):
+                with self.assertRaisesRegex(RenameImpactError, "Python rename target"):
+                    self.assess(proposed_name=bad)
+
+    def test_unicode_python_identifier_remains_unverified_proposal(self):
+        report = self.assess(proposed_name="Δposition")
+        self.assertEqual(report.verdict, "UNVERIFIED_PROPOSAL")
+        self.assertEqual(report.migration_plan, "HUMAN_REVIEW_REQUIRED")
+
     def test_invalid_policy_and_identity_rejected(self):
         with self.assertRaises(RenameImpactError):
             self.assess(policy_id="../not-pinned")

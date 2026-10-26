@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 from collections.abc import Mapping
+import keyword
 import re
 
 _REV = re.compile(r"git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}\Z")
@@ -121,6 +122,12 @@ def assess_rename_impact(
         raise RenameImpactError("invalid declaration identity")
     if not isinstance(proposed_name, str) or not proposed_name or proposed_name == symbol.name:
         raise RenameImpactError("proposal must change an identifier")
+    # Python source migration suggestions must at least be syntactically
+    # expressible as identifiers; this is not a binding or public API proof.
+    if symbol.path.endswith((".py", ".pyi")) and (
+        not proposed_name.isidentifier() or keyword.iskeyword(proposed_name)
+    ):
+        raise RenameImpactError("invalid Python rename target identifier")
     source = _verify_source(symbol.path, symbol.source_sha256, sources)
     if not _lexical_name(_line(source, symbol.line), symbol.name):
         raise RenameImpactError("declaration lexical witness missing")
