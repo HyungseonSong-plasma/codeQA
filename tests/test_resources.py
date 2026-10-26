@@ -86,6 +86,12 @@ class ResourceRegistryTests(unittest.TestCase):
             "profiles//first.json",
             "profiles/./first.json",
             "C:\\outside\\policy.json",
+            "profiles/bad\x00.json",
+            "profiles/bad\n.json",
+            "profiles/name.json:stream",
+            "profiles/CON.json",
+            "profiles/cafe\u0301.json",
+            "profiles/name.json.",
             "",
         ):
             with self.subTest(path=path):
