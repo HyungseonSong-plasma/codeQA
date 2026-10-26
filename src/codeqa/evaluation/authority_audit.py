@@ -123,7 +123,7 @@ def audit_authority_propagation(
             reasons.add("RECEIPT_SOURCE_MISMATCH")
         ci_match = (
             re.fullmatch(
-                r"https://github\\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/actions/runs/[1-9][0-9]*",
+                r"https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/actions/runs/[1-9][0-9]*",
                 url,
             )
             if isinstance(url, str) else None
