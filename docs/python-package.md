@@ -142,3 +142,13 @@ member prefix conflicts **before creating the destination directory**;
 otherwise extraction could fail after partially writing a resource root.
 This remains a local integrity check, not a signed source attestation or
 protection against concurrent filesystem modification.
+
+## Consistent strict JSON loading (#125)
+
+The explicit `ResourceRegistry.load_json` path and the verified ZIP unpacker
+now both reject duplicate JSON object keys (including nested duplicates),
+non-standard `NaN`/`Infinity` constants and floating-point exponent overflow
+(e.g. `1e9999`). Previously the bundle's registered JSON check rejected the
+first two but could accept overflow; the standalone registry accepted all
+three. These are deterministic parse-integrity checks, not schema validation,
+cryptographic authenticity or an independently verified consumer release.
