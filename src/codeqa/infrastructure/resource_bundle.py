@@ -31,7 +31,8 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 def _safe_path(value: Any) -> bool:
     return (
         isinstance(value, str) and bool(value)
-        and not value.startswith("/") and "\\" not in value and "\x00" not in value
+        and not value.startswith("/") and "\\" not in value
+        and not any(ord(c) < 32 or ord(c) == 127 for c in value)
         and all(part not in ("", ".", "..") for part in value.split("/"))
         and not (len(value) > 1 and value[1] == ":")
     )
