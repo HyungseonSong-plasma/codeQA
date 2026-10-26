@@ -9,6 +9,9 @@ on:
       - 'contracts/**'
       - '.github/scripts/build_resource_bundle.py'
       - '.github/scripts/package_smoke.py'
+      - '.github/scripts/naming_batch1_installed_smoke.py'
+      - 'tests/test_naming_batch1_contract_v03.py'
+      - 'fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json'
       - '.github/workflows/python-package.yml'
       - 'docs/python-package.md'
   push:
@@ -20,6 +23,9 @@ on:
       - 'contracts/**'
       - '.github/scripts/build_resource_bundle.py'
       - '.github/scripts/package_smoke.py'
+      - '.github/scripts/naming_batch1_installed_smoke.py'
+      - 'tests/test_naming_batch1_contract_v03.py'
+      - 'fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json'
       - '.github/workflows/python-package.yml'
       - 'docs/python-package.md'
   workflow_dispatch:
@@ -82,6 +88,8 @@ jobs:
             --bundle "$GITHUB_WORKSPACE/dist/codeqa-resource-bundle-${VERSION}.zip" \
             --source-root "$GITHUB_WORKSPACE" \
             --source-revision "$CODEQA_SOURCE_SHA" --version "$VERSION"
+          "$RUNNER_TEMP/codeqa-wheel/bin/python" -I \
+            "$GITHUB_WORKSPACE/.github/scripts/naming_batch1_installed_smoke.py"
       - name: Install and smoke-test the isolated sdist
         env:
           CODEQA_SOURCE_SHA: ${{ github.sha }}
@@ -97,6 +105,8 @@ jobs:
             --bundle "$GITHUB_WORKSPACE/dist/codeqa-resource-bundle-${VERSION}.zip" \
             --source-root "$GITHUB_WORKSPACE" \
             --source-revision "$CODEQA_SOURCE_SHA" --version "$VERSION"
+          "$RUNNER_TEMP/codeqa-sdist/bin/python" -I \
+            "$GITHUB_WORKSPACE/.github/scripts/naming_batch1_installed_smoke.py"
       - name: Upload candidate dist and SHA-256 checksums (not a release)
         if: always()
         uses: actions/upload-artifact@v4

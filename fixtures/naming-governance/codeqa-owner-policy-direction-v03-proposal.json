@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.3-owner-policy-direction-proposal",
+  "review_status": "PENDING_FINAL_ADJUDICATION",
+  "adoption_status": "NOT_ADOPTED",
+  "issue": 91,
+  "owner_decision_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6413057026",
+  "source_witness": {
+    "repository": "HyungseonSong-plasma/codeQA",
+    "commit": "dfd94bb25d52642bb2e46766b1ebe074c2f82803",
+    "path": "src/codeqa/core/naming_glossary.py",
+    "git_blob_sha": "e5da126ead5f25c2eb3be5bb0e16d1c09a430df4",
+    "sha256": "09b89f5f492f6d449257e1c6baa4bc1ea98dedd17e93b9f13ced1c62fbcd9d2c",
+    "commit_blob_attestation": "REQUIRED_SEPARATELY"
+  },
+  "terms": [
+    {
+      "canonical": "time_step",
+      "explicit_noncanonical_aliases": [
+        "timestep"
+      ],
+      "allowed_symbol_kinds": [
+        "function",
+        "method",
+        "parameter",
+        "field"
+      ],
+      "meaning": "PENDING_DOMAIN_EVIDENCE",
+      "excluded_inferred_synonyms": [
+        "timestamp",
+        "time_stamp",
+        "step",
+        "dt"
+      ]
+    },
+    {
+      "canonical": "node_id",
+      "explicit_noncanonical_aliases": [
+        "nodeid"
+      ],
+      "allowed_symbol_kinds": [
+        "function",
+        "method",
+        "parameter",
+        "field"
+      ],
+      "meaning": "PENDING_DOMAIN_EVIDENCE",
+      "excluded_inferred_synonyms": [
+        "node",
+        "id",
+        "inode",
+        "vnode"
+      ]
+    }
+  ],
+  "applicability": {
+    "language": "python",
+    "mode": "EXPLICIT_OPT_IN_ONLY",
+    "repository": "HyungseonSong-plasma/codeQA",
+    "approved_symbol_kinds": [
+      "function",
+      "method",
+      "parameter",
+      "field"
+    ],
+    "path_scopes": [],
+    "path_scopes_status": "REQUIRES_EXPLICIT_OWNER_SCOPE_BEFORE_USE",
+    "external_api_sdk_dto_db_vendor_generated": "EXCLUDED_FROM_AUTOMATIC_RENAME_AND_COMPATIBILITY_PASS",
+    "other_languages": "NOT_EVALUATED"
+  },
+  "declaration_ground_truth": {
+    "method": "PINNED_SOURCE_AST_SITE",
+    "inventory_fixture": "fixtures/naming-governance/codeqa-python-inventory-review-candidates-v02.json",
+    "negative_fixture": "fixtures/naming-governance/codeqa-negative-control-review-candidates-v02.json",
+    "inventory_human_signature": null,
+    "negative_human_signature": null,
+    "reviewer_ai": "Grok 4.5 (xAI); candidate review only",
+    "decorator_calls_are_rename_targets": false,
+    "locals_loop_targets_auto_eligible": false
+  },
+  "governance": {
+    "final_approval_role": "project_owner",
+    "adoption_date": null,
+    "review_interval_days": 180,
+    "next_review_date": null,
+    "exceptions": [],
+    "exception_required_fields": [
+      "owner",
+      "reason",
+      "exact_scope",
+      "expires_on"
+    ],
+    "expired_ambiguous_unowned_exception": "FAIL_CLOSED"
+  },
+  "safety": {
+    "semantic_proven": false,
+    "human_review_required": true,
+    "automatic_rename_authorized": false,
+    "pr_merge_authorized": false,
+    "issue_closure_authorized": false,
+    "frozen_v01_contracts_unchanged": true,
+    "check_candidate_is_pass": false,
+    "physical_unit_suffix_semantics": "LEXICAL_ONLY"
+  }
+}

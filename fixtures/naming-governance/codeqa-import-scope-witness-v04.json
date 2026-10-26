@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.4-pinned-import-source-gate",
+  "source_commit": "0177958aeb82ecdb019655244e35aef97e9e0fea",
+  "source_tree_sha": "733afb47bda364d61976ebf82c3e188fde665e44",
+  "declaration": {
+    "path": "src/codeqa/core/complexity.py",
+    "blob_sha": "3b883e0daaf915b653da07650c533317a596623b",
+    "owner": "ControlFlowObservation",
+    "field_name": "node_id",
+    "line": 10
+  },
+  "consumers": [
+    {
+      "path": "src/codeqa/adapters/python_complexity.py",
+      "blob_sha": "caadcb45638869efc327f589d3a300c8ba2d9456",
+      "import_line": 12
+    },
+    {
+      "path": "src/codeqa/evaluation/complexity.py",
+      "blob_sha": "31587ca465dc2659c806cf6858715bb55c3e64c1",
+      "import_line": 8
+    }
+  ],
+  "external_client_evidence": "NOT_SUPPLIED",
+  "owner_approval": "NOT_ADOPTED",
+  "glossary_policy": "NOT_ADOPTED",
+  "rename_authorized": false
+}
