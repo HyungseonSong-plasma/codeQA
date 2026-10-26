@@ -92,7 +92,7 @@ def _required_layout_executable(text: str) -> bool:
     # ignored-error shell line does not constitute an executable guard.
     # Parse the small, repository-owned required-job step shape strictly;
     # this is intentionally NOT a general GitHub Actions interpreter.
-    if not re.search(r"(?m)^    steps:[ \\t]*$", body):
+    if not re.search(r"(?m)^    steps:[ \t]*$", body):
         return False
     parts = re.split(r"(?m)^      - name: ", body)
     steps: dict[str, str] = {}
@@ -112,25 +112,25 @@ def _required_layout_executable(text: str) -> bool:
         step = steps.get(name)
         if step is None or re.search(r"(?m)^        (?:if|working-directory):", step):
             return False
-        commands = re.findall(r"(?m)^        run: ([^\\n]*)$", step)
+        commands = re.findall(r"(?m)^        run: ([^\n]*)$", step)
         if commands != [expected]:
             return False
 
     checkout = steps.get("Checkout exact revision and policy baseline")
     if (checkout is None or
-            not re.search(r"(?m)^        uses: actions/checkout@v4[ \\t]*$", checkout)
+            not re.search(r"(?m)^        uses: actions/checkout@v4[ \t]*$", checkout)
             or re.search(r"(?m)^        (?:if|working-directory):", checkout)):
         return False
 
     frozen = steps.get("Compare frozen policy to trusted base commit")
     if frozen is None:
         return False
-    condition = re.findall(r"(?m)^        if: ([^\\n]*)$", frozen)
+    condition = re.findall(r"(?m)^        if: ([^\n]*)$", frozen)
     if condition != ["github.event_name == 'pull_request' || github.event_name == 'push'"]:
         return False
     if re.search(r"(?m)^        working-directory:", frozen):
         return False
-    run = re.search(r"(?m)^        run: \\|[ \\t]*\\n((?:          .*\\n|[ \\t]*\\n)*)", frozen)
+    run = re.search(r"(?m)^        run: \|[ \t]*\n((?:          .*\n|[ \t]*\n)*)", frozen)
     if run is None or len(re.findall(r"(?m)^        run:", frozen)) != 1:
         return False
     commands = [line[10:] for line in run.group(1).splitlines() if line.strip()]
