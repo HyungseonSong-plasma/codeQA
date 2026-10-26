@@ -47,3 +47,18 @@ not a substitute for real compiler, SDK or installed-consumer conformance.
 ## #93 parser-backed Rust source witness (integration only)
 
 The combined #93 parser producer is `codeqa.adapters.rust_parser_evidence:parse_rust_syntax`, exercised by `.github/workflows/rust-parser-evidence.yml` against immutable Rust source. The Rust parser cell remains `PARTIAL_FIXTURE`; successful tree-sitter syntax parsing does **not** establish trait resolution, macro expansion, public ABI, compiler compatibility or a full Rust Mechanical pipeline. The independent #122 and #93 PRs must be reviewed/merged in dependency-safe order before this combined matrix becomes the main-branch source of truth.
+
+## #93 parser-backed C++/MOOSE source witness (integration only)
+
+The combined C++ producer `codeqa.adapters.cpp_parser_evidence:parse_cpp_syntax`
+runs with pinned optional tree-sitter C++ syntax grammar in the existing
+`mixed-source-conformance.yml` workflow. It parses the byte-checked
+`moose-test-repo@1977ad5559e5aa7a1c8d04c83735c15e007130d5`
+`PhysicsApp.C` application specimen and controlled positive/negative C++
+override fixtures. The cell is **PARTIAL_FIXTURE**, not `SUPPORTED_SCOPED`:
+missing framework headers, macro expansion, virtual dispatch, ABI, upstream
+MOOSE framework release and input-DSL grammar remain `NOT_EVALUATED`.
+A syntactically valid but compiler-invalid `override` is explicitly not
+promoted to compiler evidence. The source/entrypoint/workflow and bounded
+limitation are guarded by negative tests on the combined tree. This is
+not an independently approved C++/MOOSE production parser pipeline.
