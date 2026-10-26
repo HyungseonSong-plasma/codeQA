@@ -37,3 +37,14 @@ A reviewer must supply an approved migration plan and regression scope,
 sign off on public/SDK/DTO/SQL/Rust/C++/MOOSE boundary evidence, and approve
 the source-scope, policy and reference completeness. An approved plan is a
 separate document and does **not** authorize automated source rewriting.
+
+## Python proposal syntax preflight (bounded)
+
+For `.py` and `.pyi` source declarations, a proposed replacement name
+must pass Python's `str.isidentifier()` and not be a reserved keyword.
+Invalid suggestions such as `class`, `bad-name`, qualified names or
+control-character names fail before creating a migration review packet.
+A syntactically valid Unicode identifier is still only
+`UNVERIFIED_PROPOSAL`: confusables, external aliases, bindings,
+runtime reflection and public API compatibility require separate
+human/consumer evidence. This does not execute or authorize a rename.
