@@ -41,6 +41,7 @@ REQUIRED = {
 PROTECTED_BOUNDARIES = {
     "python_naming_safe": ("OPT_IN", "SCOPED_REVIEW", "PYTHON_DECLARATION_SPELLING_ONLY"),
     "naming_companions": ("OPT_IN", "SCOPED_REVIEW", "EXPERIMENTAL_DECLARATION_WITNESSES"),
+    "official_naming_v05_exact_field": ("OPT_IN", "SCOPED_REVIEW", "EXACT_FIELD_LEXICAL_ONLY"),
     "external_evidence_gate": ("OPT_IN", "SCOPED_GATE", "PINNED_ADMITTED_EXTERNAL_EVIDENCE_ONLY"),
     "qa_result_contract": ("CONTRACT_ONLY", "CONTRACT_ONLY", "SCOPED_MECHANICAL_EXCHANGE_ONLY"),
     "formal_generated_fixture": ("FIXTURE_ONLY", "FIXTURE_ONLY", "CONTROLLED_GENERATED_PYTHON_FIXTURE"),
@@ -59,6 +60,7 @@ PROTECTED_SOURCE_IDENTITIES = {
     "python_mechanical": (("Python",), "codeqa.pipeline.python:analyze_python"),
     "python_naming_safe": (("Python",), "codeqa.evaluation.naming:evaluate_naming"),
     "naming_companions": (("Python",), "codeqa.evaluation.naming:evaluate_naming"),
+    "official_naming_v05_exact_field": (("Python",), "codeqa.pipeline.naming_official_policy_v05:evaluate_pinned_official_naming_v05"),
     "external_evidence_gate": (("language-neutral",), "codeqa.evaluation.evidence_gate:evaluate_gate"),
     "formal_generated_fixture": (("Dafny", "Python"), "codeqa.evaluation.formal_generated_gate:evaluate_generated_fixture_gate"),
     "qa_result_contract": (("language-neutral", "Python"), "codeqa.evaluation.qa_result:validate_qa_result"),
