@@ -41,6 +41,60 @@ def _events(text: str) -> list[str]:
     return sorted(events)
 
 
+def _layout_job_sources(text: str) -> tuple[bool, int]:
+    """Locate required job IDs/names without assuming that CI actually ran.
+
+    The required status context must be unique across every tracked workflow.
+    """
+    jobs = re.search(r"(?ms)^jobs:[ \t]*\n(.*?)(?=^[^ \t#\n][^\n]*:|\Z)", text)
+    if not jobs:
+        return False, 0
+    body = jobs.group(1)
+    job_ids = re.findall(r"(?m)^  ([A-Za-z_][\w-]*):[ \t]*(?:#.*)?$", body)
+    named = re.findall(r"""(?m)^    name:[ \t]*['"]?layout['"]?[ \t]*(?:#.*)?$""", body)
+    return "layout" in job_ids, len(named)
+
+
+def _required_layout_executable(text: str) -> bool:
+    """Fail closed on filtered PR events, conditional jobs and bypassed checks.
+
+    This is a static source constraint, not independent Actions execution proof.
+    """
+    on_block = re.search(r"(?m)^on:[ \t]*\n((?:[ \t]+.*\n|[ \t]*\n)*)", text)
+    if not on_block:
+        return False
+    event_lines = on_block.group(1).splitlines()
+    for i, line in enumerate(event_lines):
+        if line == "  pull_request:":
+            for following in event_lines[i + 1:]:
+                if following.startswith("  ") and not following.startswith("    ") and following.strip():
+                    break
+                if following.strip() and not following.lstrip().startswith("#"):
+                    return False
+            break
+    else:
+        return False
+    jobs = re.search(r"(?ms)^jobs:[ \t]*\n(.*?)(?=^[^ \t#\n][^\n]*:|\Z)", text)
+    if not jobs:
+        return False
+    block = jobs.group(1)
+    match = re.search(r"(?m)^  layout:[ \t]*(?:#.*)?$", block)
+    if not match:
+        return False
+    remainder = block[match.end():]
+    next_job = re.search(r"(?m)^  [A-Za-z_][\w-]*:[ \t]*(?:#.*)?$", remainder)
+    body = remainder[:next_job.start()] if next_job else remainder
+    if re.search(r"(?m)^    (?:if|needs|strategy|continue-on-error):", body):
+        return False
+    if re.search(r"(?m)^[ \t]+continue-on-error:", body):
+        return False
+    return all(marker in body for marker in (
+        "python3 -m unittest discover -s tests",
+        "python3 .github/scripts/semantic_layout_audit.py",
+        "--resource-id repository_layout",
+    ))
+
+
 def validate_workflow_catalog(
     manifest: Mapping[str, Any], tracked_paths: list[str],
     workflow_sources: Mapping[str, str],
@@ -87,15 +141,20 @@ def validate_workflow_catalog(
         observed_uploads = len(re.findall(r"uses:\s*actions/upload-artifact@", text))
         if type(entry["artifact_upload_count"]) is not int or entry["artifact_upload_count"] != observed_uploads:
             raise WorkflowCatalogError("workflow artifact upload count drift")
+        has_layout_id, layout_names = _layout_job_sources(text)
         if category == "required":
             required.append(path)
             if (entry["required_check"] != REQUIRED_CONTEXT
                     or entry["required_status"] != "OBSERVED_REQUIRED_BY_RULESET_25360323"
-                    or len(re.findall(r"(?m)^\s{4}name:\s*layout\s*$", text)) != 1):
-                raise WorkflowCatalogError("required check must be evidenced by ruleset and job name")
-        elif (entry["required_check"] is not None
-              or entry["required_status"] != "NOT_REQUIRED_BY_OBSERVED_RULESET"):
-            raise WorkflowCatalogError("non-required workflow claims required check")
+                    or not has_layout_id or layout_names != 1
+                    or not _required_layout_executable(text)):
+                raise WorkflowCatalogError("required layout job must be unique, PR-runnable and guarded")
+        else:
+            if has_layout_id or layout_names:
+                raise WorkflowCatalogError("non-required workflow shadows required layout check")
+            if (entry["required_check"] is not None
+                    or entry["required_status"] != "NOT_REQUIRED_BY_OBSERVED_RULESET"):
+                raise WorkflowCatalogError("non-required workflow claims required check")
     if sorted(recorded) != actual or len(set(recorded)) != len(recorded):
         raise WorkflowCatalogError("unclassified, stale or duplicate workflow paths")
     if required != [".github/workflows/layout.yml"]:
