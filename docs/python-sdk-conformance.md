@@ -168,3 +168,10 @@ The numeric `filesAnalyzed` count is a minimum completeness check, **not** an
 independent file-by-file scan manifest. This still does not prove public SDK
 consumer compatibility, production callback dispatch or deployed schema/DB
 migration safety; those remain `NOT_EVALUATED` pending independent evidence.
+
+The runner additionally re-reads the exact temporary `contract.py` and
+optional `public_sdk.py` copies both before and after the external analyzer
+invocation, rejecting changed bytes. A dedicated mocked-tool negative test
+mutates the scanned source mid-run and requires rejection. This guards the
+controlled temporary inputs but does not authenticate a third-party runner or
+establish independent production consumer provenance.
