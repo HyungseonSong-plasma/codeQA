@@ -146,6 +146,34 @@ class ResourceBundleTests(unittest.TestCase):
             })))
         self.assertFalse((self.root / "extracted").exists())
 
+    def test_file_directory_prefix_conflict_rejected_before_any_write(self):
+        # Both archives are otherwise self-consistent: the manifest hashes,
+        # TOML registry and all registered JSON bytes agree. The second case
+        # aliases the parent file only on case-insensitive filesystems.
+        for parent in ("profiles/mechanical.json", "profiles/Mechanical.json"):
+            with self.subTest(parent=parent):
+                child = "profiles/mechanical.json/child.json"
+                self.registry = {
+                    "ccg_schema": "contracts/ccg.json",
+                    "mechanical_profile": parent,
+                    "child_profile": child,
+                }
+                config = (
+                    '[project]\nname = "codeqa"\nversion = "' + VERSION + '"\n'
+                    '[tool.codeqa.resources]\n'
+                    'ccg_schema = "contracts/ccg.json"\n'
+                    'mechanical_profile = "' + parent + '"\n'
+                    'child_profile = "' + child + '"\n'
+                ).encode()
+                def modify(files):
+                    files.pop("profiles/mechanical.json")
+                    files[parent] = b'{"max_function_lines": 60}'
+                    files[child] = b'{}'
+                    files["pyproject.toml"] = config
+                with self.assertRaisesRegex(ResourceBundleError, "file/directory path conflict"):
+                    self.unpack(self.bundle(files_change=modify))
+                self.assertFalse((self.root / "extracted").exists())
+
     def test_wrong_registry_identity_fails_closed(self):
         with self.assertRaises(ResourceBundleError):
             self.unpack(self.bundle(manifest_change=lambda m: m["resources"].update(
