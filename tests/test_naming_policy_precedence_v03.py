@@ -280,7 +280,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
 
     def test_string_only_and_missing_scope_remain_lexical_only(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
-        source = 'note = "comment_only"\\n'
+        source = 'note = "comment_only"\n'
         r = p.resolve(**args(
             p, symbol="comment_only", sources={"src/codeqa/physics/electron.py": source},
             expected_source_sha256=sha256(source.encode()).hexdigest(),
