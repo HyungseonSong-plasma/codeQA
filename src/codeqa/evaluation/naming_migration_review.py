@@ -63,7 +63,9 @@ def prepare_migration_review_packet(
     boundary_checkpoints: Mapping[str, str],
 ) -> MigrationReviewPacket:
     left, right = _REV.fullmatch(baseline_revision or ""), _REV.fullmatch(candidate_revision or "")
-    if not left or not right or left.group(1) != right.group(1) or left.group(2) == right.group(2):
+    if (not left or not right or left.group(1) != right.group(1)
+            or left.group(2) == right.group(2)
+            or any(part in (".", "..") for part in left.group(1).split("/"))):
         raise MigrationPlanError("distinct immutable revisions of the same repository required")
     if not isinstance(profile_fingerprint, str) or not _HASH.fullmatch(profile_fingerprint):
         raise MigrationPlanError("versioned applied profile fingerprint required")
