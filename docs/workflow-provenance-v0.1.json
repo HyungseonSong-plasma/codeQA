@@ -37,6 +37,10 @@
       "blob_sha": "b0476e870442d384ee3055f1483adab339cbc788"
     },
     {
+      "path": ".github/workflows/naming-policy-precedence-v03.yml",
+      "blob_sha": "9a88b3c919876c5ae4e0aa57b33605c175aa01d2"
+    },
+    {
       "path": ".github/workflows/naming-python-conformance.yml",
       "blob_sha": "3249433af8fd5fcc477ba77efa35f7b44242f6cb"
     },

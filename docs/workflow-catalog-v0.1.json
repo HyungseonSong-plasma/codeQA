@@ -130,6 +130,20 @@
       "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
     },
     {
+      "path": ".github/workflows/naming-policy-precedence-v03.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
       "path": ".github/workflows/naming-python-conformance.yml",
       "category": "conformance",
       "owner": "codeQA source/conformance",
