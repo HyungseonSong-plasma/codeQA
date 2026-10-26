@@ -78,7 +78,7 @@ def inspect(manifest: dict, sources: dict[str, bytes]) -> dict:
     exports = parse("stripe/__init__.py")
     require(any(isinstance(n, ast.ImportFrom) and n.module == "stripe._webhook"
                 and {"Webhook", "WebhookSignature"}.issubset(
-                    {a.name for a in n.names}) for n in ast.walk(exports)),
+                    {a.name for a in n.names if a.asname == a.name}) for n in ast.walk(exports)),
             "PYTHON_SDK_REEXPORT_DRIFT")
     webhook = parse("stripe/_webhook.py")
     wclass = next((n for n in webhook.body
