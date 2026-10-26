@@ -581,7 +581,7 @@ def main() -> None:
         "Pinned FastAPI TypeScript consumer source is not a Python SDK or a deployed API/DB")
     sdk_run = subprocess.run(
         [sys.executable, str(ROOT / ".github/scripts/public_python_sdk_benchmark.py"),
-         "--output", str(args.output)],
+         "--output", str(args.output), "--pyright", str(args.pyright)],
         cwd=ROOT, capture_output=True, text=True, check=False, timeout=240)
     print(sdk_run.stdout, end="")
     need(sdk_run.returncode == 0, "PUBLIC_PYTHON_SDK_SOURCE_FAILED "
