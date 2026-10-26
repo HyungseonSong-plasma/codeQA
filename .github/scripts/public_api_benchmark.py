@@ -259,7 +259,8 @@ def negative_controls(manifest: dict, sources: dict[str, bytes], tree: dict[str,
                                 if not k.endswith("fe56fa70289e_add_created_at_to_user_and_item.py")}),
                 "missing_migration_tree_edge")
     check_fails(lambda: inspect_contract(manifest, changed(
-                  "frontend/src/client/types.gen.ts", "email: string;", "email_alias: string;")),
+                  "frontend/src/client/types.gen.ts", "export type UserPublic = {",
+                  "export type UserPublic = {\n    email_alias: string;")),
                 "dto_consumer_alias_drift")
     check_fails(lambda: inspect_contract(manifest, changed(
                   "backend/app/api/routes/users.py",
