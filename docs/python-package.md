@@ -84,3 +84,21 @@ No PyPI upload, GitHub Release publishing, automatic tag, signing claim,
 platform-specific binary, MOOSE SDK bundle or source migration is part of this
 work. A public distribution requires an explicit release/publishing decision,
 license/metadata review and separate compatibility review.
+
+## Installed consumer failure modes (#125)
+
+The wheel and sdist smoke now use the shared, opt-in
+`codeqa.infrastructure.resource_bundle.unpack_verified_resource_bundle`
+validator. It verifies the exact version/source SHA, bundled registry against
+`pyproject.toml`, every registered resource path and SHA-256, duplicate/unsafe
+ZIP names, archive/destination symlinks and bounded extraction sizes **before writing files**.
+No checkout-local resource fallback is added. A separate isolated-wheel CI
+step corrupts the actual produced resource ZIP (wrong version/source, content
+tamper, missing and extra resources) and also checks that an unknown
+resource profile ID fails after unpacking the real verified bundle. All six
+negative cases must fail closed. Standalone unit tests exercise additional malformed inputs.
+
+Consumers must pin and verify the bundle against their selected package
+release/commit; neither this validator nor the SHA256SUMS artifact independently
+establishes an external SDK, production DB or deployed source compatibility.
+Human newcomer onboarding success remains `NOT_EVALUATED`.

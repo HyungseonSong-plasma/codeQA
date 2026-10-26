@@ -119,8 +119,8 @@
       ],
       "authority": "SCOPED_REVIEW",
       "scope": "PYTHON_DECLARATION_SPELLING_ONLY",
-      "source": "src/codeqa/evaluation/naming.py",
-      "entrypoint": "codeqa.evaluation.naming:evaluate_naming",
+      "source": "src/codeqa/pipeline/naming_product.py",
+      "entrypoint": "codeqa.pipeline.naming_product:analyze_python_naming_opt_in",
       "evidence": [
         "README.md"
       ],
