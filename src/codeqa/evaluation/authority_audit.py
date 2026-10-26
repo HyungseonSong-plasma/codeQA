@@ -113,10 +113,12 @@ def audit_authority_propagation(
         reasons.add("GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING")
     if not expected_snapshot_id or decision.snapshot_id != expected_snapshot_id:
         reasons.add("SNAPSHOT_MISMATCH_OR_UNPINNED")
-    if (not re.fullmatch(r"[0-9a-f]{64}", expected_policy_fingerprint or "")
+    if (not isinstance(expected_policy_fingerprint, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", expected_policy_fingerprint)
             or decision.policy_fingerprint != expected_policy_fingerprint):
         reasons.add("POLICY_MISMATCH_OR_UNPINNED")
-    if not re.fullmatch(r"[0-9a-f]{40}", expected_source_sha or ""):
+    if (not isinstance(expected_source_sha, str)
+            or not re.fullmatch(r"[0-9a-f]{40}", expected_source_sha)):
         reasons.add("SOURCE_SHA_UNPINNED")
     # A matching opaque snapshot string and separately matching source SHA do
     # not establish that the decision was evaluated against those source bytes.
@@ -186,7 +188,8 @@ def audit_authority_propagation(
         decision_scope=scope, snapshot_id=decision.snapshot_id,
         policy_fingerprint=decision.policy_fingerprint,
         decision_sha256=digest, producer=producer,
-        source_sha=expected_source_sha if re.fullmatch(r"[0-9a-f]{40}", expected_source_sha or "") else None,
+        source_sha=(expected_source_sha if isinstance(expected_source_sha, str)
+                    and re.fullmatch(r"[0-9a-f]{40}", expected_source_sha) else None),
         ci_run_url=url if isinstance(url, str) else None,
         original_authorization=decision.authorization,
         consumer_authorization=consumer,
