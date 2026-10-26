@@ -58,3 +58,13 @@ source cannot satisfy the lexical witness. This remains a conservative
 proposal-only filter: a token is not a resolved declaration, callback, public
 API contract or independently reviewed migration approval. C++/Rust lexical
 witnesses remain parser/ABI NOT_EVALUATED here.
+
+## Producer-side lexical identity negatives
+
+The non-mutating v0.2 draft producer rejects `git:owner/repo@SHA`
+identities with dot-segment owner/repository components and rejects Python
+keyword/non-identifier declaration spellings even if the tokenizer emits a
+`NAME` token. This prevents a caller-supplied syntactically valid keyword
+from masquerading as a renameable Python declaration. The Git label is still
+not independently fetched, and a valid token never proves semantic binding
+or migration safety.
