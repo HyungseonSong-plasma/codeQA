@@ -74,6 +74,13 @@ def validate_language_matrix(root: Path, manifest: Mapping[str, Any]) -> None:
             if lang == "Python" and layer in PYTHON_SCOPE_LIMITS:
                 if status != "SUPPORTED_SCOPED" or cell["limitation"] != PYTHON_SCOPE_LIMITS[layer]:
                     raise LanguageMatrixError("Python syntax-only support boundary changed")
+            if lang == "C++/MOOSE" and layer == "parser":
+                if (status != "PARTIAL_FIXTURE"
+                        or cell["source"] != "src/codeqa/adapters/cpp_parser_evidence.py"
+                        or cell["entrypoint"] != "codeqa.adapters.cpp_parser_evidence:parse_cpp_syntax"
+                        or cell["workflow"] != ".github/workflows/mixed-source-conformance.yml"
+                        or "NOT_EVALUATED" not in cell["limitation"]):
+                    raise LanguageMatrixError("C++ parser witness is syntax-only, not ABI/DSL support")
             if layer == "production_abi" and status != "NOT_EVALUATED":
                 raise LanguageMatrixError("production SDK/ABI compatibility not attested")
             if lang != "Python" and layer == "mechanical_p1p3" and status != "NOT_EVALUATED":
