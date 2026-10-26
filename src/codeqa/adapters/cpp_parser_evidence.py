@@ -62,7 +62,7 @@ def parse_cpp_syntax(
             or not re.fullmatch(r"[0-9a-f]{40}", source_revision)
             or not isinstance(source_path, str)
             or not re.fullmatch(
-                r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\\.(?:C|cc|cpp|h|hpp)",
+                r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.(?:C|cc|cpp|h|hpp)",
                 source_path,
             )
             or not isinstance(expected_source_sha256, str)
