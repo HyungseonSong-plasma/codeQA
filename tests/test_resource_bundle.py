@@ -131,6 +131,21 @@ class ResourceBundleTests(unittest.TestCase):
                         {"ccg_schema": bad}
                     )))
 
+    def test_nonportable_archive_member_paths_rejected_before_extraction(self):
+        for bad in ("profiles/file.json:stream", "profiles/CON.json",
+                    "profiles/trailing .json.", "profiles/cafe\u0301.json"):
+            with self.subTest(bad=repr(bad)):
+                with self.assertRaisesRegex(ResourceBundleError, "unsafe archive member"):
+                    self.unpack(self.bundle(files_change=lambda f: f.update({bad: b"{}"})))
+                self.assertFalse((self.root / "extracted").exists())
+
+    def test_case_insensitive_archive_alias_rejected_before_extraction(self):
+        with self.assertRaisesRegex(ResourceBundleError, "portable archive path collision"):
+            self.unpack(self.bundle(files_change=lambda f: f.update({
+                "profiles/EXTRA.json": b"{}", "profiles/extra.json": b"{}",
+            })))
+        self.assertFalse((self.root / "extracted").exists())
+
     def test_wrong_registry_identity_fails_closed(self):
         with self.assertRaises(ResourceBundleError):
             self.unpack(self.bundle(manifest_change=lambda m: m["resources"].update(

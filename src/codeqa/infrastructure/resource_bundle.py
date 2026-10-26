@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import stat
 import tomllib
+import unicodedata
 from typing import Any
 from zipfile import BadZipFile, ZipFile
 
@@ -32,14 +33,26 @@ def _reject_nonfinite_json(value: str) -> Any:
     raise ResourceBundleError("non-finite registered JSON resource value")
 
 
+_WINDOWS_DEVICE_NAMES = {"CON", "PRN", "AUX", "NUL"} | {
+    f"{prefix}{n}" for prefix in ("COM", "LPT") for n in range(1, 10)
+}
+
+
 def _safe_path(value: Any) -> bool:
-    return (
-        isinstance(value, str) and bool(value)
-        and not value.startswith("/") and "\\" not in value
-        and not any(ord(c) < 32 or ord(c) == 127 for c in value)
-        and all(part not in ("", ".", "..") for part in value.split("/"))
-        and not (len(value) > 1 and value[1] == ":")
-    )
+    if (not isinstance(value, str) or not value or value.startswith("/")
+            or "\\" in value or any(ord(c) < 32 or ord(c) == 127 for c in value)):
+        return False
+    for part in value.split("/"):
+        if (part in ("", ".", "..") or ":" in part or part.endswith((".", " "))
+                or unicodedata.normalize("NFC", part) != part
+                or part.split(".", 1)[0].upper() in _WINDOWS_DEVICE_NAMES):
+            return False
+    return True
+
+
+def _portable_path_key(value: str) -> str:
+    """Detect archive entries that alias on case-insensitive filesystems."""
+    return unicodedata.normalize("NFC", value).casefold()
 
 
 def unpack_verified_resource_bundle(
@@ -58,6 +71,8 @@ def unpack_verified_resource_bundle(
                 raise ResourceBundleError("missing or duplicated bundle member")
             if any(not _safe_path(name) or name.endswith("/") for name in names):
                 raise ResourceBundleError("unsafe archive member path")
+            if len({_portable_path_key(name) for name in names}) != len(names):
+                raise ResourceBundleError("portable archive path collision")
             if any(stat.S_IFMT(info.external_attr >> 16) == stat.S_IFLNK for info in infos):
                 raise ResourceBundleError("archive symlinks are forbidden")
             if any(info.file_size > 16 * 1024 * 1024 for info in infos) or sum(
