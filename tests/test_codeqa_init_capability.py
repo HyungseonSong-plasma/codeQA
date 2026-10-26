@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = "059050330a549fce0b543687e2e9d4dca6c3f624"
+PIN = "cb785d898c624ba2b47fbb3d3840d48387605f47"
 MANIFEST = ROOT / "docs/operating_system/central_skills.json"
 REQUEST = ROOT / ".github/requests/branch-delete-request.json"
 WORKFLOW = ROOT / ".github/workflows/samuel-branch-delete.yml"
@@ -33,9 +33,20 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
                        manifest["skill_catalog"], manifest["capability_registry"]]:
             self.assertRegex(record["expected_blob_sha"], r"^[0-9a-f]{40}$")
         by_name = {entry["name"]: entry for entry in manifest["skills"]}
-        self.assertEqual(set(by_name), {"session-bootstrap", "state-refresh", "repository-mutation", "pull-request-create"})
+        self.assertEqual(set(by_name), {"session-bootstrap", "state-refresh", "problem-oriented-response", "repository-mutation", "pull-request-create"})
         self.assertEqual(by_name["session-bootstrap"]["load_on"], ["INIT"])
         self.assertEqual(by_name["state-refresh"]["load_on"], ["INIT", "SCHEDULED_CONTROLLER"])
+        response = by_name["problem-oriented-response"]
+        self.assertEqual(response["load_on"], ["INIT"])
+        self.assertEqual(response["path"], "skills/problem-oriented-response/README.md")
+        self.assertEqual(response["expected_blob_sha"], "c0d255134664a35db2250fa62bf3b06b3d8e3313")
+        machine = response["contract"]
+        self.assertEqual(machine["path"], "skills/problem-oriented-response/contract.json")
+        self.assertEqual(machine["expected_blob_sha"], "a49fd5e7513bcbdf354fcff127c8709e0365ec01")
+        self.assertEqual(machine["expected_contract_id"], "samuel.problem-first-response.v1")
+        self.assertEqual(machine["expected_mode"], "problem_first")
+        self.assertEqual(machine["expected_detail_policy"], "on_request")
+        self.assertIs(machine["human_review_requires_question"], True)
         self.assertEqual(by_name["repository-mutation"]["load_on"], [
             "MUTATE", "GITHUB_BRANCH_DELETE", "GITHUB_MUTATION_CAPABILITY_VERDICT",
             "GITHUB_FILE_CREATE", "GITHUB_FILE_UPDATE", "GITHUB_BRANCH_CREATE"
@@ -55,6 +66,8 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
         for term in ("skills/catalog.json", "skills/capability-registry.json",
                      "GITHUB_BRANCH_DELETE", "GITHUB_MUTATION_CAPABILITY_VERDICT",
                      "GITHUB_CAPABILITY_ROUTING=READY|BLOCKED",
+                     "problem-oriented-response", "BLOCKED_RESPONSE_CONTRACT",
+                     "samuel.problem-first-response.v1", "response_mode=problem_first",
                      "GITHUB_MUTATION_PREFLIGHT=TRIGGER_REQUIRED"):
             self.assertTrue(any(term in text for text in texts), term)
         bootstrap = texts[1]
@@ -63,6 +76,8 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
         self.assertIn("read-only", bootstrap)
         self.assertIn("assert_capability_exhausted", bootstrap)
         self.assertIn("samuel-branch-delete.yml", bootstrap)
+        self.assertIn("skills/problem-oriented-response/contract.json", bootstrap)
+        self.assertIn("human_review_requires_question=true", bootstrap)
 
     def test_persistent_route_is_not_stale_one_shot(self) -> None:
         content = WORKFLOW.read_text(encoding="utf-8")

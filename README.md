@@ -5,11 +5,15 @@ A language-independent, evidence-based code quality evaluation system.
 ## codeQA-init — Samuel capability-ready bootstrap
 
 Run `codeQA-init` using the canonical [consumer bootstrap](docs/operating_system/BOOTSTRAP.md).
-It verifies the exact Samuel binding, essential rules and init skills; **always**
-verifies the central skill catalog and capability registry; and proactively loads
+It verifies the exact Samuel binding, essential rules and init skills, including
+the mandatory `problem-oriented-response` README + machine contract;
+**always** verifies the central skill catalog and capability registry; and proactively loads
 `GITHUB_BRANCH_DELETE` / `repository-mutation` routing to the permanent
 [Samuel branch-delete workflow](.github/workflows/samuel-branch-delete.yml).
-Initialization remains **read-only**. A deletion request is a separate authorized,
+Initialization remains **read-only**. A completed init requires
+`response_contract=samuel.problem-first-response.v1`,
+`response_mode=problem_first` and `detail_policy=on_request`; an absent or
+inconsistent response contract fails closed as `BLOCKED_RESPONSE_CONTRACT`. A deletion request is a separate authorized,
 exact-SHA-guarded change to
 [the request manifest](.github/requests/branch-delete-request.json).
 The connector's missing delete operation is not evidence that Samuel deletion is
