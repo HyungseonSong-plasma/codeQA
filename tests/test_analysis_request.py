@@ -66,6 +66,26 @@ class AnalysisRequestTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(AnalysisRequestError):
                 AnalysisOptions.from_mapping({name: True})
 
+    def test_falsy_non_boolean_authority_values_are_rejected(self):
+        # False is the only disabled Boolean; 0, None, empty containers
+        # and empty strings must never masquerade as an explicit opt-out.
+        for name in ("naming", "formal", "external_gate"):
+            for value in (0, 1, None, "", [], {}):
+                with self.subTest(name=name, value=value), self.assertRaisesRegex(
+                    AnalysisRequestError, "explicit Boolean"
+                ):
+                    AnalysisOptions.from_mapping({name: value})
+            self.assertEqual(
+                getattr(AnalysisOptions.from_mapping({name: False}), name), False
+            )
+        with self.assertRaisesRegex(AnalysisRequestError, "explicit Boolean"):
+            AnalysisOptions(naming=0).validate()
+
+    def test_control_character_changed_paths_rejected(self):
+        for path in ("a\\nb.py", "a\\tb.py", "a\\rb.py", "a\\x7fb.py"):
+            with self.subTest(path=path), self.assertRaises(AnalysisRequestError):
+                AnalysisOptions.from_mapping({"changed_paths": [path]})
+
     def test_unsafe_duplicate_changed_paths_rejected(self):
         for paths in (["../outside.py"], ["a.py", "a.py"], ["/tmp/file.py"]):
             with self.subTest(paths=paths), self.assertRaises(AnalysisRequestError):
