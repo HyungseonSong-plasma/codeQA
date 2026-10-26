@@ -53,3 +53,13 @@ cannot activate a separate authority domain. Changed paths also reject all
 ASCII control characters, not only NUL. These checks apply to both the
 `from_mapping` constructor and directly constructed typed options. Default
 Mechanical behavior and the frozen Public QA Result remain unchanged.
+
+## JSON policy identity ambiguity guard (#123)
+
+The optional request rejects non-string keys in nested policy/schema/profile
+mappings before hashing or executing analysis. Python JSON serialization would
+otherwise coerce integer key `1` into string key `"1"`, giving two distinct
+caller policies an identical recorded fingerprint. Cyclic or non-JSON policy
+values also fail closed. This protects **internal fingerprint consistency**;
+caller-supplied policy hashes remain unsigned and do not establish independent
+source, API or schema authority.
