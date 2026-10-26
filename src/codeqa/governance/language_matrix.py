@@ -16,6 +16,13 @@ LAYERS = {"parser", "ccg", "mechanical_p1p3", "naming", "formal_gate", "producti
 LANGUAGES = {"Python", "Rust", "C++/MOOSE", "Dafny-generated Python"}
 STATUSES = {"SUPPORTED_SCOPED", "PARTIAL_FIXTURE", "FIXTURE_ONLY", "NOT_EVALUATED"}
 CELL_KEYS = {"layer", "status", "source", "entrypoint", "workflow", "limitation"}
+# The Python v0.1 scopes are syntax witnesses; changing prose cannot
+# silently turn unresolved runtime calls into independently attested dispatch.
+PYTHON_SCOPE_LIMITS = {
+    "parser": "caller-supplied Python AST syntax only",
+    "ccg": "CCG v0.1 source facts, unresolved runtime calls",
+    "mechanical_p1p3": "heuristic P1/P3 only, no P1-P8 certificate",
+}
 
 
 def _path(root: Path, name: str) -> Path:
@@ -64,6 +71,9 @@ def validate_language_matrix(root: Path, manifest: Mapping[str, Any]) -> None:
             if (status == "SUPPORTED_SCOPED"
                     and (lang != "Python" or layer not in {"parser", "ccg", "mechanical_p1p3"})):
                 raise LanguageMatrixError("unsupported language/layer promoted to full support")
+            if lang == "Python" and layer in PYTHON_SCOPE_LIMITS:
+                if status != "SUPPORTED_SCOPED" or cell["limitation"] != PYTHON_SCOPE_LIMITS[layer]:
+                    raise LanguageMatrixError("Python syntax-only support boundary changed")
             if layer == "production_abi" and status != "NOT_EVALUATED":
                 raise LanguageMatrixError("production SDK/ABI compatibility not attested")
             if lang != "Python" and layer == "mechanical_p1p3" and status != "NOT_EVALUATED":
