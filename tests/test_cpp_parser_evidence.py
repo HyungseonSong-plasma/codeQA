@@ -99,5 +99,97 @@ class CppParserEvidenceTests(unittest.TestCase):
                          self.parse(source).canonical_json())
 
 
+    def test_nested_namespace_class_owner_is_not_overwritten(self):
+        source = b"""namespace outer {
+namespace inner {
+struct Box { int value; void run() {} };
+}
+}
+namespace other { struct Box { void run() {} }; }
+"""
+        report = self.parse(source)
+        got = {(x.kind, x.spelling, x.container) for x in report.declarations}
+        self.assertIn(("function_definition", "run", "outer::inner::Box"), got)
+        self.assertIn(("function_definition", "run", "other::Box"), got)
+        self.assertIn(("field", "value", "outer::inner::Box"), got)
+
+    def test_method_declarations_and_overloads_keep_owner(self):
+        source = b"""namespace n {
+struct Engine {
+  Engine() {}
+  ~Engine() {}
+  void run(int);
+  void run(double);
+};
+}
+"""
+        report = self.parse(source)
+        methods = [d for d in report.declarations if d.spelling == "run"]
+        self.assertEqual(len(methods), 2)
+        self.assertTrue(all(d.kind == "method_declaration" for d in methods))
+        self.assertTrue(all(d.container == "n::Engine" for d in methods))
+        self.assertTrue(any(d.spelling == "Engine" for d in report.declarations))
+        self.assertTrue(any(d.spelling == "~Engine" for d in report.declarations))
+
+    def test_out_of_class_qualified_definition_is_not_resolved(self):
+        source = b"""namespace outer {
+struct Engine { void run(); };
+void Engine::run() {}
+}
+"""
+        report = self.parse(source)
+        self.assertTrue(any(
+            x.kind == "function_definition"
+            and x.spelling == "Engine::run" and x.container == "outer"
+            for x in report.declarations
+        ))
+        self.assertIn("QUALIFIED_MEMBER_BINDING_NOT_EVALUATED", report.unknowns)
+
+    def test_free_function_prototype_and_nested_namespace(self):
+        source = b"""void global_run(int);
+namespace tools { void local_run(double); }
+"""
+        report = self.parse(source)
+        self.assertTrue(any(x.kind == "function_declaration"
+                            and x.spelling == "global_run" and x.container is None
+                            for x in report.declarations))
+        self.assertTrue(any(x.kind == "function_declaration"
+                            and x.spelling == "local_run" and x.container == "tools"
+                            for x in report.declarations))
+
+    def test_macro_spelling_is_not_expansion_or_abi_proof(self):
+        source = b"""#define FUNCTION_NAME generated
+void FUNCTION_NAME() {}
+"""
+        report = self.parse(source)
+        self.assertTrue(any(x.kind == "macro_definition"
+                            and x.spelling == "FUNCTION_NAME"
+                            for x in report.declarations))
+        self.assertIn("PREPROCESSOR_EXPANSION_NOT_EVALUATED", report.unknowns)
+        self.assertIn("DEPENDENCY_HEADERS_AND_MACROS_NOT_RESOLVED", report.unknowns)
+
+    def test_anonymous_namespace_keeps_distinct_lexical_owner(self):
+        source = b"""namespace { struct Hidden { void work() {} }; }
+"""
+        report = self.parse(source)
+        self.assertTrue(any(
+            x.spelling == "work"
+            and x.container == "<unnamed-namespace_definition@1>::Hidden"
+            for x in report.declarations
+        ))
+        self.assertIn("UNNAMED_OWNER_SCOPE_NOT_EVALUATED", report.unknowns)
+
+    def test_template_or_extern_c_does_not_promote_semantics(self):
+        source = b"""template <typename T> struct Box { T value; };
+extern "C" int c_api() { return 0; }
+"""
+        report = self.parse(source)
+        self.assertTrue(any(x.kind == "struct" and x.spelling == "Box"
+                            for x in report.declarations))
+        self.assertIn("TEMPLATE_BINDING_NOT_EVALUATED", report.unknowns)
+        self.assertIn("EXPORT_VISIBILITY_AND_ABI_NOT_EVALUATED", report.unknowns)
+        self.assertIn("DYNAMIC_PUBLIC_CONSUMERS_NOT_EVALUATED", report.unknowns)
+
+
 if __name__ == "__main__":
     unittest.main()
