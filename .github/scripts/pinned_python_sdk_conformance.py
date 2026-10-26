@@ -41,6 +41,54 @@ def need(condition: bool, message: str) -> None:
         raise RuntimeError(message)
 
 
+def _attested_diagnostic_file(
+    issue: object, project: Path, *, extra_source: Path | None,
+) -> str:
+    """Map a real Pyright diagnostic to an exact scanned file, never its basename."""
+    need(isinstance(issue, dict), "PYRIGHT_MALFORMED_DIAGNOSTIC")
+    raw_path = issue.get("file")
+    need(isinstance(raw_path, str) and bool(raw_path),
+         "PYRIGHT_DIAGNOSTIC_SOURCE_MISSING")
+    source = Path(raw_path)
+    actual = (source if source.is_absolute() else project / source).resolve()
+    permitted = {"contract.py": (project / "contract.py").resolve()}
+    if extra_source is not None:
+        permitted["public_sdk.py"] = (project / "public_sdk.py").resolve()
+    matched = [name for name, expected in permitted.items() if actual == expected]
+    need(len(matched) == 1, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE")
+    return matched[0]
+
+
+def _validate_pyright_diagnostics(
+    parsed: dict, project: Path, *, extra_source: Path | None,
+) -> list[dict]:
+    """Fail closed on truncated or misattributed JSON before constructing evidence."""
+    summary = parsed["summary"]
+    count = summary.get("errorCount")
+    need(type(count) is int and count >= 0, "PYRIGHT_INVALID_ERROR_COUNT")
+    analyzed = summary.get("filesAnalyzed")
+    need(type(analyzed) is int and analyzed >= (2 if extra_source else 1),
+         "PYRIGHT_INCOMPLETE_SCAN_COUNT")
+    diagnostics = parsed["generalDiagnostics"]
+    for issue in diagnostics:
+        _attested_diagnostic_file(issue, project, extra_source=extra_source)
+        need(issue.get("severity") in ("error", "warning", "information"),
+             "PYRIGHT_UNKNOWN_DIAGNOSTIC_SEVERITY")
+        rule = issue.get("rule")
+        need(rule is None or (isinstance(rule, str) and bool(rule)),
+             "PYRIGHT_MALFORMED_DIAGNOSTIC_RULE")
+        span = issue.get("range")
+        if span is not None:
+            need(isinstance(span, dict) and isinstance(span.get("start"), dict),
+                 "PYRIGHT_MALFORMED_DIAGNOSTIC_RANGE")
+            line = span["start"].get("line")
+            need(type(line) is int and line >= 0,
+                 "PYRIGHT_MALFORMED_DIAGNOSTIC_LINE")
+    errors = [issue for issue in diagnostics if issue["severity"] == "error"]
+    need(count == len(errors), "PYRIGHT_ERROR_COUNT_MISMATCH")
+    return errors
+
+
 def check_versions() -> dict[str, str]:
     reported = {}
     for name in ("Pydantic", "SQLAlchemy"):
@@ -90,7 +138,8 @@ def pyright_scan(binary: Path, project: Path, source: Path, *,
          and isinstance(parsed.get("summary"), dict), "PYRIGHT_MALFORMED_JSON")
     need(parsed.get("version") == PIN["pyright"], "PYRIGHT_REPORT_VERSION_DRIFT")
     summary = parsed["summary"]
-    errors = [x for x in parsed["generalDiagnostics"] if x.get("severity") == "error"]
+    errors = _validate_pyright_diagnostics(
+        parsed, project, extra_source=extra_source)
     rules = {x.get("rule") for x in errors}
     if expect_errors:
         need(run.returncode == 1 and int(summary.get("errorCount", 0)) >= 1,
@@ -140,10 +189,11 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
             continue
         span = issue.get("range") or {}
         start = span.get("start") or {}
-        file_name = Path(str(issue.get("file", ""))).name
+        file_name = _attested_diagnostic_file(
+            issue, project, extra_source=extra_source)
         source_path = ("fixtures/python-sdk/" + extra_source.name
-                       if extra_source is not None and file_name == extra_source.name
-                       else selected if file_name == "contract.py" else None)
+                       if file_name == "public_sdk.py" and extra_source is not None
+                       else selected)
         need(source_path in source_digests, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE")
         findings.append({
             "kind": "TYPECHECK_DIAGNOSTIC", "rule_id": str(issue["rule"]),
