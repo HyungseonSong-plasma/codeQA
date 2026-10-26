@@ -98,5 +98,79 @@ class AuthorityConsumerSmokeTests(unittest.TestCase):
             self.evaluate()
 
 
+class GitHubRunReadbackTests(unittest.TestCase):
+    def setUp(self):
+        self.head = "b" * 40
+        self.run = {
+            "id": int(RUN), "run_attempt": 1, "event": "pull_request",
+            "path": ".github/workflows/pinned-dafny-formal.yml",
+            "repository": {"full_name": "HyungseonSong-plasma/codeQA"},
+            "head_repository": {"full_name": "HyungseonSong-plasma/codeQA"},
+            "head_sha": self.head, "status": "in_progress",
+            "pull_requests": [{"number": 141, "head": {"sha": self.head}}],
+        }
+        self.commit = {"sha": SOURCE, "parents": [
+            {"sha": "c" * 40}, {"sha": self.head},
+        ]}
+        self.args = dict(source_sha=SOURCE, run_id=RUN, event="pull_request",
+                         ref="refs/pull/141/merge", attempt="1")
+
+    def check(self):
+        return module.verify_github_run_source_readback(
+            self.run, self.commit, **self.args)
+
+    def test_real_shape_readback_still_not_deployment_authority(self):
+        report = self.check()
+        self.assertEqual(report["status"], "GITHUB_API_RUN_SOURCE_RELATIONSHIP_VERIFIED")
+        self.assertFalse(report["production_merge_authorized"])
+        self.assertEqual(report["runner_and_artifact_authenticity"], "NOT_EVALUATED")
+
+    def test_mismatched_pr_merge_second_parent_rejected(self):
+        self.commit["parents"][1]["sha"] = "d" * 40
+        with self.assertRaisesRegex(ValueError, "MERGE_HEAD"):
+            self.check()
+
+    def test_forged_run_repo_workflow_and_attempt_rejected(self):
+        for key, value in (
+            ("repository", {"full_name": "other/repo"}),
+            ("path", ".github/workflows/other.yml"),
+            ("run_attempt", 2),
+        ):
+            with self.subTest(key=key):
+                run = deepcopy(self.run)
+                run[key] = value
+                with self.assertRaisesRegex(ValueError, "REMOTE_RUN"):
+                    module.verify_github_run_source_readback(
+                        run, self.commit, **self.args)
+
+    def test_wrong_pr_head_or_number_rejected(self):
+        self.run["pull_requests"][0]["number"] = 140
+        with self.assertRaisesRegex(ValueError, "MERGE_HEAD"):
+            self.check()
+        self.run["pull_requests"][0]["number"] = 141
+        self.run["pull_requests"][0]["head"]["sha"] = "e" * 40
+        with self.assertRaisesRegex(ValueError, "MERGE_HEAD"):
+            self.check()
+
+    def test_branch_event_requires_direct_head_identity(self):
+        self.run.update(event="push", head_sha=SOURCE, pull_requests=[])
+        self.args.update(event="push", ref="refs/heads/main")
+        self.assertEqual(self.check()["event"], "push")
+        self.commit["sha"] = "f" * 40
+        with self.assertRaisesRegex(ValueError, "REMOTE_RUN"):
+            self.check()
+
+    def test_unknown_event_or_unsafe_ref_rejected(self):
+        self.run["event"] = "schedule"
+        self.args["event"] = "schedule"
+        with self.assertRaisesRegex(ValueError, "EVENT_NOT_SUPPORTED"):
+            self.check()
+        self.run["event"] = "push"
+        self.run["head_sha"] = SOURCE
+        self.args.update(event="push", ref="refs/heads/../unsafe")
+        with self.assertRaisesRegex(ValueError, "BRANCH_HEAD"):
+            self.check()
+
+
 if __name__ == "__main__":
     unittest.main()
