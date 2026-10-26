@@ -49,12 +49,14 @@ def parse_rust_syntax(
     expected_source_sha256: str,
 ) -> RustSyntaxEvidence:
     """Exact source-bound declarations with explicit unresolved semantics."""
-    if (type(source) is not bytes
-            or not isinstance(source_repository, str) or not source_repository
+    if (type(source) is not bytes or len(source) > 1_000_000
+            or not isinstance(source_repository, str)
+            or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", source_repository)
             or not isinstance(source_revision, str)
             or not re.fullmatch(r"[a-f0-9]{40}", source_revision)
             or not isinstance(source_path, str)
             or not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.rs", source_path)
+            or any(part in (".", "..") for part in source_path.split("/"))
             or not isinstance(expected_source_sha256, str)
             or not re.fullmatch(r"[a-f0-9]{64}", expected_source_sha256)):
         raise RustParserEvidenceError("exact source repository/revision/path/digest required")
