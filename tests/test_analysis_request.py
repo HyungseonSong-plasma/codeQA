@@ -86,7 +86,7 @@ class AnalysisRequestTests(unittest.TestCase):
             AnalysisOptions(changed_paths=(["nested"],)).validate()
 
     def test_control_character_changed_paths_rejected(self):
-        for path in ("a\\nb.py", "a\\tb.py", "a\\rb.py", "a\\x7fb.py"):
+        for path in ("a\nb.py", "a\tb.py", "a\rb.py", "a\x7fb.py"):
             with self.subTest(path=path), self.assertRaises(AnalysisRequestError):
                 AnalysisOptions.from_mapping({"changed_paths": [path]})
 
