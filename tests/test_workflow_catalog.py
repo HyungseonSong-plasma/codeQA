@@ -56,10 +56,10 @@ class WorkflowCatalogTests(unittest.TestCase):
         sources = dict(self.sources)
         path = ".github/workflows/layout.yml"
         sources[path] += (
-            "\\n  another_layout:\\n"
-            "    name: layout\\n"
-            "    runs-on: ubuntu-latest\\n"
-            "    steps: []\\n"
+            "\n  another_layout:\n"
+            "    name: layout\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps: []\n"
         )
         self._bad(lambda d: None, sources=sources)
 
