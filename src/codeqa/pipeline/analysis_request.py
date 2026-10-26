@@ -65,8 +65,10 @@ class AnalysisOptions:
         paths = value.get("changed_paths", ())
         if not isinstance(paths, (tuple, list)) or any(
             not isinstance(p, str) or not p or p.startswith("/")
-            or "\\" in p or any(ord(c) < 32 or ord(c) == 127 for c in p)
-            or any(part in ("", ".", "..") for part in p.split("/"))
+            or "\\" in p or ":" in p
+            or any(ord(c) < 32 or ord(c) == 127 for c in p)
+            or any(part in ("", ".", "..") or part.endswith((".", " "))
+                   for part in p.split("/"))
             for p in paths
         ) or len(set(paths)) != len(paths):
             raise AnalysisRequestError("invalid or duplicate changed paths")
@@ -91,8 +93,10 @@ class AnalysisOptions:
                 _validate_json_tree(policy)
         if (not isinstance(self.changed_paths, tuple)
                 or any(not isinstance(p, str) or not p or p.startswith("/")
-                       or "\\" in p or any(ord(c) < 32 or ord(c) == 127 for c in p)
-                       or any(part in ("", ".", "..") for part in p.split("/"))
+                       or "\\" in p or ":" in p
+                       or any(ord(c) < 32 or ord(c) == 127 for c in p)
+                       or any(part in ("", ".", "..") or part.endswith((".", " "))
+                              for part in p.split("/"))
                        for p in self.changed_paths)
                 or len(set(self.changed_paths)) != len(self.changed_paths)):
             raise AnalysisRequestError("invalid changed paths")
