@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""#92: source-only conformance of an immutable public API/DB/TypeScript consumer.
+
+Reads upstream bytes; NEVER imports/executes upstream Python, migrations, or npm.
+A source snapshot match is not a deployed API, database, or version-window PASS.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import hashlib
+import json
+from pathlib import Path
+import re
+import tomllib
+import urllib.request
+
+ROOT = Path(__file__).resolve().parents[2]
+MANIFEST = ROOT / "fixtures/python-sdk/public-api-benchmark-v0.1.json"
+MIGRATION_PREFIX = "backend/app/alembic/versions/"
+MAX_FILE = 300_000
+
+
+def require(ok: bool, code: str) -> None:
+    if not ok:
+        raise RuntimeError(code)
+
+
+def git_blob(raw: bytes) -> str:
+    return hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+
+
+def request_bytes(url: str) -> bytes:
+    req = urllib.request.Request(url, headers={"User-Agent": "codeQA-public-source-audit/0.1",
+                                               "Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=30) as response:
+        require(response.status == 200, "UPSTREAM_HTTP_STATUS")
+        require(response.geturl() == url, "UPSTREAM_REDIRECT_REJECTED")
+        raw = response.read(MAX_FILE + 1_000_000)
+    require(len(raw) <= MAX_FILE + 900_000, "UPSTREAM_RESPONSE_OVERSIZE")
+    return raw
+
+
+def fetch_pinned(manifest: dict) -> tuple[dict[str, bytes], dict[str, str]]:
+    repo = manifest["benchmark"]
+    commit = manifest["commit"]
+    require(re.fullmatch(r"[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+", repo) is not None,
+            "INVALID_UPSTREAM_REPOSITORY")
+    require(re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
+            "INVALID_UPSTREAM_COMMIT")
+    tree = json.loads(request_bytes(
+        "https://api.github.com/repos/" + repo + "/git/trees/"
+        + manifest["tree"] + "?recursive=1"))
+    require(tree.get("sha") == manifest["tree"] and tree.get("truncated") is False,
+            "UPSTREAM_TREE_INCOMPLETE")
+    entries = {e["path"]: e["sha"] for e in tree["tree"] if e["type"] == "blob"}
+    sources = {}
+    for path, _, _ in manifest["files"]:
+        require(re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", path) is not None,
+                "UNSAFE_UPSTREAM_PATH")
+        sources[path] = request_bytes(
+            "https://raw.githubusercontent.com/" + repo + "/" + commit + "/" + path)
+    return sources, entries
+
+
+def attest(manifest: dict, sources: dict[str, bytes], tree: dict[str, str]) -> None:
+    require(manifest["schema_version"] == "0.1"
+            and manifest["scope"] == "PINNED_PUBLIC_SOURCE_ONLY"
+            and manifest["benchmark"] == "fastapi/full-stack-fastapi-template"
+            and manifest["commit"] == "b1125d8839482cb7bbae603ddc6d0081bf87532e"
+            and manifest["tree"] == "94de969c70c4d283e7a57eb0795cea9a8d7813ef",
+            "BENCHMARK_SELECTION_DRIFT")
+    entries = manifest["files"]
+    require(all(isinstance(x, list) and len(x) == 3 for x in entries),
+            "MALFORMED_FILE_MANIFEST")
+    paths = [x[0] for x in entries]
+    require(len(set(paths)) == len(paths) and set(paths) == set(sources),
+            "SOURCE_SET_INCOMPLETE")
+    require(set(paths).issubset(tree), "TREE_MISSING_SELECTED_SOURCE")
+    expected_migrations = {p for p in paths if p.startswith(MIGRATION_PREFIX) and p.endswith(".py")}
+    actual_migrations = {p for p in tree if p.startswith(MIGRATION_PREFIX) and p.endswith(".py")}
+    require(actual_migrations == expected_migrations, "MIGRATION_FILE_SET_DRIFT")
+    for path, blob, sha in entries:
+        raw = sources[path]
+        require(0 < len(raw) <= MAX_FILE, "SOURCE_OVERSIZE_OR_EMPTY " + path)
+        require(re.fullmatch(r"[0-9a-f]{40}", blob) is not None
+                and re.fullmatch(r"[0-9a-f]{64}", sha) is not None,
+                "INVALID_DIGEST_FORMAT")
+        require(tree[path] == blob and git_blob(raw) == blob
+                and hashlib.sha256(raw).hexdigest() == sha,
+                "PINNED_SOURCE_HASH_MISMATCH " + path)
+
+
+def literal_assign(module: ast.Module, name: str):
+    values = [n.value for n in module.body if isinstance(n, ast.Assign)
+              and any(isinstance(t, ast.Name) and t.id == name for t in n.targets)]
+    require(len(values) == 1, "MIGRATION_METADATA_MISSING_OR_DUPLICATE " + name)
+    return ast.literal_eval(values[0])
+
+
+def fields_for(name: str, classes: dict[str, ast.ClassDef], stack=()) -> dict[str, bool]:
+    require(name in classes and name not in stack, "MODEL_MISSING_OR_CYCLIC " + name)
+    node = classes[name]
+    require(not any(isinstance(x, (ast.Assign, ast.AnnAssign))
+                    and any(getattr(t, "id", None) == "model_config"
+                            for t in (x.targets if isinstance(x, ast.Assign) else [x.target]))
+                    for x in node.body), "DYNAMIC_MODEL_CONFIG_UNSUPPORTED " + name)
+    fields = {}
+    for base in node.bases:
+        if isinstance(base, ast.Name) and base.id in classes:
+            fields.update(fields_for(base.id, classes, (*stack, name)))
+    for item in node.body:
+        if not isinstance(item, ast.AnnAssign) or not isinstance(item.target, ast.Name):
+            continue
+        field = item.target.id
+        if isinstance(item.value, ast.Call):
+            fn = item.value.func
+            if isinstance(fn, ast.Name) and fn.id == "Relationship":
+                continue
+            if isinstance(fn, ast.Name) and fn.id == "Field":
+                require(not any(k.arg in {"alias", "validation_alias", "serialization_alias",
+                                           "alias_priority"} for k in item.value.keywords),
+                        "UNREVIEWED_FIELD_ALIAS " + name + "." + field)
+        fields[field] = item.value is not None
+    return fields
+
+
+def ts_fields(source: str, name: str) -> dict[str, bool]:
+    match = re.search(r"(?ms)^export type " + re.escape(name)
+                      + r" = \{\n(.*?)^\};", source)
+    require(match is not None, "TS_CONSUMER_TYPE_MISSING " + name)
+    pairs = re.findall(r"(?m)^    ([A-Za-z_]\w*)(\?)?:", match.group(1))
+    require(len(pairs) == len({p[0] for p in pairs}) and bool(pairs),
+            "TS_CONSUMER_FIELDS_INVALID " + name)
+    return {field: bool(optional) for field, optional in pairs}
+
+
+def inspect_contract(manifest: dict, sources: dict[str, bytes]) -> dict:
+    def source(path: str) -> str:
+        return sources[path].decode("utf-8", errors="strict")
+    meta = tomllib.loads(source("backend/pyproject.toml"))["project"]
+    require(meta["version"] == manifest["backend_project_version"]
+            and meta["requires-python"] == manifest["backend_python_requires"],
+            "UPSTREAM_DEPENDENCY_WINDOW_DRIFT")
+    require(source("LICENSE").startswith("MIT License")
+            and manifest["license"] == "MIT", "UPSTREAM_LICENSE_DRIFT")
+    model_tree = ast.parse(source("backend/app/models.py"))
+    classes = {n.name: n for n in model_tree.body if isinstance(n, ast.ClassDef)}
+    ts = source("frontend/src/client/types.gen.ts")
+    dto = {}
+    for name, expected in manifest["dto_fields"].items():
+        py = fields_for(name, classes)
+        consumer = ts_fields(ts, name)
+        require(set(py) == set(expected), "PUBLIC_DTO_FIELD_DRIFT " + name)
+        require(py == consumer, "TS_PYTHON_DTO_MISMATCH " + name)
+        dto[name] = {"fields": sorted(py), "optional": sorted(k for k, v in py.items() if v)}
+    route_tree = ast.parse(source("backend/app/api/routes/users.py"))
+    routes = {}
+    for node in route_tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call):
+                continue
+            for keyword in decorator.keywords:
+                if keyword.arg == "response_model" and isinstance(keyword.value, ast.Name):
+                    routes[node.name] = keyword.value.id
+    for method, expected in manifest["routes"].items():
+        require(routes.get(method) == expected, "ROUTE_RESPONSE_MODEL_DRIFT " + method)
+    sdk = source("frontend/src/client/sdk.gen.ts")
+    section = re.search(r"(?s)export class UsersService \{(.*?)\n\}\n", sdk)
+    require(section is not None, "TS_NAMED_CONSUMER_MISSING")
+    methods = set(re.findall(r"public static (\w+)<", section.group(1)))
+    require(set(manifest["ts_sdk_methods"]).issubset(methods),
+            "TS_SDK_CONSUMER_METHOD_DRIFT")
+    migrations = {}
+    initial = {}
+    for path in sources:
+        if not (path.startswith(MIGRATION_PREFIX) and path.endswith(".py")):
+            continue
+        tree = ast.parse(source(path))
+        revision = literal_assign(tree, "revision")
+        predecessor = literal_assign(tree, "down_revision")
+        require(re.fullmatch(r"[0-9a-f]{12}", revision) is not None
+                and (predecessor is None or
+                     re.fullmatch(r"[0-9a-f]{12}", predecessor) is not None),
+                "MIGRATION_DYNAMIC_GRAPH_UNSUPPORTED")
+        require(revision not in migrations and path.split("/")[-1].startswith(revision),
+                "MIGRATION_DUPLICATE_OR_FILENAME_DRIFT")
+        migrations[revision] = predecessor
+        if predecessor is None:
+            for call in ast.walk(tree):
+                if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
+                        and call.func.attr == "create_table" and call.args
+                        and isinstance(call.args[0], ast.Constant)):
+                    continue
+                table = call.args[0].value
+                columns = [arg.args[0].value for arg in call.args[1:]
+                           if isinstance(arg, ast.Call) and isinstance(arg.func, ast.Attribute)
+                           and arg.func.attr == "Column" and arg.args
+                           and isinstance(arg.args[0], ast.Constant)]
+                initial[table] = columns
+    require(migrations == manifest["migrations"], "MIGRATION_PREDECESSOR_DRIFT")
+    require(len([x for x in migrations.values() if x is None]) == 1
+            and len([x for x in migrations if x not in migrations.values()]) == 1,
+            "MIGRATION_GRAPH_NOT_SINGLE_CHAIN")
+    require({k: set(v) for k, v in initial.items()} ==
+            {k: set(v) for k, v in manifest["initial_tables"].items()},
+            "INITIAL_PHYSICAL_DB_SCHEMA_DRIFT")
+    current = {"user": fields_for("User", classes),
+               "item": fields_for("Item", classes)}
+    require({k: set(v) for k, v in current.items()} ==
+            {k: set(v) for k, v in manifest["current_tables"].items()},
+            "CURRENT_ORM_DB_SCHEMA_DRIFT")
+    require(all(set(initial[k]).issubset(current[k]) for k in initial),
+            "DB_COLUMN_REMOVAL_UNREVIEWED")
+    uuid_migration = source("backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py")
+    require("uuid_generate_v4()" in uuid_migration
+            and "new_owner_id" in uuid_migration and "op.execute" in uuid_migration,
+            "DATA_DEPENDENT_MIGRATION_WITNESS_MISSING")
+    return {"benchmark": manifest["benchmark"], "commit": manifest["commit"],
+            "consumer": manifest["consumer"], "dto": dto, "routes": manifest["routes"],
+            "migration_chain": migrations, "initial_columns": initial,
+            "current_columns": {k: sorted(v) for k, v in current.items()},
+            "static_source_consistency": "PASS_SELECTED_FIELDS_ONLY",
+            "data_dependent_uuid_migration": "NOT_EVALUATED",
+            "postgresql_runtime": "NOT_EVALUATED",
+            "deployed_openapi_schema": "NOT_EVALUATED",
+            "historical_compatibility_window": "NOT_EVALUATED",
+            "python_sdk_consumer": "NOT_EVALUATED",
+            "upstream_execution": "NOT_PERFORMED"}
+
+
+def negative_controls(manifest: dict, sources: dict[str, bytes], tree: dict[str, str]) -> int:
+    cases = []
+    def changed(path: str, old: str, new: str):
+        content = sources[path].decode("utf-8")
+        require(old in content, "NEGATIVE_FIXTURE_TARGET_MISSING")
+        return {**sources, path: content.replace(old, new, 1).encode()}
+    def check_fails(fn, label):
+        try:
+            fn()
+        except (RuntimeError, ValueError, SyntaxError, UnicodeDecodeError):
+            cases.append(label)
+        else:
+            raise RuntimeError("NEGATIVE_CONTROL_ACCEPTED " + label)
+    check_fails(lambda: attest(manifest, changed("backend/app/models.py",
+                  "class UserPublic(UserBase):", "class UserPublic(SQLModel):"), tree),
+                "forged_source_bytes")
+    check_fails(lambda: attest(manifest, {k: v for k, v in sources.items()
+                                         if k != "frontend/src/client/sdk.gen.ts"}, tree),
+                "missing_consumer_file")
+    check_fails(lambda: attest(manifest, sources,
+                               {k: v for k, v in tree.items()
+                                if not k.endswith("fe56fa70289e_add_created_at_to_user_and_item.py")}),
+                "missing_migration_tree_edge")
+    check_fails(lambda: inspect_contract(manifest, changed(
+                  "frontend/src/client/types.gen.ts", "email: string;", "email_alias: string;")),
+                "dto_consumer_alias_drift")
+    check_fails(lambda: inspect_contract(manifest, changed(
+                  "backend/app/api/routes/users.py",
+                  "response_model=UsersPublic", "response_model=Message")),
+                "route_response_drift")
+    check_fails(lambda: inspect_contract(manifest, changed(
+                  "backend/app/models.py", "Field(unique=True, index=True, max_length=255)",
+                  "Field(unique=True, index=True, max_length=255, serialization_alias='alias')")),
+                "unreviewed_directional_alias")
+    check_fails(lambda: inspect_contract(manifest, changed(
+                  "backend/app/alembic/versions/9c0a54914c78_add_max_length_for_string_varchar_.py",
+                  "down_revision = 'e2412789c190'", "down_revision = '000000000000'")),
+                "migration_predecessor_drift")
+    check_fails(lambda: inspect_contract(manifest, changed(
+                  "backend/app/alembic/versions/e2412789c190_initialize_models.py",
+                  'sa.Column("id", sa.Integer(), nullable=False)',
+                  'sa.Column("id_renamed", sa.Integer(), nullable=False)')),
+                "physical_column_drift")
+    return len(cases)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    sources, tree = fetch_pinned(manifest)
+    attest(manifest, sources, tree)
+    report = inspect_contract(manifest, sources)
+    report["source_files"] = [{"path": path, "git_blob": blob, "sha256": digest}
+                              for path, blob, digest in manifest["files"]]
+    report["negative_controls"] = negative_controls(manifest, sources, tree)
+    report["manifest_sha256"] = hashlib.sha256(MANIFEST.read_bytes()).hexdigest()
+    args.output.mkdir(parents=True, exist_ok=True)
+    (args.output / "public-api-benchmark.json").write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print("PUBLIC_API_BENCHMARK=PASS source_attestation=11/11 "
+          "negative_controls=" + str(report["negative_controls"])
+          + " consumer=TypeScript compatibility=PINNED_SOURCE_ONLY "
+          "migration_runtime=NOT_EVALUATED")
+
+
+if __name__ == "__main__":
+    main()
