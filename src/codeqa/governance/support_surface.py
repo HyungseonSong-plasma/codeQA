@@ -56,12 +56,12 @@ EXCLUSIVE_MODES = {
 }
 EXCLUSIVE_AUTHORITIES = {"SCOPED_GATE": {"external_evidence_gate"}}
 PROTECTED_SOURCE_IDENTITIES = {
-    "python_mechanical": ("Python", "codeqa.pipeline.python:analyze_python"),
-    "python_naming_safe": ("Python", "codeqa.evaluation.naming:evaluate_naming"),
-    "naming_companions": ("Python", "codeqa.evaluation.naming:evaluate_naming"),
-    "external_evidence_gate": ("language-neutral", "codeqa.evaluation.evidence_gate:evaluate_gate"),
-    "formal_generated_fixture": ("Dafny", "codeqa.evaluation.formal_generated_gate:evaluate_generated_fixture_gate"),
-    "qa_result_contract": ("language-neutral", "codeqa.evaluation.qa_result:validate_qa_result"),
+    "python_mechanical": (("Python",), "codeqa.pipeline.python:analyze_python"),
+    "python_naming_safe": (("Python",), "codeqa.evaluation.naming:evaluate_naming"),
+    "naming_companions": (("Python",), "codeqa.evaluation.naming:evaluate_naming"),
+    "external_evidence_gate": (("language-neutral",), "codeqa.evaluation.evidence_gate:evaluate_gate"),
+    "formal_generated_fixture": (("Dafny", "Python"), "codeqa.evaluation.formal_generated_gate:evaluate_generated_fixture_gate"),
+    "qa_result_contract": (("language-neutral", "Python"), "codeqa.evaluation.qa_result:validate_qa_result"),
 }
 
 
@@ -192,9 +192,9 @@ def audit_support_surface(
         actual_ids = {f["id"] for f in features if f["authority"] == authority}
         if actual_ids != expected_ids:
             _reject("unreviewed scoped authority: " + authority)
-    for fid, (required_language, expected_entrypoint) in PROTECTED_SOURCE_IDENTITIES.items():
+    for fid, (expected_languages, expected_entrypoint) in PROTECTED_SOURCE_IDENTITIES.items():
         feature = by_id[fid]
-        if (required_language not in feature["languages"]
+        if (tuple(feature["languages"]) != expected_languages
                 or feature["entrypoint"] != expected_entrypoint):
             _reject("protected language/source identity drift: " + fid)
     # Source-level guard: the default Python Mechanical path must not import
