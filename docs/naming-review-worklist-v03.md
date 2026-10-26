@@ -40,3 +40,17 @@ CODEQA_NAMING_PINNED_REV="$(git rev-parse HEAD)" \
 ```
 
 The new tests reject forged/missing path inventories, changed SHA-256, malformed Python, unsafe paths, semantic PASS claims and verify multi-file identical-name disambiguation. All source reads are local and non-executing. New source census does not alter legacy QA output or the opt-in policy selector.
+
+## Stage 3 — unresolved Batch 1: exact reference candidates and distribution contracts
+
+[Human Batch 1 comment](https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106) was posted under GitHub login `HyungseonSong-plasma`. This is **attributed comment provenance**, not proof of independent substantive review or a formal signed Naming-policy adoption. Only #1 and #13 are declared `OBSERVATION_CONFIRMED`; #11, #15 and #25 **remain UNRESOLVED**.
+
+`fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json` pins those three review-site IDs to the historical source commit/blob/SHA-256 and to their actual review comment. It explicitly preserves `NOT_EVALUATED` external consumer coverage and `NOT_ADOPTED` policy. The fixture is **not** an approved glossary, verified GitHub credential, detached cryptographic signature, or rename permit. Existing `build_review_worklist` is used in regression to reject mismatched IDs and source sites; existing unsigned proposal outcomes are unchanged.
+
+`tests/test_naming_batch1_contract_v03.py` verifies historical Git bytes/blob and AST declaration sites, tests actual tokenizer edge-case outputs, dataclass constructor/frozen/serialization field behavior, valid/invalid `NamingGlossaryProfile.from_mapping` behavior and repeatable fingerprint. When `CODEQA_NAMING_PINNED_REV` is set to a real commit, its source reference test first re-verifies the **entire selected source Git tree** through `scan_pinned_git`, then compares Git-read exact SHA-256 bytes for the evaluator; parses the AST to witness `tokenize_identifier` import and two direct call sites, two `canonical` attribute spellings, and one concrete factory invocation in a tracked test. These are **source-scoped syntactic candidates**, not a fully resolved alias/shadowing graph or proof of all external consumers. The test explicitly distinguishes another class's unrelated `from_mapping`.
+
+The existing `.github/workflows/python-package.yml` now invokes `.github/scripts/naming_batch1_installed_smoke.py` for **both wheel and sdist**, on Python **3.12 and 3.13**, using the repository's isolated venv installation and `python -I` outside the checkout. It checks installed-package location, tokenizer responses/errors, `GlossaryTerm.canonical` constructor/frozen/`asdict` compatibility, and factory/error/fingerprint behavior. Passing tests protect **the observed current package contract**, not downstream SDK/consumer deployments.
+
+### The owner/human follow-up still required
+
+Review #11's public ownership and transitive/dynamic imports; #15's serialized-field/constructor consumers and fingerprint migration; #25's public API, call sites, class-specific homonyms and published wheel clients. Add independently inspected external consumers and verified review evidence where relevant; record per-site dispositions in a later versioned, owner-approved ground-truth packet. Retain all three `UNRESOLVED` until the reviewer explicitly amends #91. Do not equate successful runtime smoke with safe naming rename, policy PASS, or issue closure.
