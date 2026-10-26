@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import math
 from pathlib import Path
 import re
 import stat
@@ -31,6 +32,13 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _reject_nonfinite_json(value: str) -> Any:
     raise ResourceBundleError("non-finite registered JSON resource value")
+
+
+def _finite_json_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ResourceBundleError("non-finite registered JSON resource value")
+    return parsed
 
 
 _WINDOWS_DEVICE_NAMES = {"CON", "PRN", "AUX", "NUL"} | {
@@ -90,7 +98,7 @@ def unpack_verified_resource_bundle(
             ) > 128 * 1024 * 1024:
                 raise ResourceBundleError("resource archive exceeds bounded extraction size")
             manifest = json.loads(
-                archive.read("RESOURCE_MANIFEST.json"), object_pairs_hook=_unique_object
+                archive.read("RESOURCE_MANIFEST.json"), object_pairs_hook=_unique_object,\n                parse_constant=_reject_nonfinite_json, parse_float=_finite_json_float
             )
             if not isinstance(manifest, dict) or set(manifest) != {
                 "schema_version", "distribution", "version", "source_revision",
@@ -137,7 +145,7 @@ def unpack_verified_resource_bundle(
                     try:
                         json.loads(
                             data.decode("utf-8"), object_pairs_hook=_unique_object,
-                            parse_constant=_reject_nonfinite_json,
+                            parse_constant=_reject_nonfinite_json, parse_float=_finite_json_float,
                         )
                     except (UnicodeError, json.JSONDecodeError) as exc:
                         raise ResourceBundleError(
