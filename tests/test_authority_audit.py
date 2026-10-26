@@ -146,6 +146,21 @@ class AuthorityPropagationTests(unittest.TestCase):
         receipt["ci_run_url"] = "https://example.com/pretend"
         self.assertEqual(self.check(self.gate, receipt).consumer_authorization, "BLOCK")
 
+    def test_other_repository_ci_url_cannot_attest_this_source(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.evidence_gate")
+        receipt["ci_run_url"] = "https://github.com/another/repo/actions/runs/40242127832"
+        result = self.check(self.gate, receipt)
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertIn("RECEIPT_CI_REPOSITORY_MISMATCH", result.reasons)
+        self.assertFalse(result.production_merge_authorized)
+
+    def test_dot_segment_ci_repository_is_not_a_valid_receipt(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.evidence_gate")
+        receipt["ci_run_url"] = "https://github.com/../repo/actions/runs/40242127832"
+        result = self.check(self.gate, receipt)
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertIn("RECEIPT_CI_LINK_UNVERIFIED", result.reasons)
+
     def test_untyped_json_cannot_be_a_trusted_decision(self) -> None:
         with self.assertRaises(TypeError):
             self.check(self.gate.to_document(), self.receipt(self.gate, "codeqa.evidence_gate"))
