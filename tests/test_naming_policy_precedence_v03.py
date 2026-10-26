@@ -283,5 +283,108 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
         self.assertTrue(result.human_review_required)
 
 
+class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
+    """Pinned structural evidence; deliberately no human inventory signature."""
+
+    @classmethod
+    def setUpClass(cls):
+        from pathlib import Path
+        from codeqa.infrastructure.git import GitReader
+        from codeqa.core.naming_declaration_evidence_v03 import observe_pinned_python
+        cls.root = Path(__file__).resolve().parents[1]
+        cls.fixture = json.loads((cls.root / "fixtures/naming-governance/"
+            "codeqa-python-inventory-review-candidates-v02.json").read_text(encoding="utf-8"))
+        cls.proposal = json.loads((cls.root / "fixtures/naming-governance/"
+            "codeqa-owner-policy-direction-v03-proposal.json").read_text(encoding="utf-8"))
+        cls.source = GitReader(cls.root).read_file(
+            cls.fixture["source_commit"], cls.fixture["source_path"])
+        cls.review = observe_pinned_python(
+            cls.source, expected_sha256=cls.fixture["source_sha256"])
+
+    def test_all_26_are_observations_but_three_decorators_are_not_identifiers(self):
+        outcomes = [self.review.classify_candidate(c)
+                    for c in self.fixture["candidates"]]
+        self.assertEqual(len(outcomes), 26)
+        self.assertEqual(outcomes.count("AST_OBSERVED"), 23)
+        self.assertEqual(outcomes.count("SYNTAX_ONLY"), 3)
+        self.assertNotIn("NOT_EVALUATED", outcomes)
+        self.assertFalse(self.review.semantic_proven)
+        self.assertTrue(self.review.human_review_required)
+        self.assertEqual(self.review.review_status, "PENDING_FINAL_ADJUDICATION")
+        self.assertEqual({(d.callee, d.line) for d in self.review.decorators},
+                         {("dataclass", 32), ("dataclass", 39), ("classmethod", 46)})
+
+    def test_parameter_and_local_scope_do_not_conflate_homonyms(self):
+        sites = {(d.name, d.kind, d.line, d.owner) for d in self.review.declarations}
+        for key in (("name", "parameter", 19, "tokenize_identifier"),
+                    ("cls", "parameter", 47, "NamingGlossaryProfile.from_mapping"),
+                    ("value", "parameter", 47, "NamingGlossaryProfile.from_mapping"),
+                    ("self", "parameter", 100, "NamingGlossaryProfile.fingerprint"),
+                    ("terms", "local_binding", 64, "NamingGlossaryProfile.from_mapping"),
+                    ("terms", "declared_field", 44, "NamingGlossaryProfile"),
+                    ("segment", "loop_binding", 23, "tokenize_identifier"),
+                    ("k", "loop_binding", 89, "NamingGlossaryProfile.from_mapping"),
+                    ("value", "local_binding", 101, "NamingGlossaryProfile.fingerprint")):
+            with self.subTest(site=key):
+                self.assertIn(key, sites)
+        self.assertFalse(next(d for d in self.review.declarations
+            if d.name == "terms" and d.line == 64).eligible_kind)
+        self.assertTrue(next(d for d in self.review.declarations
+            if d.name == "terms" and d.line == 44).eligible_kind)
+
+    def test_no_lexical_comment_string_attribute_or_decorator_promotion(self):
+        from codeqa.core.naming_declaration_evidence_v03 import observe_pinned_python
+        source = b'# phantom\nmessage = "phantom"\nclass C:\n    @factory(enabled=True)\n    def f(self):\n        self.phantom = 1\n'
+        review = observe_pinned_python(source, expected_sha256=sha256(source).hexdigest())
+        for name, kind, line, owner in (
+            ("phantom", "function", 1, ""),
+            ("phantom", "declared_field", 6, "C"),
+            ("factory(enabled=True)", "method", 4, "C"),
+            ("f", "method", 5, ""),
+        ):
+            self.assertEqual(review.classify_candidate(
+                {"name": name, "kind": kind, "line": line, "owner": owner}),
+                "NOT_EVALUATED")
+        self.assertEqual(review.classify_candidate(
+            {"name": "factory(enabled=True)", "kind": "decorator", "line": 4,
+             "owner": "f"}), "SYNTAX_ONLY")
+        self.assertEqual(review.classify_candidate(
+            {"name": "f", "kind": "method", "line": 5, "owner": "C"}),
+            "AST_OBSERVED")
+
+    def test_stale_unparseable_and_malformed_evidence_fail_closed(self):
+        from codeqa.core.naming_declaration_evidence_v03 import (
+            DeclarationEvidenceError, observe_pinned_python)
+        with self.assertRaises(DeclarationEvidenceError):
+            observe_pinned_python(self.source + b"\n# drift",
+                expected_sha256=self.fixture["source_sha256"])
+        with self.assertRaises(DeclarationEvidenceError):
+            observe_pinned_python(b"def x(: pass", expected_sha256=sha256(b"def x(: pass").hexdigest())
+        with self.assertRaises(DeclarationEvidenceError):
+            self.review.classify_candidate({"name": "x"})
+        with self.assertRaises(DeclarationEvidenceError):
+            observe_pinned_python(self.source, expected_sha256="0"*64)
+
+    def test_owner_policy_is_proposal_only_and_opt_in(self):
+        p = self.proposal
+        self.assertEqual(p["review_status"], "PENDING_FINAL_ADJUDICATION")
+        self.assertEqual(p["adoption_status"], "NOT_ADOPTED")
+        self.assertEqual(p["owner_decision_url"].split("#")[-1], "issuecomment-6413057026")
+        self.assertEqual([(t["canonical"], t["explicit_noncanonical_aliases"])
+                          for t in p["terms"]],
+                         [("time_step", ["timestep"]), ("node_id", ["nodeid"])])
+        self.assertEqual(p["applicability"]["language"], "python")
+        self.assertEqual(p["applicability"]["mode"], "EXPLICIT_OPT_IN_ONLY")
+        self.assertEqual(p["applicability"]["path_scopes"], [])
+        self.assertEqual(p["governance"]["review_interval_days"], 180)
+        self.assertIsNone(p["governance"]["adoption_date"])
+        self.assertIsNone(p["declaration_ground_truth"]["inventory_human_signature"])
+        self.assertFalse(p["safety"]["automatic_rename_authorized"])
+        self.assertFalse(p["safety"]["pr_merge_authorized"])
+        self.assertFalse(p["safety"]["issue_closure_authorized"])
+        self.assertIn("timestamp", p["terms"][0]["excluded_inferred_synonyms"])
+        self.assertFalse(p["safety"]["check_candidate_is_pass"])
+
+
 if __name__ == "__main__":
     unittest.main()
