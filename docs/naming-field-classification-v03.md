@@ -32,3 +32,41 @@ At pinned commit `dfd94bb25d52642bb2e46766b1ebe074c2f82803`, `src/codeqa/core/na
 The original review kind `declared_field` remains a **proposed human inventory classification**, with `UNRESOLVED` as the latest attributable owner decision. The user must explicitly decide whether to accept that historically pinned AST/field role; this document does not impersonate or replace human review.
 
 **Future migration gate:** any promotion of legacy `declared_field` to a normative taxonomy requires an independently versioned schema, field-kind denominator, source-to-runtime evidence coverage, explicit exclusions/UNKNOWN, consumer compatibility review, and separately approved policy ownership. Preserve frozen Naming v0.1 and existing worklist identities until then.
+
+## Additive v0.3 shadow projection of the original 50-site worklist
+
+The opt-in `codeqa.core.naming_field_evidence_v03.build_shadow_field_evidence`
+creates a **new and separately versioned** packet (`0.3-shadow-field-evidence`)
+without changing the 50 legacy IDs, the source proposal, the declared kind
+`declared_field`, or any review decision. The pure core accepts exact source
+bytes; `codeqa.pipeline.naming_field_evidence_v03.project_pinned_field_evidence`
+reads them via `GitReader` from the proposal's immutable commit.
+
+The packet is restricted to `original_candidates` already labeled
+`declared_field` (seven entries in the historical worklist). Every record
+preserves its `site_id`, precise `symbol` identity and `legacy_kind`;
+adds `ast_site`, `static_classification` and `reason_codes`; and explicitly
+marks runtime verification, human decision import, policy applicability and
+rename authorization as **not granted**. All other 43 worklist records stay
+unaltered and are not silently classified. `FIELD_CANDIDATE` is a static
+candidate, never `FIELD_CONFIRMED`.
+
+`validate_shadow_field_evidence` recalculates this projection from exact
+source and proposal and rejects missing, extra, reordered, forged, stale
+or approval-promoting fields. Tests check unchanged 50-site identities,
+historical Git SHA-1 blob and SHA-256, seven original field candidates,
+the owner-comment #15 `UNRESOLVED`, and both negative and spoofed
+evidence. Underlying source SHA/blob validation alone does not independently
+verify Git identity; the pipeline's immutable Git read provides that provenance.
+
+**Migration stage:** `ADDITIVE_SHADOW_ONLY`. No replacement of the legacy
+public AST kind, no default-policy change, no overall field denominator
+for the 91+ Python files, no runtime claim from the static sidecar, and no
+human or glossary approval. Any normative schema/kind migration remains a
+separate governed decision after broader counterexample, compatibility
+and semantic coverage review. Source/field classifications remain provisional.
+
+Run:
+```sh
+python -m unittest discover -s tests -p 'test_naming_field_evidence_v03.py' -v
+```

@@ -1,5 +1,7 @@
 # #91 Naming v0.3 — unsigned review worklist integrity (draft)
 
+**Shadow migration:** The 50-site legacy worklist remains immutable; [opt-in field evidence](naming-field-classification-v03.md#additive-v03-shadow-projection-of-the-original-50-site-worklist) projects seven original `declared_field` site IDs into a separate versioned, fail-closed evidence envelope. No human adjudication or policy promotion occurs.
+
 **Field-classification boundary:** [Python `declared_field` review contract](naming-field-classification-v03.md) now distinguishes a direct class annotation, a conservative standard-library dataclass field candidate, runtime evidence, and human/policy approval. The classifier is opt-in and does not alter historic #15 `UNRESOLVED`.
 
 **Current human observation checkpoint (2026-10-26):** 4 confirmed, 1 unresolved (#15), 45 unadjudicated. Stage 3–4 counts below are historical; Stage 5 records the attributed amendment and does not adopt the Naming policy.
