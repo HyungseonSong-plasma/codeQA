@@ -350,6 +350,28 @@ def compare_history(history: dict, old: dict[str, bytes],
     require(history["expected_new_migration"] not in migrations
             and history["expected_new_migration"] == "fe56fa70289e",
             "HISTORICAL_ADDED_MIGRATION_DRIFT")
+    # Verify that the newer revision really declares the selected physical
+    # columns; a filename/predecessor alone is not migration DDL evidence.
+    migration_path = next((p for p in current
+                           if p.startswith(MIGRATION_PREFIX + history["expected_new_migration"])),
+                          None)
+    require(migration_path is not None, "NEW_MIGRATION_SOURCE_MISSING")
+    migration_tree = ast.parse(current[migration_path].decode())
+    upgrade = next((n for n in migration_tree.body
+                    if isinstance(n, ast.FunctionDef) and n.name == "upgrade"), None)
+    require(upgrade is not None, "NEW_MIGRATION_UPGRADE_MISSING")
+    physical_additions = set()
+    for node in ast.walk(upgrade):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "add_column" and len(node.args) == 2
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[1], ast.Call)
+                and len(node.args[1].args) >= 1
+                and isinstance(node.args[1].args[0], ast.Constant)):
+            continue
+        physical_additions.add((node.args[0].value, node.args[1].args[0].value))
+    require(physical_additions == {("user", "created_at"), ("item", "created_at")},
+            "HISTORICAL_MIGRATION_PHYSICAL_DDL_DRIFT")
     old_project = tomllib.loads(old["backend/pyproject.toml"].decode())["project"]
     new_project = tomllib.loads(current["backend/pyproject.toml"].decode())["project"]
     require(old_project["version"] == new_project["version"] == "0.1.0"
@@ -384,6 +406,14 @@ def history_negative_controls(history: dict, old: dict[str, bytes],
         source = old[path].decode()
         require(before in source, "HISTORY_NEGATIVE_TARGET_MISSING")
         return {**old, path: source.replace(before, after, 1).encode()}
+    newer_path = next(p for p in current if p.startswith(
+        MIGRATION_PREFIX + history["expected_new_migration"]))
+    newer = current[newer_path].decode()
+    require("sa.Column('created_at'" in newer, "HISTORY_NEGATIVE_DDL_TARGET_MISSING")
+    forged_current = {**current, newer_path: newer.replace(
+        "sa.Column('created_at'", "sa.Column('renamed_at'", 1).encode()}
+    reject("new_migration_physical_ddl", lambda: compare_history(
+        history, old, forged_current))
     reject("historical_digest", lambda: attest_history(history, replace(
         "backend/app/models.py", "class UserPublic", "class OtherPublic"), tree))
     reject("historical_ts_alias", lambda: compare_history(history, replace(
