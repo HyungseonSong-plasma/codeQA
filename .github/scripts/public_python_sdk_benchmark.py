@@ -304,6 +304,29 @@ def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -
 
 
 
+def validate_full_source_diagnostic(diagnostic: object, repo: Path) -> None:
+    """Require a real in-tree diagnostic and a zero-based source line witness.
+
+    This validates diagnostic locations only. It does not prove that every
+    configured target was analyzed, or that dependencies were resolved.
+    """
+    require(isinstance(diagnostic, dict)
+            and diagnostic.get("severity") in {"error", "warning", "information"}
+            and isinstance(diagnostic.get("file"), str)
+            and bool(diagnostic["file"]),
+            "FULL_SOURCE_PYRIGHT_MALFORMED_DIAGNOSTIC")
+    location = Path(diagnostic["file"])
+    actual = (location if location.is_absolute() else repo / location).resolve()
+    require(actual.is_relative_to(repo.resolve()) and actual.is_file(),
+            "FULL_SOURCE_PYRIGHT_FOREIGN_DIAGNOSTIC")
+    span = diagnostic.get("range")
+    require(isinstance(span, dict) and isinstance(span.get("start"), dict),
+            "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE")
+    line = span["start"].get("line")
+    require(type(line) is int and 0 <= line < len(actual.read_bytes().splitlines()),
+            "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE")
+
+
 def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
                               binary: Path, output: Path) -> dict:
     """Git-fetch immutable public source in an isolated temp tree; never import it.
@@ -373,13 +396,7 @@ def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
         require(count == len(errors) and (done.returncode == 1) == bool(count),
                 "FULL_SOURCE_PYRIGHT_EXIT_MISMATCH")
         for diagnostic in native["generalDiagnostics"]:
-            require(isinstance(diagnostic, dict)
-                    and isinstance(diagnostic.get("file"), str),
-                    "FULL_SOURCE_PYRIGHT_MALFORMED_DIAGNOSTIC")
-            location = Path(diagnostic["file"])
-            actual = (location if location.is_absolute() else repo / location).resolve()
-            require(actual.is_relative_to(repo.resolve()),
-                    "FULL_SOURCE_PYRIGHT_FOREIGN_DIAGNOSTIC")
+            validate_full_source_diagnostic(diagnostic, repo)
         require(all((repo / p).read_bytes() == raw for p, raw in sources.items()),
                 "FULL_SOURCE_PYRIGHT_MUTATED_SELECTED_SOURCE")
         raw = done.stdout.encode()
@@ -399,6 +416,7 @@ def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
             "tree": manifest["tree"], "files_analyzed": analyzed,
             "errors": count, "exit_code": done.returncode,
             "native_json_sha256": hashlib.sha256(raw).hexdigest(),
+            "analyzed_target_path_set": "NOT_INDEPENDENTLY_ATTESTED",
             "third_party_dependency_closure": "NOT_EVALUATED",
             "installed_wheel_identity": "NOT_EVALUATED",
             "override_compatibility": "NOT_EVALUATED",
