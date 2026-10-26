@@ -58,14 +58,18 @@ class DomainInventoryTests(unittest.TestCase):
         bad = self.edges + (
             StaticDependency("src/codeqa/core/graph.py", "src/codeqa/adapters/python.py", 1, "import codeqa.adapters.python", "top_level"),
         )
+        self.sources["src/codeqa/core/graph.py"] = (
+            "import codeqa.adapters.python\nclass Graph:\n    pass\n"
+        )
         report = analyze_domain_inventory(self.sources, self._graph(edges=bad), POLICY, ROLES)
         self.assertEqual(report["status"], "VIOLATION")
         self.assertTrue(any(x["code"] == "FORBIDDEN_ROLE_DEPENDENCY" for x in report["role_findings"]))
 
     def test_forbidden_evaluation_to_adapter_import_is_a_violation(self) -> None:
         bad = self.edges + (
-            StaticDependency("src/codeqa/evaluation/mechanical.py", "src/codeqa/adapters/python.py", 1, "import codeqa.adapters.python", "top_level"),
+            StaticDependency("src/codeqa/evaluation/mechanical.py", "src/codeqa/adapters/python.py", 2, "import codeqa.adapters.python", "top_level"),
         )
+        self.sources["src/codeqa/evaluation/mechanical.py"] += "import codeqa.adapters.python\n"
         report = analyze_domain_inventory(self.sources, self._graph(edges=bad), POLICY, ROLES)
         self.assertEqual(report["status"], "VIOLATION")
 
@@ -86,6 +90,22 @@ class DomainInventoryTests(unittest.TestCase):
             analyze_domain_inventory(self.sources, DependencyGraph(
                 "git:fixture", ("src/codeqa/core/graph.py",), (), (), (),
             ), POLICY, ROLES)
+
+    def test_forged_import_line_expression_or_execution_rejected(self) -> None:
+        original = self.edges[0]
+        for forged in (
+            StaticDependency(original.source_path, original.target_path, 99,
+                             original.expression, original.execution),
+            StaticDependency(original.source_path, original.target_path, 1,
+                             "import codeqa.nonexistent", original.execution),
+            StaticDependency(original.source_path, original.target_path, 1,
+                             original.expression, "conditional_or_deferred"),
+        ):
+            with self.subTest(forged=forged):
+                with self.assertRaisesRegex(DomainInventoryError, "selected source import"):
+                    analyze_domain_inventory(
+                        self.sources, self._graph(edges=(forged,)), POLICY, ROLES
+                    )
 
     def test_nonportable_product_source_paths_rejected(self) -> None:
         for bad in ("src/codeqa/core/unsafe\n.py",
