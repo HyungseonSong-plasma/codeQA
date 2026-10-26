@@ -341,6 +341,7 @@ def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, An
         if not isinstance(items, list):
             raise DomainInventoryError("invalid __init__ import candidate list")
         found = set()
+        selected_paths = {item["path"] for item in report["inventory"]}
         for item in items:
             if not isinstance(item, dict):
                 raise DomainInventoryError("invalid __init__ import candidate")
@@ -348,6 +349,7 @@ def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, An
                 item.get("path"), item.get("from"), item.get("name"), item.get("asname")
             )
             if (not _safe_source_path(path) or not path.endswith("/__init__.py")
+                    or path not in selected_paths
                     or not isinstance(origin, str) or not origin
                     or not isinstance(name, str) or not name
                     or alias is not None and (not isinstance(alias, str) or not alias)):
