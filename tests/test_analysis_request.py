@@ -103,6 +103,25 @@ class AnalysisRequestTests(unittest.TestCase):
         with self.assertRaises(AnalysisRequestError):
             AnalysisOptions.from_mapping({"semantic_policy": {"unsafe": object()}})
 
+    def test_non_string_policy_key_cannot_alias_json_string_key(self):
+        for value in ({1: "same"}, {"nested": [{2: "same"}]}):
+            with self.subTest(value=value), self.assertRaisesRegex(
+                AnalysisRequestError, "keys must be strings"
+            ):
+                AnalysisOptions.from_mapping({"semantic_policy": value})
+
+    def test_direct_policy_cycles_are_rejected(self):
+        recursive = {}
+        recursive["loop"] = recursive
+        with self.assertRaisesRegex(AnalysisRequestError, "cyclic"):
+            AnalysisOptions(semantic_policy=recursive).validate()
+
+    def test_non_string_registered_profile_keys_rejected_before_analysis(self):
+        from dataclasses import replace
+        req = self.request()
+        with self.assertRaisesRegex(AnalysisRequestError, "keys must be strings"):
+            analyze_python_request(replace(req, ccg_schema={1: "ambiguous"}))
+
     def test_missing_snapshot_rejected(self):
         req = self.request()
         from dataclasses import replace
