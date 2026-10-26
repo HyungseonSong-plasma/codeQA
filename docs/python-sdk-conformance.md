@@ -121,3 +121,32 @@ or a human-approved compatibility window. Those remain `NOT_EVALUATED`
 and the original #92 issue stays open. The workflow must execute the new
 runtime assertions at the exact PR-associated revision before they count as
 a CI witness.
+
+## Controlled advanced Python typechecker matrix (#92 incremental)
+
+The same pinned **real Pyright 1.1.414** invocation now separately checks
+`valid_advanced_contract.py` and `invalid_advanced_contract.py` against
+the installed **Pydantic 2.13.5** type definitions through the explicit
+`public_sdk.py` re-export. The fixtures exercise overload selection,
+a mixin method override, a metaclass attribute, a signature-preserving
+aliased decorator, and typed callback Protocol compatibility. This is a
+**controlled contract fixture**, not an actual independently identified
+third-party SDK consumer, plugin callback dispatcher, or public API baseline.
+
+The negative source must yield native Pyright
+`reportIncompatibleMethodOverride`, `reportAssignmentType`, and
+`reportCallIssue` diagnostics; a missing required diagnostic or a
+tool/config error fails CI. The positive fixture must have zero errors.
+Both files (`contract.py` and the imported `public_sdk.py`) are explicitly
+included in the checked source set, and their original repository bytes,
+SHA-256 identities, required/evaluated rules, raw JSON, tool/config
+fingerprints and scoped #98/#99 Gate outcomes are retained in the
+`pinned-python-sdk-pyright-orm-evidence` artifact. The evidence can establish
+only `TYPE_NO_ERRORS` for the specified controlled fixture; it is **not**
+an external callback dispatch proof or an authorization to rename a public
+symbol. The existing baseline positive/negative Pyright checks are retained.
+
+The remaining real consumer/stub and versioned public DTO/DB migration
+evidence remains `NOT_EVALUATED`, as does runtime behavior of external
+plugins, dynamic metaclasses and callbacks. Do not promote a controlled
+typechecker PASS to global Naming or API compatibility PASS.
