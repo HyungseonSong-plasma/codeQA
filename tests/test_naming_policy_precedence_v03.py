@@ -4,7 +4,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import asdict, replace
 from datetime import date
-from hashlib import sha256
+from hashlib import sha1, sha256
 import json
 import unittest
 
@@ -436,6 +436,17 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
             self.review.classify_candidate({"name": "x"})
         with self.assertRaises(DeclarationEvidenceError):
             observe_pinned_python(self.source, expected_sha256="0"*64)
+
+    def test_pinned_commit_source_bytes_match_git_blob_and_sha256(self):
+        # GitReader.read_file(commit, path) binds the bytes to the pinned
+        # local Git object; independently recompute both hash identities.
+        raw = self.source
+        blob = b"blob " + str(len(raw)).encode("ascii") + b"\\0" + raw
+        self.assertEqual(sha1(blob).hexdigest(),
+                         self.fixture["source_git_blob_sha"])
+        self.assertEqual(sha256(raw).hexdigest(),
+                         self.fixture["source_sha256"])
+        self.assertFalse(self.review.semantic_proven)
 
     def test_versioned_ast_review_proposal_has_exact_sites_and_no_signatures(self):
         path = self.root / "fixtures/naming-governance/codeqa-ast-review-v03-proposal.json"
