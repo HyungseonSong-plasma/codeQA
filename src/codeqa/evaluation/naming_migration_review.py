@@ -7,7 +7,9 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from hashlib import sha256
+import io
 import re
+import tokenize
 from typing import Any, Mapping
 
 from codeqa.evaluation.naming_rename_impact_v02 import RenameImpactReport
@@ -89,13 +91,28 @@ def prepare_migration_review_packet(
     verify(after_sources, after_sha256)
     if not set(proposal.selected_paths).issubset(before_sources):
         raise MigrationPlanError("rename proposal references unselected source")
-    # A caller-constructed report is not a source-bound producer receipt. At
-    # minimum, recompute lexical presence from these exact selected bytes;
-    # comments and aliases can still match, so this is never binding proof.
+    # A caller-constructed report is not a source-bound producer receipt.
+    # Python NAME tokens exclude comments and strings; this remains lexical
+    # presence only (not declaration/reference resolution or consumer proof).
     def observed(name: str, sources: Mapping[str, str]) -> bool:
-        return (isinstance(name, str) and bool(name)
-                and any(re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", text)
-                        for text in sources.values()))
+        if not isinstance(name, str) or not name:
+            return False
+        for path, content in sources.items():
+            if path.endswith(".py"):
+                if not name.isidentifier():
+                    continue
+                try:
+                    if any(token.type == tokenize.NAME and token.string == name
+                           for token in tokenize.generate_tokens(
+                               io.StringIO(content).readline)):
+                        return True
+                except (tokenize.TokenError, IndentationError, SyntaxError):
+                    # A malformed token stream must not certify name presence.
+                    continue
+            elif re.search(r"(?<!\\w)" + re.escape(name) + r"(?!\\w)", content):
+                # Non-Python sources have no parser-backed binding evidence.
+                return True
+        return False
     if not observed(proposal.old_name, before_sources):
         raise MigrationPlanError("proposal old identifier absent from exact baseline bytes")
     if type(source_selection_complete) is not bool:
@@ -135,8 +152,10 @@ def prepare_migration_review_packet(
         unknowns.add("old_identifier_still_lexically_observed_in_candidate")
     if any(before_sha256[a] == after_sha256[b] for a, b in path_renames.items()):
         unknowns.add("byte_identical_file_move_not_symbol_rename")
-    # Lexical observations above can match comments/strings and cannot prove
+    # Python token observations exclude comments/strings but still cannot prove
     # declaration identity, dynamic references or semantic preservation.
+    if any(not path.endswith(".py") for path in (*before_sources, *after_sources)):
+        unknowns.add("non_python_lexical_presence_only")
     unknowns.add("lexical_presence_not_source_binding_proof")
     if not path_renames and set(before_sources) == set(after_sources) and all(
         before_sha256[path] == after_sha256[path] for path in before_sources
