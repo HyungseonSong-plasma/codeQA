@@ -1,7 +1,11 @@
 """#93 pinned C++ parser source witnesses, not compiler/ABI/MOOSE grammar proof."""
 from __future__ import annotations
 
+from collections import Counter
 from hashlib import sha256
+import json
+import shutil
+import subprocess
 import importlib.util
 from pathlib import Path
 import unittest
@@ -189,6 +193,94 @@ extern "C" int c_api() { return 0; }
         self.assertIn("TEMPLATE_BINDING_NOT_EVALUATED", report.unknowns)
         self.assertIn("EXPORT_VISIBILITY_AND_ABI_NOT_EVALUATED", report.unknowns)
         self.assertIn("DYNAMIC_PUBLIC_CONSUMERS_NOT_EVALUATED", report.unknowns)
+
+
+    def test_clang_ast_independent_declaration_oracle(self):
+        """Compare the *same bytes* using Clang and tree-sitter, without ABI claims."""
+        clang = shutil.which("clang++")
+        self.assertIsNotNone(clang, "D2 Clang AST oracle needs real clang++; no skip")
+        source = b"""namespace outer {
+namespace inner {
+template<typename T> struct Box { T value; void set(T v) { value=v; } };
+struct Engine { Engine() {} ~Engine() {} void run(int); void run(double); };
+void Engine::run(int) {}
+void Engine::run(double) {}
+}
+}
+#define FUNCTION_NAME generated
+void FUNCTION_NAME() {}
+"""
+        result = subprocess.run(
+            [clang, "-x", "c++", "-std=c++17", "-fsyntax-only", "-Werror",
+             "-Xclang", "-ast-dump=json", "-"],
+            input=source, capture_output=True, timeout=30, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace")[:2000])
+        ast = json.loads(result.stdout)
+        observed = []
+
+        def compiler_walk(node, owners=()):
+            if not isinstance(node, dict) or node.get("isImplicit"):
+                return
+            kind, name = node.get("kind"), node.get("name")
+            context = "::".join(owners) or None
+            mapped = None
+            if kind == "NamespaceDecl":
+                mapped = "namespace"
+            elif kind == "CXXRecordDecl" and name in ("Box", "Engine"):
+                mapped = "struct"
+            elif kind == "FieldDecl":
+                mapped = "field"
+            elif kind == "CXXMethodDecl":
+                body = any(ch.get("kind") == "CompoundStmt"
+                           for ch in node.get("inner", []))
+                mapped = "function_definition" if body else "method_declaration"
+            if mapped and name:
+                observed.append((mapped, name, context))
+            local = owners
+            if kind in ("NamespaceDecl", "CXXRecordDecl") and name:
+                local = (*owners, name)
+            for child in node.get("inner", []):
+                compiler_walk(child, local)
+
+        compiler_walk(ast)
+        parser = self.parse(source)
+        syntax = Counter((x.kind, x.spelling, x.container)
+                         for x in parser.declarations)
+        # Independently derive the Clang reference on every run. A focused
+        # selection avoids treating generated/specialized AST children as
+        # equivalent to source-text declarations.
+        selected = {
+            ("namespace", "outer", None),
+            ("namespace", "inner", "outer"),
+            ("struct", "Box", "outer::inner"),
+            ("struct", "Engine", "outer::inner"),
+            ("field", "value", "outer::inner::Box"),
+            ("function_definition", "set", "outer::inner::Box"),
+            ("method_declaration", "run", "outer::inner::Engine"),
+        }
+        compiler = Counter(x for x in observed if x in selected)
+        self.assertEqual(set(compiler), selected,
+                         f"Clang oracle selection incomplete: {set(compiler) ^ selected}")
+        self.assertEqual(
+            Counter({x: syntax[x] for x in selected}), compiler,
+            f"Clang/tree-sitter declaration mismatch on source SHA256 {sha256(source).hexdigest()}",
+        )
+        # Compiler sees macro-expanded identity; parser sees literal spelling.
+        # Neither source-spelling nor ABI can be promoted to resolved here.
+        def has_expanded_function(node):
+            return isinstance(node, dict) and (
+                (node.get("kind") == "FunctionDecl" and node.get("name") == "generated")
+                or any(has_expanded_function(c) for c in node.get("inner", []))
+            )
+        self.assertTrue(has_expanded_function(ast))
+        self.assertTrue(any(d.spelling == "FUNCTION_NAME" for d in parser.declarations))
+        self.assertIn("PREPROCESSOR_EXPANSION_NOT_EVALUATED", parser.unknowns)
+        self.assertIn("TEMPLATE_BINDING_NOT_EVALUATED", parser.unknowns)
+        self.assertIn("COMPILER_OVERRIDE_AND_ABI_NOT_EVALUATED", parser.unknowns)
+        print(f"D2_CLANG_ORACLE=PASS source_sha256={sha256(source).hexdigest()} "
+              f"declarations={sum(compiler.values())} compiler=clang++ observed-not-pinned")
+
 
 
 if __name__ == "__main__":
