@@ -47,11 +47,12 @@ class MooseFrameworkSourceLockTests(unittest.TestCase):
             self.assertEqual(receipt[field], "NOT_EVALUATED")
         self.assertEqual(set(receipt["files"]), REQUIRED_FILES)
 
-    def test_official_pinned_source_contract_has_three_exact_files(self):
+    def test_official_pinned_source_contract_has_eight_exact_files(self):
         lock = json.loads((ROOT / "fixtures/moose-framework/source-lock-v0.1.json").read_text())
         self.assertEqual(lock["framework_revision"], "9f388366ccf38b9c34542ec5561198249fde0ac9")
         self.assertEqual(lock["application_revision"], "1977ad5559e5aa7a1c8d04c83735c15e007130d5")
         self.assertEqual(set(lock["files"]), REQUIRED_FILES)
+        self.assertEqual(len(REQUIRED_FILES), 8)
 
     def test_modified_upstream_header_rejected(self):
         altered = dict(self.files)

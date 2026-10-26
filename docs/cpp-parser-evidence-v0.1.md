@@ -75,3 +75,15 @@ the complete HIT input DSL grammar, reserved vs customizable application
 parameter names, C++ compilation/linking against MOOSE headers, ABI
 compatibility, or actual runtime consumers. Those remain `NOT_EVALUATED`;
 no automatic rename, migration or production compatibility decision.
+
+## Pinned HIT parser source identity extension (still not a grammar verdict)
+
+The same upstream MOOSE commit additionally pins five exact parser-related
+files: `MooseSyntax.h`, `Syntax.C`, HIT `lex.cc`, HIT `parse.cc` and
+HIT `parse.h`. The eight-file lock now includes source code that implements
+parts of the input syntax parsing path. CI fetches and byte-checks all eight
+Git blobs against the immutable commit and application dependency lock.
+This is **parser source provenance**, not executed parser conformance against
+the application input files, a complete versioned HIT grammar specification,
+reserved-vs-customizable field classification, or ABI proof. All those
+semantic/compatibility obligations remain `NOT_EVALUATED`.
