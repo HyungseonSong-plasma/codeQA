@@ -48,6 +48,8 @@ class PinnedScopeDiscoveryV04Tests(unittest.TestCase):
               f"declaration_sites={p['structural_declaration_candidate_count']} "
               f"semantic_policy_gate={p['semantic_policy_gate']} "
               f"role_scopes_approved=0")
+        print("NAMING_SCOPE_DECLARATIONS " + json.dumps(
+            p["proposed_path_role_scopes"], sort_keys=True, ensure_ascii=False))
 
     def test_exact_ast_sites_never_induce_approved_owners(self):
         p = self.packet
