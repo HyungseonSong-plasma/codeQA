@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.5-scoped-official-lexical-policy",
+  "policy_id": "codeqa_python_naming_scoped_v05",
+  "repository": "HyungseonSong-plasma/codeQA",
+  "status": "ADOPTED_SCOPED_LEXICAL_ONLY",
+  "owner_decision": "PROJECT_OWNER_EXPLICIT_APPROVAL_2026-10-26",
+  "source_witness": {
+    "commit": "1fca848833167829752b4fda8632ef06aa77dd49",
+    "tree_sha": "56305f69aebae3a07f0d7255a9b3e9f5c1efeec5",
+    "path": "src/codeqa/core/complexity.py",
+    "git_blob_sha": "3b883e0daaf915b653da07650c533317a596623b"
+  },
+  "terms": [
+    {
+      "canonical": "time_step",
+      "noncanonical_spelling": "timestep",
+      "path_scopes": [],
+      "meaning": "NOT_EVALUATED"
+    },
+    {
+      "canonical": "node_id",
+      "noncanonical_spelling": "nodeid",
+      "path_scopes": [
+        "src/codeqa/core/complexity.py"
+      ],
+      "meaning": "INTERNAL_SOURCE_ROLE_CANDIDATE_ONLY"
+    }
+  ],
+  "declaration_scope": {
+    "path": "src/codeqa/core/complexity.py",
+    "owner": "ControlFlowObservation",
+    "line": 10,
+    "kind": "field",
+    "identifier": "node_id",
+    "role_candidate": "internal_ccg_declaration_identifier_candidate",
+    "source_classification": "FIELD_CANDIDATE",
+    "owner_role_approval": "APPROVED_EXACT_LEXICAL_SCOPE_ONLY"
+  },
+  "exceptions": [],
+  "review_interval_days": 180,
+  "adoption_date": "2026-10-26",
+  "next_review_date": "2027-04-24",
+  "external_clients": "NOT_EVALUATED",
+  "external_reference_issue": 147,
+  "default_v01_unchanged": true,
+  "semantic_glossary_pass": false,
+  "automatic_rename_authorized": false
+}

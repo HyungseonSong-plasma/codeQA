@@ -23,13 +23,15 @@ The opt-in path composes existing Python AST naming evidence, the safe profile
 and the existing `evaluate_naming` evaluator; it does not replace or change
 them. A `NO_VIOLATIONS_OBSERVED` spelling result is not a semantic PASS.
 Unresolved external bases, SDK dispatch, DTO/ORM effective aliases and
-unreviewed glossary decisions remain `NOT_EVALUATED`.
+unapproved **broader** glossary scopes remain `NOT_EVALUATED`. The distinct official
+v0.5 opt-in covers only `ControlFlowObservation.node_id` at its pinned declaration;
+it does not change the safe v0.1 spelling analyzer or its default activation.
 
 | Capability | Activation | Authority / remaining evidence |
 | --- | --- | --- |
 | Python safe declaration spelling v0.1 | Explicit opt-in function and registered profile | Source spelling review, not interface proof |
 | Python naming coverage v0.2, pinned ancestors, directional fields | Separate opt-in companion APIs/profiles | Experimental, exact source witnesses only |
-| Naming glossary, source delta, rename-impact proposal | Separate opt-in/manual paths | Human-reviewed glossary and public compatibility missing (#91/#94) |
+| Naming glossary, source delta, rename-impact proposal | Separate opt-in/manual paths | The official Naming v0.5 scope covers only one approved internal field; broader glossary semantics, rename safety and public compatibility remain unverified (#144/#94) |
 | Real external SDK/typechecker/DTO/ORM | Separate pinned tests and evidence (#92) | Synthetic tests do not prove public API or DB migration |
 | Rust parser and C++/MOOSE framework Naming | Manual/fixture evidence (#93) | Production ABI/DSL evidence not established |
 | Formal generated fixture | Separate `ALLOW_FIXTURE_ONLY` Gate (#102) | Not a Naming PASS or production authorization |
