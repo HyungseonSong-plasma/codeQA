@@ -122,6 +122,15 @@ class AnalysisRequestTests(unittest.TestCase):
         with self.assertRaisesRegex(AnalysisRequestError, "keys must be strings"):
             analyze_python_request(replace(req, ccg_schema={1: "ambiguous"}))
 
+    def test_nonfinite_caller_profile_rejected_before_analysis(self):
+        from dataclasses import replace
+        req = self.request()
+        for bad in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(bad=repr(bad)), self.assertRaisesRegex(
+                AnalysisRequestError, "non-finite"
+            ):
+                analyze_python_request(replace(req, ccg_schema={"bad": bad}))
+
     def test_missing_snapshot_rejected(self):
         req = self.request()
         from dataclasses import replace
