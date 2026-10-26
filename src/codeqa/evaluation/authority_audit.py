@@ -90,13 +90,15 @@ def audit_authority_propagation(
     # not establish that the decision was evaluated against those source bytes.
     # Require one canonical Git revision identity before emitting scoped allow.
     # This is syntactic binding, NOT independent GitHub/run authentication.
-    if (not isinstance(expected_snapshot_id, str)
-            or not re.fullmatch(
-                r"git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}",
-                expected_snapshot_id,
-            )
-            or not isinstance(expected_source_sha, str)
-            or not expected_snapshot_id.endswith("@" + expected_source_sha)):
+    snapshot_match = (
+        re.fullmatch(
+            r"git:([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)@([0-9a-f]{40})",
+            expected_snapshot_id,
+        )
+        if isinstance(expected_snapshot_id, str) else None
+    )
+    if (snapshot_match is None or not isinstance(expected_source_sha, str)
+            or snapshot_match.group(2) != expected_source_sha):
         reasons.add("SNAPSHOT_SOURCE_BINDING_UNVERIFIED")
 
     url = None
@@ -119,11 +121,20 @@ def audit_authority_propagation(
             reasons.add("RECEIPT_POLICY_MISMATCH")
         if receipt["source_sha"] != expected_source_sha:
             reasons.add("RECEIPT_SOURCE_MISMATCH")
-        if (not isinstance(url, str)
-                or not re.fullmatch(
-                    r"https://github\.com/[^/]+/[^/]+/actions/runs/[1-9][0-9]*", url
-                )):
+        ci_match = (
+            re.fullmatch(
+                r"https://github\\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/actions/runs/[1-9][0-9]*",
+                url,
+            )
+            if isinstance(url, str) else None
+        )
+        if ci_match is None or any(
+            part in {".", ".."} for part in ci_match.groups()[:2]
+        ):
             reasons.add("RECEIPT_CI_LINK_UNVERIFIED")
+        elif (snapshot_match is not None
+              and ci_match.group(1) + "/" + ci_match.group(2) != snapshot_match.group(1)):
+            reasons.add("RECEIPT_CI_REPOSITORY_MISMATCH")
     if not allowed:
         reasons.add("DECISION_NOT_AUTHORIZED_WITHIN_OWN_SCOPE")
     if decision_type == "FORMAL_GENERATED_FIXTURE_V0_1":
