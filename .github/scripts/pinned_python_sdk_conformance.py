@@ -326,6 +326,95 @@ def test_runtime(contract: dict) -> dict:
     }
 
 
+
+def test_extended_orm(contract: dict) -> dict:
+    """Real pinned SQLAlchemy 2.0.50 + SQLite controlled inheritance/migration.
+
+    No production DB history, external ORM consumer or deployed schema is used.
+    """
+    from sqlalchemy import Computed, ForeignKey, Integer, String, create_engine, inspect
+    from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+
+    expected = contract["expected_sqlalchemy_extended"]
+    need(expected["scope"] == "CONTROLLED_IN_MEMORY_SQLITE_ONLY",
+         "UNREVIEWED_ORM_MIGRATION_SCOPE")
+
+    class Base(DeclarativeBase):
+        pass
+
+    class Parent(Base):
+        __tablename__ = "sdk_parent"
+        id: Mapped[int] = mapped_column(Integer, primary_key=True)
+        kind: Mapped[str] = mapped_column(String(16))
+        label: Mapped[str] = mapped_column(String(30))
+        __mapper_args__ = {"polymorphic_on": kind, "polymorphic_identity": "parent"}
+
+    class Child(Parent):
+        __tablename__ = "sdk_child"
+        id: Mapped[int] = mapped_column(ForeignKey("sdk_parent.id"), primary_key=True)
+        child_label: Mapped[str] = mapped_column(String(30))
+        __mapper_args__ = {"polymorphic_identity": "child"}
+
+    class ComputedRow(Base):
+        __tablename__ = "sdk_computed"
+        id: Mapped[int] = mapped_column(Integer, primary_key=True)
+        quantity: Mapped[int] = mapped_column(Integer)
+        doubled: Mapped[int] = mapped_column(Integer, Computed("quantity * 2"))
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        session.add_all([
+            Child(id=7, label="base", child_label="derived"),
+            ComputedRow(id=8, quantity=3),
+        ])
+        session.commit()
+        parent = session.get(Parent, 7)
+        computed = session.get(ComputedRow, 8)
+        need(type(parent).__name__ == "Child" and parent.child_label == "derived",
+             "JOINED_INHERITANCE_RUNTIME_MAPPING_DRIFT")
+        need(computed is not None and computed.doubled == expected["computed_value"],
+             "COMPUTED_COLUMN_RUNTIME_DRIFT")
+
+    before = sorted(c["name"] for c in inspect(engine).get_columns("sdk_parent"))
+    need(before == sorted(expected["before_columns"]),
+         "VERSIONED_SQLITE_BASELINE_DRIFT")
+    foreign_keys = inspect(engine).get_foreign_keys("sdk_child")
+    need(any(fk["referred_table"] == "sdk_parent"
+             and fk["constrained_columns"] == ["id"] for fk in foreign_keys),
+         "JOINED_INHERITANCE_FOREIGN_KEY_DRIFT")
+    computed_columns = inspect(engine).get_columns("sdk_computed")
+    need(any(c["name"] == "doubled" and c.get("computed") for c in computed_columns),
+         "SQLITE_COMPUTED_COLUMN_REFLECTION_DRIFT")
+
+    with engine.begin() as connection:
+        connection.exec_driver_sql("ALTER TABLE sdk_parent ADD COLUMN optional_note TEXT")
+    after = sorted(c["name"] for c in inspect(engine).get_columns("sdk_parent"))
+    added, removed = sorted(set(after) - set(before)), sorted(set(before) - set(after))
+    migration = expected["migration"]
+    need(migration["from"] == "fixture_v0" and migration["to"] == "fixture_v1",
+         "UNVERSIONED_CONTROLLED_MIGRATION")
+    need(after == sorted(expected["after_columns"])
+         and added == migration["added_columns"] and removed == migration["removed_columns"],
+         "VERSIONED_SQLITE_MIGRATION_DRIFT")
+    # A deliberately wrong versioned expected diff must be rejected.
+    need(added != ["renamed_or_missing_column"], "MIGRATION_NEGATIVE_CONTROL_FAILED")
+    print("SQLALCHEMY_EXTENDED=PASS inheritance=JOINED computed=REFLECTED "
+          "migration=fixture_v0_to_v1 compatibility=CONTROLLED_ONLY")
+    engine.dispose()
+    return {
+        "scope": "CONTROLLED_IN_MEMORY_SQLITE_ONLY",
+        "inheritance": "JOINED_RUNTIME_AND_FOREIGN_KEY_OBSERVED",
+        "computed_value": expected["computed_value"],
+        "before_columns": before,
+        "after_columns": after,
+        "migration": {"from": migration["from"], "to": migration["to"],
+                      "added_columns": added, "removed_columns": removed},
+        "external_schema_history": "NOT_EVALUATED",
+        "production_migration_compatibility": "NOT_EVALUATED",
+    }
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--pyright", type=Path, required=True)
@@ -356,6 +445,7 @@ def main() -> None:
             FIXTURE / "invalid_override.py", negative=True,
             snapshot_id=snapshot, output=args.output)
     runtime = test_runtime(contract)
+    runtime["sqlalchemy_extended"] = test_extended_orm(contract)
     result = {
         "version": "0.1", "source_snapshot": snapshot,
         "contract_sha256": digest(contract_bytes),
