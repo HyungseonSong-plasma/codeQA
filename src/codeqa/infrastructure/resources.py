@@ -6,6 +6,7 @@ Resource locations are repository-relative and cannot escape the checkout.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import tomllib
@@ -58,10 +59,33 @@ def parse_registry(content: bytes) -> dict[str, Any]:
         raise ResourceResolutionError("invalid resource registry TOML") from exc
 
 
+def _unique_json_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ResourceResolutionError("duplicate JSON resource key")
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite_json(value: str) -> Any:
+    raise ResourceResolutionError("non-finite JSON resource value")
+
+
+def _finite_json_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ResourceResolutionError("non-finite JSON resource value")
+    return parsed
+
+
 def parse_json(content: bytes, resource_id: str) -> Any:
     """Parse registered JSON identically for historical and current resources."""
     try:
-        return json.loads(content.decode("utf-8"))
+        return json.loads(
+            content.decode("utf-8"), object_pairs_hook=_unique_json_pairs,
+            parse_constant=_reject_nonfinite_json, parse_float=_finite_json_float,
+        )
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise ResourceResolutionError(f"invalid JSON resource: {resource_id}") from exc
 
