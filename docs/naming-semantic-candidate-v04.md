@@ -60,3 +60,7 @@ fail closed on ambiguity and not promote lexical candidates into semantic
 PASS or automatic rename.
 
 Regression: `python -m unittest discover -s tests -p 'test_naming_semantic_candidate_v04.py' -v`.
+
+## Stage 2 — actual pinned source scope discovery
+
+[Read-only 95-file pinned Git scope audit](naming-scope-discovery-v04.md) now checks the entire selected `src/codeqa/**/*.py` corpus from `main@667a5f17f9890c5588d4f1c8ae079aba241501f3`, selects only actual AST sites for the four owner-proposed spellings, and retains `role=UNKNOWN` for every site. No approved `scopes` are added and the audit does not yield a semantic PASS.
