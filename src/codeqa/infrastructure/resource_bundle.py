@@ -98,7 +98,8 @@ def unpack_verified_resource_bundle(
             ) > 128 * 1024 * 1024:
                 raise ResourceBundleError("resource archive exceeds bounded extraction size")
             manifest = json.loads(
-                archive.read("RESOURCE_MANIFEST.json"), object_pairs_hook=_unique_object,\n                parse_constant=_reject_nonfinite_json, parse_float=_finite_json_float
+                archive.read("RESOURCE_MANIFEST.json"), object_pairs_hook=_unique_object,
+                parse_constant=_reject_nonfinite_json, parse_float=_finite_json_float
             )
             if not isinstance(manifest, dict) or set(manifest) != {
                 "schema_version", "distribution", "version", "source_revision",
