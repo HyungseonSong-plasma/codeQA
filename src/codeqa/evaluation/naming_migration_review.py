@@ -89,6 +89,15 @@ def prepare_migration_review_packet(
     verify(after_sources, after_sha256)
     if not set(proposal.selected_paths).issubset(before_sources):
         raise MigrationPlanError("rename proposal references unselected source")
+    # A caller-constructed report is not a source-bound producer receipt. At
+    # minimum, recompute lexical presence from these exact selected bytes;
+    # comments and aliases can still match, so this is never binding proof.
+    def observed(name: str, sources: Mapping[str, str]) -> bool:
+        return (isinstance(name, str) and bool(name)
+                and any(re.search(r"(?<!\\w)" + re.escape(name) + r"(?!\\w)", text)
+                        for text in sources.values()))
+    if not observed(proposal.old_name, before_sources):
+        raise MigrationPlanError("proposal old identifier absent from exact baseline bytes")
     if type(source_selection_complete) is not bool:
         raise MigrationPlanError("source selection completeness must be a Boolean")
 
@@ -120,6 +129,15 @@ def prepare_migration_review_packet(
         unknowns.add("selected_source_path_coverage_drift")
     if not source_selection_complete:
         unknowns.add("incomplete_source_selection")
+    if not observed(proposal.proposed_name, after_sources):
+        unknowns.add("proposed_identifier_not_lexically_observed_in_candidate")
+    if observed(proposal.old_name, after_sources):
+        unknowns.add("old_identifier_still_lexically_observed_in_candidate")
+    if any(before_sha256[a] == after_sha256[b] for a, b in path_renames.items()):
+        unknowns.add("byte_identical_file_move_not_symbol_rename")
+    # Lexical observations above can match comments/strings and cannot prove
+    # declaration identity, dynamic references or semantic preservation.
+    unknowns.add("lexical_presence_not_source_binding_proof")
     if not path_renames and set(before_sources) == set(after_sources) and all(
         before_sha256[path] == after_sha256[path] for path in before_sources
     ):
