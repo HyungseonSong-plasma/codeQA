@@ -111,6 +111,22 @@ class ResourceRegistryTests(unittest.TestCase):
         self.assertEqual(registry["tool"]["codeqa"]["resources"]["repository_layout"], "policies/x.json")
         self.assertEqual(parse_json(b'{"value": 42}', "example"), {"value": 42})
 
+    def test_registered_json_rejects_duplicate_keys_and_nonfinite_numbers(self) -> None:
+        for payload in (
+            b'{"outer": {"same": 1, "same": 2}}',
+            b'{"value": NaN}',
+            b'{"value": Infinity}',
+            b'{"value": -Infinity}',
+            b'{"value": 1e9999}',
+            b'{"value": -1e9999}',
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ResourceResolutionError):
+                    parse_json(payload, "example")
+                (self.root / "profiles/first.json").write_bytes(payload)
+                with self.assertRaises(ResourceResolutionError):
+                    ResourceRegistry(self.root).load_json("repository_layout")
+
     def test_invalid_resource_parsers_fail_closed(self) -> None:
         with self.assertRaises(ResourceResolutionError):
             parse_registry(b'[broken')
