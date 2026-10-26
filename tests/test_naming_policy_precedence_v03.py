@@ -234,6 +234,24 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
         with self.assertRaises(NamingPrecedenceError):
             p.resolve(**args(p, symbol="рlasma_density"))
 
+    def test_python_keyword_is_not_a_naming_candidate(self):
+        p = NamingPrecedencePolicy.from_mapping(sample())
+        with self.assertRaisesRegex(NamingPrecedenceError, "Python keyword"):
+            p.resolve(**args(p, symbol="def"))
+
+    def test_nonportable_source_selector_paths_rejected(self):
+        p = NamingPrecedencePolicy.from_mapping(sample())
+        for bad in ("src/codeqa/physics/unsafe:stream.py",
+                    "src/codeqa/physics/trailing./file.py",
+                    "src/codeqa/physics/name .py"):
+            with self.subTest(path=bad):
+                with self.assertRaisesRegex(NamingPrecedenceError, "source path"):
+                    p.resolve(**args(p, path=bad))
+        raw = sample()
+        raw["rules"][3]["selector"]["path_prefix"] = "src/codeqa/physics:stream"
+        with self.assertRaisesRegex(NamingPrecedenceError, "source path"):
+            NamingPrecedencePolicy.from_mapping(raw)
+
     def test_absent_or_prefix_only_symbol_never_becomes_policy_candidate(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
         for name in ("never_declared", "plasma"):
