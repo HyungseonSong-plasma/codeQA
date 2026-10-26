@@ -57,8 +57,10 @@ def _validate_rules(policy: Mapping[str, Any]) -> tuple[tuple[str, re.Pattern[st
 def _safe_source_path(path: str) -> bool:
     return (
         isinstance(path, str) and path.startswith("src/codeqa/") and path.endswith(".py")
-        and "\\" not in path and "\x00" not in path
-        and all(p not in ("", ".", "..") for p in path.split("/"))
+        and "\\" not in path and ":" not in path
+        and not any(ord(char) < 32 or ord(char) == 127 for char in path)
+        and all(p not in ("", ".", "..") and not p.endswith((".", " "))
+                for p in path.split("/"))
     )
 
 
