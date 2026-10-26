@@ -58,7 +58,7 @@
     },
     {
       "path": ".github/workflows/pinned-python-sdk.yml",
-      "blob_sha": "a566814746fe56ae631ef44e303ae0ef7ac63ce1"
+      "blob_sha": "75b14c7a044ea696937cad07a22864ae266ab5fa"
     },
     {
       "path": ".github/workflows/python-package.yml",
