@@ -81,3 +81,13 @@ Reviewers must select an explicit integration order, incorporate the final
 workflow bytes, update both manifests in the same reviewed change, and run
 Layout and the relevant conformance jobs against the resulting combined tree.
 No self-approval, ruleset change or automatic merge follows from this note.
+
+## Required status-context uniqueness guard (#124 incremental)
+
+The source audit now requires **exactly one** `name: layout` job context in
+the observed required workflow. A second job with the same required status
+name is rejected as ambiguous even if the GitHub ruleset still lists
+`layout` and all workflow paths remain classified. The negative fixture
+appends a second named job and expects the catalog guard to fail. This is a
+static source constraint; live GitHub ruleset readback and exact-head CI are
+still separate obligations.
