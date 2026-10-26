@@ -123,12 +123,21 @@ def pyright_scan(binary: Path, project: Path, source: Path, *,
         need(extra_source.name == "public_sdk.py" and extra_source.parent == FIXTURE,
              "UNTRUSTED_EXTRA_SDK_SOURCE")
         shutil.copyfile(extra_source, project / "public_sdk.py")
+    def assert_copied_sources_unchanged() -> None:
+        need(script.read_bytes() == source.read_bytes(),
+             "PYRIGHT_SCANNED_SOURCE_BYTES_DRIFT")
+        if extra_source is not None:
+            need((project / "public_sdk.py").read_bytes() == extra_source.read_bytes(),
+                 "PYRIGHT_SCANNED_SDK_BYTES_DRIFT")
+
+    assert_copied_sources_unchanged()
     args = [str(binary.resolve()), "--project", str(project), "--pythonpath",
             sys.executable, "--outputjson"]
     started = datetime.now(timezone.utc).isoformat()
     run = subprocess.run(args, cwd=ROOT, capture_output=True, text=True,
                          timeout=120, check=False)
     finished = datetime.now(timezone.utc).isoformat()
+    assert_copied_sources_unchanged()
     raw = run.stdout.encode()
     try:
         parsed = json.loads(raw)
