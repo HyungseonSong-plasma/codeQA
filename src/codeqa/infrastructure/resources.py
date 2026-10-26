@@ -82,7 +82,10 @@ def _finite_json_float(value: str) -> float:
 def parse_json(content: bytes, resource_id: str) -> Any:
     """Parse registered JSON identically for historical and current resources."""
     try:
-        return json.loads(\n            content.decode("utf-8"), object_pairs_hook=_unique_json_pairs,\n            parse_constant=_reject_nonfinite_json, parse_float=_finite_json_float,\n        )
+        return json.loads(
+            content.decode("utf-8"), object_pairs_hook=_unique_json_pairs,
+            parse_constant=_reject_nonfinite_json, parse_float=_finite_json_float,
+        )
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise ResourceResolutionError(f"invalid JSON resource: {resource_id}") from exc
 
