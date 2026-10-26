@@ -27,8 +27,10 @@ PYTHON_SCOPE_LIMITS = {
 
 def _path(root: Path, name: str) -> Path:
     if (not isinstance(name, str) or not name
-            or name.startswith("/") or "\\" in name
-            or any(part in ("", ".", "..") for part in name.split("/"))):
+            or name.startswith("/") or "\\" in name or ":" in name
+            or any(ord(char) < 32 or ord(char) == 127 for char in name)
+            or any(part in ("", ".", "..") or part.endswith((".", " "))
+                   for part in name.split("/"))):
         raise LanguageMatrixError("invalid evidence path")
     base = root.resolve()
     candidate = (base / name).resolve()
