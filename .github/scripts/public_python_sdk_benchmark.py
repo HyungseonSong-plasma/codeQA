@@ -11,6 +11,10 @@ import ast
 import hashlib
 import json
 from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
 import tomllib
 
 from public_api_benchmark import fetch_pinned, git_blob, require
@@ -153,15 +157,84 @@ def negative_controls(manifest: dict, sources: dict[str, bytes], tree: dict[str,
     return len(cases)
 
 
+
+def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -> dict:
+    """Run actual Pyright on exact source bytes, with unresolved imports explicit."""
+    require(binary.is_file(), "EXTERNAL_PYRIGHT_MISSING")
+    selected = ("examples/webhooks.py", "stripe/_ephemeral_key.py")
+    with tempfile.TemporaryDirectory(prefix="codeqa-real-stripe-source-") as tmp:
+        project = Path(tmp)
+        for path, raw in sources.items():
+            target = project / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+        config = {"typeCheckingMode": "strict", "include": list(selected),
+                  "extraPaths": ["."], "reportMissingImports": "error"}
+        (project / "pyrightconfig.json").write_text(
+            json.dumps(config, sort_keys=True), encoding="utf-8")
+        completed = subprocess.run(
+            [str(binary.resolve()), "--project", str(project), "--pythonpath",
+             sys.executable, "--outputjson"],
+            cwd=ROOT, capture_output=True, text=True, check=False, timeout=120)
+        require(completed.returncode in (0, 1), "EXTERNAL_PYRIGHT_TOOL_CRASH")
+        try:
+            native = json.loads(completed.stdout)
+        except ValueError as exc:
+            raise RuntimeError("EXTERNAL_PYRIGHT_INVALID_JSON") from exc
+        require(isinstance(native, dict) and native.get("version") == "1.1.414"
+                and isinstance(native.get("generalDiagnostics"), list)
+                and isinstance(native.get("summary"), dict)
+                and not native.get("fatalErrorOccurred")
+                and not native.get("configParseErrorOccurred"),
+                "EXTERNAL_PYRIGHT_INCOMPLETE")
+        count = native["summary"].get("errorCount")
+        analyzed = native["summary"].get("filesAnalyzed")
+        require(type(count) is int and count >= 0
+                and type(analyzed) is int and analyzed >= len(selected),
+                "EXTERNAL_PYRIGHT_INCOMPLETE_COVERAGE")
+        errors = [d for d in native["generalDiagnostics"]
+                  if isinstance(d, dict) and d.get("severity") == "error"]
+        require(count == len(errors)
+                and (completed.returncode == 1) == bool(count),
+                "EXTERNAL_PYRIGHT_INCONSISTENT_EXIT")
+        for diag in native["generalDiagnostics"]:
+            require(isinstance(diag, dict) and isinstance(diag.get("file"), str),
+                    "EXTERNAL_PYRIGHT_MALFORMED_DIAGNOSTIC")
+            path = Path(diag["file"])
+            resolved = (path if path.is_absolute() else project / path).resolve()
+            require(resolved.is_relative_to(project.resolve())
+                    and resolved.relative_to(project.resolve()).as_posix() in sources,
+                    "EXTERNAL_PYRIGHT_FOREIGN_DIAGNOSTIC")
+        require(all((project / p).read_bytes() == raw for p, raw in sources.items()),
+                "EXTERNAL_PYRIGHT_SOURCE_MUTATED")
+        output.mkdir(parents=True, exist_ok=True)
+        raw = completed.stdout.encode("utf-8")
+        (output / "public-python-sdk-pyright-native.json").write_bytes(raw)
+    # This partial SDK tree intentionally lacks most Stripe modules and Flask.
+    # Even a zero-error scan cannot prove a complete installed SDK contract.
+    print("PYRIGHT_EXTERNAL_SDK=EXECUTED_PARTIAL errors=" + str(count)
+          + " filesAnalyzed=" + str(analyzed)
+          + " full_dependency_closure=NOT_EVALUATED")
+    return {"status": "EXECUTED_PARTIAL_SOURCE_ONLY", "version": "1.1.414",
+            "selected_files": list(selected), "files_analyzed": analyzed,
+            "errors": count, "exit_code": completed.returncode,
+            "native_json_sha256": hashlib.sha256(raw).hexdigest(),
+            "full_dependency_closure": "NOT_EVALUATED",
+            "override_compatibility": "NOT_EVALUATED",
+            "callback_dispatch": "NOT_EVALUATED"}
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--pyright", type=Path, required=True)
     args = p.parse_args()
     manifest = json.loads(MANIFEST.read_bytes())
     sources, tree = fetch_pinned(manifest)
     attest(manifest, sources, tree)
     result = inspect(manifest, sources)
     result["negative_controls"] = negative_controls(manifest, sources, tree)
+    result["partial_typechecker"] = run_partial_pyright(sources, args.pyright, args.output)
     result["manifest_sha256"] = hashlib.sha256(MANIFEST.read_bytes()).hexdigest()
     result["source_files"] = [{"path": p, "git_blob": b, "sha256": h}
                               for p, b, h in manifest["files"]]
