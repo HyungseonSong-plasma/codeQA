@@ -89,6 +89,32 @@ class DomainComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(DomainInventoryError, "source domain classification"):
             compare_domain_inventories(before, after, analyzer_sha="3"*40)
 
+    def test_unselected_public_init_import_cannot_forge_breakage(self):
+        before, after = report("1"*40), report("2"*40)
+        before["init_import_candidates"] = [{
+            "path": "src/codeqa/core/__init__.py", "from": ".legacy",
+            "name": "Legacy", "asname": None,
+        }]
+        after["init_import_candidates"] = []
+        with self.assertRaisesRegex(DomainInventoryError, "__init__ import witness"):
+            compare_domain_inventories(before, after, analyzer_sha="3"*40)
+
+    def test_selected_init_import_candidate_removal_requires_review(self):
+        before, after = report("1"*40), report("2"*40)
+        for item in (before, after):
+            item["inventory"].append({
+                "path": "src/codeqa/core/__init__.py",
+                "sha256": "e"*64, "domain": "UNCLASSIFIED",
+            })
+        before["init_import_candidates"] = [{
+            "path": "src/codeqa/core/__init__.py", "from": ".legacy",
+            "name": "Legacy", "asname": None,
+        }]
+        after["init_import_candidates"] = []
+        result = compare_domain_inventories(before, after, analyzer_sha="3"*40)
+        self.assertEqual(result["init_import_change_review"]["status"], "REVIEW_REQUIRED")
+        self.assertEqual(result["status"], "NOT_EVALUATED")
+
     def test_mismatched_policy_rejected(self):
         before, after = report("1"*40), report("2"*40)
         after["role_policy_sha256"] = "d"*64
