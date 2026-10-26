@@ -68,6 +68,7 @@ class MooseFrameworkSourceLockTests(unittest.TestCase):
 
     def test_stale_or_duplicate_dependency_pin_rejected(self):
         for bad in ("MOOSE=" + "c" * 40, self.deps + "MOOSE=" + FRAMEWORK_SHA + "\n",
+                    self.deps + "MOOSE=main\n", self.deps + "MOOSE=" + "c" * 40 + "\n",
                     "MOOSE=main\n", ""):
             with self.subTest(deps=bad):
                 with self.assertRaises(MooseFrameworkSourceError):
