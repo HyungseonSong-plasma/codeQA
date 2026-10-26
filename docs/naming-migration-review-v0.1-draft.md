@@ -77,3 +77,12 @@ around an escaped candidate identifier. A substring such as `OldName` inside
 `PrefixOldNameSuffix` is **not** a separate lexical witness. This is still
 not a parser-backed C++/Rust binding or external ABI/DSL compatibility proof;
 all migration packets remain human-review-required and non-mutating.
+
+## Immutable revision identity hardening
+
+Revision labels use `git:owner/repo@40-hex-SHA` with distinct commits in
+the same repository. Dot-segment `owner`/`repo` components are rejected to
+avoid treating path-like aliases as independently verified repository
+identities. These labels remain **caller-supplied claims**; this draft does
+not independently fetch either Git tree, attest an external consumer, or
+approve a migration.
