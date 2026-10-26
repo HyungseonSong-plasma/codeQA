@@ -31,7 +31,7 @@ _IDENTITY = ("path", "line", "owner", "name", "syntax_kind")
 
 
 def _shape(source: bytes, row: Mapping[str, Any]) -> str:
-    path, name, line, owner, kind = (row[k] for k in _IDENTITY)
+    path, line, owner, name, kind = (row[k] for k in _IDENTITY)
     if kind not in _RULES or name != "node_id" or not isinstance(source, bytes):
         raise NodeRoleEvidenceError("unsupported exact site")
     observed = scan_explicit_spellings(
