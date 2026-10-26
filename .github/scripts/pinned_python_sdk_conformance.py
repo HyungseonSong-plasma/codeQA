@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from importlib import metadata
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -25,6 +26,12 @@ ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "fixtures/python-sdk"
 PIN = {"Pydantic": "2.13.5", "SQLAlchemy": "2.0.50", "pyright": "1.1.414"}
 CHECKED_RULE = "reportIncompatibleMethodOverride"
+
+
+def unprivileged_analyzer_env() -> dict[str, str]:
+    """Do not expose Actions API tokens to third-party typechecker processes."""
+    return {key: value for key, value in os.environ.items()
+            if key not in {"GITHUB_TOKEN", "GH_TOKEN"}}
 
 
 def digest(raw: bytes) -> str:
@@ -137,7 +144,7 @@ def pyright_scan(binary: Path, project: Path, source: Path, *,
             sys.executable, "--outputjson"]
     started = datetime.now(timezone.utc).isoformat()
     run = subprocess.run(args, cwd=ROOT, capture_output=True, text=True,
-                         timeout=120, check=False)
+                         timeout=120, check=False, env=unprivileged_analyzer_env())
     finished = datetime.now(timezone.utc).isoformat()
     assert_copied_sources_unchanged()
     raw = run.stdout.encode()
@@ -522,7 +529,8 @@ def main() -> None:
          and contract["packages"] == PIN, "EXTERNAL_CONTRACT_PIN_DRIFT")
     args.output.mkdir(parents=True, exist_ok=True)
     run = subprocess.run([str(args.pyright.resolve()), "--version"],
-                         cwd=ROOT, capture_output=True, text=True, check=False, timeout=60)
+                         cwd=ROOT, capture_output=True, text=True, check=False, timeout=60,
+                         env=unprivileged_analyzer_env())
     need(run.returncode == 0 and PIN["pyright"] in run.stdout + run.stderr,
          "PYRIGHT_CLI_VERSION_DRIFT")
     snapshot = "git:HyungseonSong-plasma/codeQA@"
