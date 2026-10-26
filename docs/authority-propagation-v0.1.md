@@ -85,3 +85,14 @@ the CI wrapper adds separately scoped GitHub metadata. The general Formal
 Gate remains `UNKNOWN/BLOCK`, generated fixture
 `ALLOW_FIXTURE_ONLY`, and `production_merge_authorized=false`.
 No cross-repository write capability or production rollout is enabled.
+
+## CI receipt repository identity guard (incremental #121)
+
+The caller-supplied `ci_run_url` must now refer to the **same exact GitHub
+owner/repository** named by the canonical `git:owner/repo@SHA` snapshot.
+A syntactically plausible run URL from a different repository, or a dot-segment
+repository path, blocks even a scoped Gate decision. This prevents a
+cross-repository URL from being presented as a source-local receipt; it is
+still **not** an authenticated GitHub run check. Independent read-only remote
+attestation remains a separate downstream step. The production merge flag
+remains `false` regardless of receipt content or fixture verification.
