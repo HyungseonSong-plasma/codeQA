@@ -65,3 +65,13 @@ If PR #128's Self Audit upload change is approved, **both** the
 `artifact_upload_count` field in the primary catalog and the matching
 `blob_sha` in this provenance manifest must be updated within the same
 reviewed integration change. The drift tests intentionally fail otherwise.
+
+## Required status-context uniqueness guard (#124 incremental)
+
+The source audit now requires **exactly one** `name: layout` job context in
+the observed required workflow. A second job with the same required status
+name is rejected as ambiguous even if the GitHub ruleset still lists
+`layout` and all workflow paths remain classified. The negative fixture
+appends a second named job and expects the catalog guard to fail. This is a
+static source constraint; live GitHub ruleset readback and exact-head CI are
+still separate obligations.
