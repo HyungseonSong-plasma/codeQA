@@ -26,6 +26,62 @@ class PinnedScopeDiscoveryV04Tests(unittest.TestCase):
         cls.manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
         cls.packet = discover_pinned_semantic_scope(ROOT, cls.manifest)
 
+    def test_real_site_fixture_matches_complete_pinned_source_audit(self):
+        golden = json.loads((ROOT / "fixtures/naming-governance/"
+                             "codeqa-real-source-role-sites-v04.json").read_text(
+                                 encoding="utf-8"))
+        p = self.packet
+        self.assertEqual(golden["schema_version"],
+                         "0.4-real-source-lexical-role-candidates")
+        self.assertEqual(golden["source_commit"], p["source_commit"])
+        self.assertEqual(golden["source_tree_sha"], p["source_tree_sha"])
+        self.assertEqual(golden["scanned_python_files"], p["files_scanned"])
+        self.assertEqual(golden["proposed_path_role_scopes"],
+                         p["proposed_path_role_scopes"])
+        self.assertEqual(len(golden["proposed_path_role_scopes"]), 13)
+        self.assertEqual(golden["spellings"], {
+            "node_id": 13, "nodeid": 0, "time_step": 0, "timestep": 0,
+        })
+        from collections import Counter
+        self.assertEqual(Counter(x["kind"] for x in golden[
+            "proposed_path_role_scopes"]), {
+                "class_annotation": 9, "parameter": 2, "local_binding": 2,
+        })
+        self.assertEqual(golden["approved_path_scopes"], [])
+        self.assertEqual(golden["policy_adoption"], "NOT_ADOPTED")
+        self.assertFalse(golden["semantic_meaning_verified"])
+        self.assertFalse(golden["automatic_rename_authorized"])
+        files = {r["path"]: r for r in p["file_evidence"]}
+        for row in golden["proposed_path_role_scopes"]:
+            self.assertIn(row["path"], files)
+            self.assertEqual(row["role"], "UNKNOWN")
+            self.assertFalse(row["approved_scope"])
+            matched = [s for s in p["lexical_site_evidence"] if
+                       s["path"] == row["path"] and
+                       s["name"] == row["source_name"] and
+                       s["line"] == row["source_line"] and
+                       s["owner"] == row["lexical_owner"] and
+                       s["source_kind"] == row["kind"]]
+            self.assertEqual(len(matched), 1)
+            self.assertEqual(matched[0]["source_sha256"],
+                             files[row["path"]]["source_sha256"])
+
+    def test_actual_real_parameter_cannot_become_semantic_approval(self):
+        from codeqa.core.naming_semantic_candidate_v04 import SemanticCandidateRules
+        from codeqa.infrastructure.git import GitReader
+        config = json.loads(POLICY.read_text(encoding="utf-8"))
+        p = self.packet
+        path = "src/codeqa/evaluation/quality_delta_v02.py"
+        data = GitReader(ROOT).read_file(p["source_commit"], path)
+        verdict = SemanticCandidateRules(config).assess(
+            source=data, expected_sha256=sha256(data).hexdigest(),
+            path=path, name="node_id", kind="parameter", line=69,
+            owner="_stable_symbol")
+        self.assertEqual(verdict.status, "UNKNOWN")
+        self.assertEqual(verdict.reason, "NO_EXPLICIT_ROLE_SCOPE")
+        self.assertFalse(verdict.rename_authorized)
+        self.assertFalse(verdict.semantic_proven)
+
     def test_complete_immutable_python_source_denominator(self):
         p = self.packet
         self.assertEqual(p["source_commit"],

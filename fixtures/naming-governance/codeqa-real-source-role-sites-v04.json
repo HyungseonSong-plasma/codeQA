@@ -1,0 +1,152 @@
+{
+  "schema_version": "0.4-real-source-lexical-role-candidates",
+  "repository": "HyungseonSong-plasma/codeQA",
+  "source_commit": "667a5f17f9890c5588d4f1c8ae079aba241501f3",
+  "source_tree_sha": "e9a78ccc3a5ccf75f6ee4818289549f39f526d2d",
+  "corpus_manifest": "fixtures/naming-governance/codeqa-source-scope-manifest-v04.json",
+  "evidence_axis": "EXACT_SOURCE_AST_DECLARATION_ONLY",
+  "scanned_python_files": 95,
+  "spellings": {
+    "node_id": 13,
+    "nodeid": 0,
+    "time_step": 0,
+    "timestep": 0
+  },
+  "status": "PENDING_DOMAIN_ROLE_EVIDENCE",
+  "proposed_path_role_scopes": [
+    {
+      "path": "src/codeqa/adapters/python_behavior.py",
+      "kind": "local_binding",
+      "source_name": "node_id",
+      "source_line": 78,
+      "lexical_owner": "_Calls.visit_FunctionDef",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/adapters/python_p3_witness.py",
+      "kind": "parameter",
+      "source_name": "node_id",
+      "source_line": 17,
+      "lexical_owner": "_Calls.__init__",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/adapters/python_p3_witness.py",
+      "kind": "local_binding",
+      "source_name": "node_id",
+      "source_line": 59,
+      "lexical_owner": "_Functions.visit_FunctionDef",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/core/complexity.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 10,
+      "lexical_owner": "ControlFlowObservation",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/core/duplication.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 9,
+      "lexical_owner": "TokenBlock",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/core/function_context.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 15,
+      "lexical_owner": "FunctionSyntaxContext",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/core/p3_witness.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 9,
+      "lexical_owner": "P3CallWitness",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/evaluation/body_complexity.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 19,
+      "lexical_owner": "BodyComplexityReview",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/evaluation/complexity.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 39,
+      "lexical_owner": "ComplexityReview",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/evaluation/contextual.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 20,
+      "lexical_owner": "ContextualCallReview",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/evaluation/mechanical.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 40,
+      "lexical_owner": "MechanicalFinding",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/evaluation/mechanical.py",
+      "kind": "class_annotation",
+      "source_name": "node_id",
+      "source_line": 51,
+      "lexical_owner": "CallMetrics",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    },
+    {
+      "path": "src/codeqa/evaluation/quality_delta_v02.py",
+      "kind": "parameter",
+      "source_name": "node_id",
+      "source_line": 69,
+      "lexical_owner": "_stable_symbol",
+      "role": "UNKNOWN",
+      "role_evidence": "NOT_EVALUATED",
+      "approved_scope": false
+    }
+  ],
+  "approved_path_scopes": [],
+  "policy_adoption": "NOT_ADOPTED",
+  "semantic_meaning_verified": false,
+  "automatic_rename_authorized": false
+}

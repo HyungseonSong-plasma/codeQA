@@ -41,3 +41,11 @@ in actual domain requirements; selected real-source positive/negative
 semantic ground truth; import/reexport transitive alias graph and callers;
 external SDK/DTO/DB compatibility; Unicode, mixed-language coverage and
 versioned policy adoption through #98/#99. None is inferred from this audit.
+
+## Verified path/owner source candidates (Stage 2 checkpoint)
+
+The [versioned 13-site fixture](../fixtures/naming-governance/codeqa-real-source-role-sites-v04.json) is bound to the Git tree and the full 95-file scan. It records **13 distinct AST declaration/binding candidates, all spelled `node_id`**, with exact file, line, and lexical owner; **nine** are `class_annotation`, **two** are `parameter`, and **two** are `local_binding`. The other three target spellings have **zero structural declaration candidates in this selected source corpus**. The scan also records syntactic references separately: presence is not declaration or compatibility evidence.
+
+A `class_annotation` is intentionally **not** asserted to be a runtime field, especially if its declaration lacks validated dataclass or descriptor semantics. `local_binding` is **not an approved Naming field**. For every row, `role=UNKNOWN` and `approved_scope=false`. The checked-in policy still has `scopes=[]`, and the joined real-source `_stable_symbol(node_id)` parameter is tested to return `UNKNOWN:NO_EXPLICIT_ROLE_SCOPE` from `SemanticCandidateRules`.
+
+The fixture is a reproducible baseline for future owner-domain meaning assessment, *not* a policy configuration and not a validated symbol/binding graph. If source changes, a new pinned commit, complete path denominator and separately reviewed candidate fixture are required; none of these rows authorize rename.
