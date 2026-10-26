@@ -9,6 +9,9 @@ on:
       - 'contracts/**'
       - '.github/scripts/build_resource_bundle.py'
       - '.github/scripts/package_smoke.py'
+      - '.github/scripts/package_negative_smoke.py'
+      - '.github/scripts/package_typecheck_smoke.py'
+      - 'fixtures/installed-consumer/**'
       - '.github/workflows/python-package.yml'
       - 'docs/python-package.md'
   push:
@@ -20,6 +23,9 @@ on:
       - 'contracts/**'
       - '.github/scripts/build_resource_bundle.py'
       - '.github/scripts/package_smoke.py'
+      - '.github/scripts/package_negative_smoke.py'
+      - '.github/scripts/package_typecheck_smoke.py'
+      - 'fixtures/installed-consumer/**'
       - '.github/workflows/python-package.yml'
       - 'docs/python-package.md'
   workflow_dispatch:
@@ -81,6 +87,29 @@ jobs:
             "$GITHUB_WORKSPACE/.github/scripts/package_smoke.py" \
             --bundle "$GITHUB_WORKSPACE/dist/codeqa-resource-bundle-${VERSION}.zip" \
             --source-root "$GITHUB_WORKSPACE" \
+            --source-revision "$CODEQA_SOURCE_SHA" --version "$VERSION"
+      - name: Typecheck controlled external-to-checkout installed wheel consumer
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/codeqa-wheel/bin/python" -m pip install --disable-pip-version-check 'pyright==1.1.414'
+          "$RUNNER_TEMP/codeqa-wheel/bin/python" -m pip check
+          "$RUNNER_TEMP/codeqa-wheel/bin/python" -I \
+            "$GITHUB_WORKSPACE/.github/scripts/package_typecheck_smoke.py" \
+            --pyright "$RUNNER_TEMP/codeqa-wheel/bin/pyright" \
+            --venv "$RUNNER_TEMP/codeqa-wheel" \
+            --positive "$GITHUB_WORKSPACE/fixtures/installed-consumer/valid.py" \
+            --negative "$GITHUB_WORKSPACE/fixtures/installed-consumer/invalid.py" \
+            --output "$GITHUB_WORKSPACE/dist/installed-consumer-pyright-${{ matrix.python-version }}.json"
+      - name: Reject corrupted bundles using the isolated installed wheel
+        env:
+          CODEQA_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          VERSION="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/codeqa-wheel/bin/python" -I \
+            "$GITHUB_WORKSPACE/.github/scripts/package_negative_smoke.py" \
+            --bundle "$GITHUB_WORKSPACE/dist/codeqa-resource-bundle-${VERSION}.zip" \
             --source-revision "$CODEQA_SOURCE_SHA" --version "$VERSION"
       - name: Install and smoke-test the isolated sdist
         env:

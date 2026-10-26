@@ -101,3 +101,21 @@ or dependency, no ignored step failures, and the actual unit/semantic-layout/
 frozen-policy guard commands. Adversarial tests remove or bypass each guard.
 This is a **static, repository-specific YAML constraint**, not proof that
 GitHub ran the job or a replacement for independently read ruleset status.
+
+## Combined-tree integration candidate (#139 + #140 + #141)
+
+This **Draft PR** now includes the exact source blobs of Draft #140
+(`9ac926ed54e4781bd046e5333a93b8adc7ebc29f`) and Draft #141
+(`5c660ec5cbc8739817bcc6ae19e9a35fc0e16dcc`) in addition to the
+#119/#124/#93/#91/#122 integration. Both changed workflow identities
+(`python-package.yml` and `pinned-dafny-formal.yml`) are reconciled
+in the same atomic Git tree as the source and tests. This supersedes
+the earlier *unreconciled* parallel-PR warning **for this combined tree only**.
+Exact combined-head Layout, package, Rust/C++, Dafny and authority CI
+must be independently witnessed before any merge consideration.
+
+Constituent Draft PRs remain unmerged and must not subsequently be
+merged on top of the integrated tree as duplicate overlapping changes.
+Human review, repository ruleset readback and issue-level original
+acceptance gates remain separate; the combined test PR does not confer
+production Formal, Naming, SDK, ABI or migration authority.

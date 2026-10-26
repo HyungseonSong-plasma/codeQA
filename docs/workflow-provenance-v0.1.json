@@ -54,7 +54,7 @@
     },
     {
       "path": ".github/workflows/pinned-dafny-formal.yml",
-      "blob_sha": "2e9208327121dd23b728cb43dad526b585a2bb62"
+      "blob_sha": "3db98854d8655a39c902ac5b826785406a488c60"
     },
     {
       "path": ".github/workflows/pinned-python-sdk.yml",
@@ -62,7 +62,7 @@
     },
     {
       "path": ".github/workflows/python-package.yml",
-      "blob_sha": "83ffb533675c50967117c76ffaa6fca6a3f2a106"
+      "blob_sha": "7596bdb42868efd763baf90ec09cf6ef1b8ffc23"
     },
     {
       "path": ".github/workflows/rust-ccg-conformance.yml",
