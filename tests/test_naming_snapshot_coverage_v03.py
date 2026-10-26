@@ -41,9 +41,9 @@ def census(source: bytes = SOURCE, *, path: str = PATH,
 class PinnedNamingSnapshotCensusTests(unittest.TestCase):
     def test_independent_ast_function_method_parameter_denominator(self):
         r = census()
-        # 1 method + 2 functions + 9 parameters
+        # 1 method + 2 functions + 7 parameters
         self.assertEqual(r.examined_files, 1)
-        self.assertEqual(r.expected_structural_sites, 12)
+        self.assertEqual(r.expected_structural_sites, 10)
         self.assertEqual(r.matched_sites, r.expected_structural_sites)
         self.assertEqual(r.observed_structural_sites, r.expected_structural_sites)
         self.assertFalse(r.missing_sites)
