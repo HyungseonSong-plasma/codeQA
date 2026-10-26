@@ -113,6 +113,8 @@ class NamingPrecedenceResult:
     reason: str
     semantic_proven: bool = False
     human_review_required: bool = True
+    # Machine-readable observation strength; never an AST declaration witness.
+    observation: str = "NOT_OBSERVED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,6 +272,7 @@ class NamingPrecedencePolicy:
             return NamingPrecedenceResult(
                 "NOT_EVALUATED", None, None, (), self.policy_sha256, source_sha,
                 "missing explicit language/repository/path-symbol scope",
+                observation="LEXICAL_ONLY",
             )
         trace: list[str] = []
         winner: NamingRule | None = None
@@ -291,4 +294,5 @@ class NamingPrecedencePolicy:
         return NamingPrecedenceResult(
             winner.action, winner.level, winner.rule_id, tuple(trace),
             self.policy_sha256, source_sha, "lexical policy selection only",
+            observation="LEXICAL_ONLY",
         )
