@@ -246,6 +246,15 @@ class NamingPrecedencePolicy:
         source_sha = sha256(sources[path].encode("utf-8")).hexdigest()
         if _digest(expected_source_sha256, "source_sha256") != source_sha:
             raise NamingPrecedenceError("stale source file identity")
+        # A policy selector is not an inventory extractor. Even its lexical
+        # candidate action requires the named token in the pinned file bytes;
+        # comments/strings may match, so a hit still proves no declaration.
+        if not re.search(r"(?<![A-Za-z0-9_])" + re.escape(symbol)
+                         + r"(?![A-Za-z0-9_])", sources[path]):
+            return NamingPrecedenceResult(
+                "NOT_EVALUATED", None, None, (), self.policy_sha256, source_sha,
+                "symbol not lexically observed in selected source",
+            )
         matches: dict[str, list[NamingRule]] = {level: [] for level in _LEVELS}
         for rule in self.rules:
             if rule.matches(language=language, repository=repo, path=path,
