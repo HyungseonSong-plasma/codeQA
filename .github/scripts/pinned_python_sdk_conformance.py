@@ -579,6 +579,18 @@ def main() -> None:
         (args.output / "public-api-benchmark.json").read_text(encoding="utf-8"))
     result["limitations"].append(
         "Pinned FastAPI TypeScript consumer source is not a Python SDK or a deployed API/DB")
+    sdk_run = subprocess.run(
+        [sys.executable, str(ROOT / ".github/scripts/public_python_sdk_benchmark.py"),
+         "--output", str(args.output)],
+        cwd=ROOT, capture_output=True, text=True, check=False, timeout=240)
+    print(sdk_run.stdout, end="")
+    need(sdk_run.returncode == 0, "PUBLIC_PYTHON_SDK_SOURCE_FAILED "
+         + (sdk_run.stderr + sdk_run.stdout)[-3000:])
+    result["public_python_sdk"] = json.loads(
+        (args.output / "public-python-sdk-benchmark.json").read_text(encoding="utf-8"))
+    result["limitations"].append(
+        "Stripe 16.0.0 exact public SDK/consumer source attested; real external "
+        "Pyright typechecking, callback dispatch and metaclass remain NOT_EVALUATED")
     (args.output / "sdk-conformance.json").write_bytes(
         json.dumps(result, indent=2, sort_keys=True).encode() + b"\n")
     print("PINNED_PYTHON_SDK=PASS pyright=" + PIN["pyright"]
