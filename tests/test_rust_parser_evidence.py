@@ -68,7 +68,7 @@ class RustParserEvidenceTests(unittest.TestCase):
     def test_repository_and_path_must_be_scoped_and_traversal_free(self):
         source = b"fn good() {}\n"
         for repository in ("", "unqualified", "owner/repo/extra",
-                           "https://github.com/owner/repo", "../repo"):
+                           "https://github.com/owner/repo", "../repo", "./repo", "owner/..", "owner/."):
             with self.subTest(repository=repository):
                 with self.assertRaisesRegex(RustParserEvidenceError, "exact source"):
                     self.parse(source, source_repository=repository)
