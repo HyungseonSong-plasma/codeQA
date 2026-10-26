@@ -133,5 +133,52 @@ class MigrationReviewTests(unittest.TestCase):
 
 
 
+    def test_forged_proposal_name_rejected_against_exact_baseline(self):
+        old = {"src/a.py": SOURCE1}
+        proposal = assess_rename_impact(
+            revision=BEFORE, sources=old,
+            symbol=SymbolWitness(
+                "src/a.py", "OldName", "function", 1,
+                sha256(SOURCE1.encode()).hexdigest(), "internal", True,
+            ),
+            proposed_name="new_name", references=(),
+            source_selection_complete=True, policy_id="repo-naming-v0.2",
+        )
+        with self.assertRaisesRegex(MigrationPlanError, "old identifier absent"):
+            self.make(proposal=replace(proposal, old_name="ForgedMissingName"))
+
+    def test_identical_file_move_does_not_prove_symbol_rename(self):
+        after = {"src/moved.py": SOURCE1}
+        packet = self.make(
+            after_sources=after,
+            after_sha256={"src/moved.py": sha256(SOURCE1.encode()).hexdigest()},
+            path_renames={"src/a.py": "src/moved.py"},
+        )
+        self.assertIn("byte_identical_file_move_not_symbol_rename", packet.unknowns)
+        self.assertIn("proposed_identifier_not_lexically_observed_in_candidate",
+                      packet.unknowns)
+        self.assertEqual(packet.status, "HUMAN_REVIEW_REQUIRED")
+
+    def test_old_identifier_still_observed_after_change_is_unknown(self):
+        after = {"src/a.py": SOURCE1 + SOURCE2}
+        packet = self.make(
+            after_sources=after,
+            after_sha256={"src/a.py": sha256(after["src/a.py"].encode()).hexdigest()},
+        )
+        self.assertIn("old_identifier_still_lexically_observed_in_candidate",
+                      packet.unknowns)
+        self.assertIn("lexical_presence_not_source_binding_proof", packet.unknowns)
+
+    def test_missing_proposed_name_in_candidate_is_not_approval(self):
+        after = {"src/a.py": "def unrelated(): return 0\\n"}
+        packet = self.make(
+            after_sources=after,
+            after_sha256={"src/a.py": sha256(after["src/a.py"].encode()).hexdigest()},
+        )
+        self.assertIn("proposed_identifier_not_lexically_observed_in_candidate",
+                      packet.unknowns)
+        self.assertFalse(packet.mutation_performed)
+
+
 if __name__ == "__main__":
     unittest.main()
