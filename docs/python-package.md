@@ -120,3 +120,15 @@ non-finite JSON constants even if the ZIP manifest SHA-256 matches the invalid
 bytes. This is input-integrity validation, not schema conformance, signed
 provenance or a public consumer compatibility claim. The separate resource
 registry still requires an explicitly supplied, trusted extraction root.
+
+## Cross-platform resource path identity (#125)
+
+The bundle builder and unpacker now reject non-portable resource names before
+publishing or extracting: Windows device components and alternate-data-stream
+colons, trailing dot/space components, non-NFC Unicode components, and
+case-folding aliases between ZIP members or registered resource paths. These
+controls prevent one manifest from addressing different extracted files on
+case-insensitive or Unicode-normalizing filesystems. They do **not** establish
+signed publisher provenance, protection against a concurrent filesystem
+attacker, or production consumer compatibility. Existing explicit root and
+exact-byte SHA-256 checks remain mandatory.
