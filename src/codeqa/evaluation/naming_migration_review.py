@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from hashlib import sha256
+import ast
 import io
 import re
 import tokenize
@@ -100,17 +101,21 @@ def prepare_migration_review_packet(
         if not isinstance(name, str) or not name:
             return False
         for path, content in sources.items():
-            if path.endswith(".py"):
+            if path.endswith((".py", ".pyi")):
                 if not name.isidentifier():
                     continue
                 try:
+                    # NAME tokens alone can occur in syntactically invalid
+                    # source. A complete parse is needed even for this
+                    # deliberately non-semantic lexical observation.
+                    ast.parse(content)
                     tokens = tuple(tokenize.generate_tokens(
                         io.StringIO(content).readline))
                     if any(token.type == tokenize.NAME and token.string == name
                            for token in tokens):
                         return True
                 except (tokenize.TokenError, IndentationError, SyntaxError):
-                    # A malformed token stream must not certify name presence.
+                    # Malformed Python cannot certify lexical presence.
                     continue
             elif re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", content):
                 # Non-Python sources have no parser-backed binding evidence.
