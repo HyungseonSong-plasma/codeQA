@@ -7,6 +7,7 @@ on:
       - '.github/scripts/pinned_python_sdk_conformance.py'
       - '.github/scripts/public_api_benchmark.py'
       - '.github/scripts/public_python_sdk_benchmark.py'
+      - 'tests/test_public_python_sdk_benchmark.py'
       - 'docs/public-api-benchmark-v01.md'
       - 'docs/public-python-sdk-benchmark-v01.md'
       - '.github/workflows/pinned-python-sdk.yml'
@@ -21,6 +22,7 @@ on:
       - '.github/scripts/pinned_python_sdk_conformance.py'
       - '.github/scripts/public_api_benchmark.py'
       - '.github/scripts/public_python_sdk_benchmark.py'
+      - 'tests/test_public_python_sdk_benchmark.py'
       - 'docs/public-api-benchmark-v01.md'
       - 'docs/public-python-sdk-benchmark-v01.md'
       - '.github/workflows/pinned-python-sdk.yml'
@@ -65,6 +67,9 @@ jobs:
           npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund pyright@1.1.414
           test -f node_modules/pyright/dist/pyright.js
           node_modules/.bin/pyright --version
+
+      - name: Validate full-source native Pyright receipt locations (pure negatives)
+        run: python -m unittest discover -s tests -p test_public_python_sdk_benchmark.py -v
 
       - name: Real Pyright positive/negative, #98 evidence, #99 Gate and SDK runtime mapping
         run: |
