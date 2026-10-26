@@ -34,3 +34,12 @@ matching exact-head CI. This checklist is a proposal, not an exercised new
 non-Python adapter. New-adapter end-to-end onboarding is `NOT_EVALUATED`.
 
 See #93 for missing production Rust/C++/MOOSE framework ABI/DSL evidence.
+
+
+Python v0.1's `SUPPORTED_SCOPED` parser/CCG/Mechanical cells are now
+protected by exact syntax-bound limitation strings. Rewording any such cell
+to imply verified dynamic dispatch, runtime call resolution or complete
+P1–P8 Mechanical support is rejected until a separately reviewed/versioned
+capability update with new source and execution evidence. Two regression
+tests cover these negative promotions. This is a source/contract boundary,
+not a substitute for real compiler, SDK or installed-consumer conformance.
