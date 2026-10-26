@@ -42,3 +42,14 @@ request serialization compatibility remains `NOT_EVALUATED`.
 The wrapper additionally exposes deterministic SHA-256 hashes of the provided
 CCG schema and Mechanical profile under `profile_fingerprints`. These are
 caller-owned byte identities, not independently certified signatures.
+
+## Strict authority option types (incremental #123)
+
+The optional `naming`, `formal` and `external_gate` flags accept **only
+actual Boolean values**. False remains the explicit disabled state; falsy
+integers, empty strings/containers and null values now raise
+`AnalysisRequestError` rather than silently behaving as disabled. True still
+cannot activate a separate authority domain. Changed paths also reject all
+ASCII control characters, not only NUL. These checks apply to both the
+`from_mapping` constructor and directly constructed typed options. Default
+Mechanical behavior and the frozen Public QA Result remain unchanged.
