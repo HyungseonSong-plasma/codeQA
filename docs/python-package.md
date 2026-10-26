@@ -124,3 +124,14 @@ an independently identified external SDK, user application, public
 DTO/DB migration or verified production ABI. Those remain
 `NOT_EVALUATED`. Human newcomer usability testing is still required
 for #125; the static check does not substitute for a user study.
+
+## Installed AnalysisRequest authority negatives (#123/#125 integration)
+
+The isolated wheel/sdist consumer smoke now exercises 15 combinations of
+unsupported/ambiguous `naming`, `formal` and `external_gate` option values
+(`True`, integer zero, `None`, empty string, empty list) through the
+**installed package**. Every case must raise `AnalysisRequestError`; a
+falsy non-Boolean value cannot silently become an opt-out or be promoted to a
+Formal/Gate authorization. The successful baseline still uses the unchanged
+Mechanical P1/P3 pipeline. These tests are not an independent public user
+study or production release certification.
