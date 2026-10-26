@@ -84,3 +84,11 @@ fabricated unselected `__init__.py` entry could appear as a public import
 removal and manufacture a compatibility-review signal. A selected syntactic
 import is still **not** an independently attested stable public API or proof
 of consumer breakage; such changes remain REVIEW_REQUIRED/NOT_EVALUATED.
+
+## Portable source path identity
+
+The read-only inventory and comparator reject selected Python source paths
+containing ASCII controls, Windows alternate-data-stream colons or trailing
+dot/space path components. Such aliases cannot be trusted as stable
+cross-platform source identity witnesses; this check does not prove a
+Git checkout or source snapshot was independently attested.
