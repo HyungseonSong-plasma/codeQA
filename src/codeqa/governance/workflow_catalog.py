@@ -91,7 +91,7 @@ def validate_workflow_catalog(
             required.append(path)
             if (entry["required_check"] != REQUIRED_CONTEXT
                     or entry["required_status"] != "OBSERVED_REQUIRED_BY_RULESET_25360323"
-                    or not re.search(r"(?m)^\s{4}name:\s*layout\s*$", text)):
+                    or len(re.findall(r"(?m)^\s{4}name:\s*layout\s*$", text)) != 1):
                 raise WorkflowCatalogError("required check must be evidenced by ruleset and job name")
         elif (entry["required_check"] is not None
               or entry["required_status"] != "NOT_REQUIRED_BY_OBSERVED_RULESET"):
