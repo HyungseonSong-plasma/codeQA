@@ -8,8 +8,9 @@ from pathlib import Path
 import unittest
 
 from codeqa.core.naming_snapshot_coverage_v03 import (
-    NamingSnapshotCoverageError, scan_pinned_git, scan_selected_python,
+    NamingSnapshotCoverageError, scan_selected_python,
 )
+from codeqa.pipeline.naming_snapshot_coverage_v03 import scan_pinned_git
 
 
 REV = "a" * 40
