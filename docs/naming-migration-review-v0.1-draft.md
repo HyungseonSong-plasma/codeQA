@@ -21,3 +21,19 @@ This is a staged-plan evidence template, **not** a human-approved migration
 plan or a compatibility-window authorization. Closing #94 still requires
 actual independently reviewed public DTO/DB/ABI baselines, rename binding
 witnesses and migration/rollback approvals.
+
+## Unbound draft proposal provenance (explicit limitation)
+
+The current v0.2-draft `RenameImpactReport` contains selected paths, a
+revision string and policy ID, but **does not contain** a cryptographic digest
+of the complete source manifest or the applied policy fingerprint. The
+migration review packet verifies the caller-provided before/after bytes and
+hashes, but cannot independently establish that a separately supplied rename
+proposal was derived from those same bytes or the same policy. It now emits
+`proposal_source_manifest_binding_not_evaluated` and
+`proposal_policy_fingerprint_not_attested` unconditionally, and
+`proposal_source_selection_differs` if the proposal's selected path set is
+smaller than the packet's before-source set. Non-Boolean completeness flags
+are rejected. These are **unresolved obligations**, not grounds for a safe
+rename or a policy PASS; an independently verified source-bound proposal and
+human-approved compatibility plan remain required before #94 closure.
