@@ -58,10 +58,11 @@ def verify_framework_source_lock(
         raise MooseFrameworkSourceError("unverified framework/application revision")
     if not isinstance(dependency_lock, str):
         raise MooseFrameworkSourceError("missing application dependency lock")
-    # Check *every* assignment, including malformed/branch-valued duplicates.
-    # A regex matching only valid SHA lines would miss a second MOOSE=main.
+    # Check *every* MOOSE assignment candidate, including whitespace,
+    # shell-style export, malformed and branch-valued duplicates. Do not
+    # mistake a commented example for an active assignment.
     assignments = [line for line in dependency_lock.splitlines()
-                   if line.startswith("MOOSE=")]
+                   if re.match(r"^\s*(?:export\s+)?MOOSE\s*=", line)]
     if assignments != ["MOOSE=" + revision]:
         raise MooseFrameworkSourceError("framework revision differs from application lock")
     expected = lock["files"]
