@@ -58,7 +58,16 @@ def audit_authority_propagation(
         producer = "codeqa.evidence_gate"
         decision_type = "EVIDENCE_GATE_V0_1"
         scope = "PINNED_POLICY_REQUIREMENTS_ONLY"
-        allowed = decision.status == "PASS" and decision.authorization == "ALLOW"
+        gate_claims_covered = bool(decision.requirements) and all(
+            entry.status == "PASS" and entry.admission_status == "ADMISSIBLE"
+            and isinstance(entry.evidence_sha256, str)
+            and re.fullmatch(r"[0-9a-f]{64}", entry.evidence_sha256)
+            for entry in decision.requirements
+        )
+        allowed = (
+            decision.status == "PASS" and decision.authorization == "ALLOW"
+            and gate_claims_covered
+        )
     elif isinstance(decision, GeneratedFixtureDecision):
         producer = "codeqa.formal_generated_gate"
         decision_type = "FORMAL_GENERATED_FIXTURE_V0_1"
@@ -68,6 +77,8 @@ def audit_authority_propagation(
         raise TypeError("only actual typed Gate or GeneratedFixture decisions are accepted")
     digest = _sha256(decision.canonical_json().encode("utf-8"))
     reasons: set[str] = set()
+    if decision_type == "EVIDENCE_GATE_V0_1" and not gate_claims_covered:
+        reasons.add("GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING")
     if not expected_snapshot_id or decision.snapshot_id != expected_snapshot_id:
         reasons.add("SNAPSHOT_MISMATCH_OR_UNPINNED")
     if (not re.fullmatch(r"[0-9a-f]{64}", expected_policy_fingerprint or "")
