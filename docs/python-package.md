@@ -135,3 +135,12 @@ falsy non-Boolean value cannot silently become an opt-out or be promoted to a
 Formal/Gate authorization. The successful baseline still uses the unchanged
 Mechanical P1/P3 pipeline. These tests are not an independent public user
 study or production release certification.
+
+## Resource archive control-character rejection (#125 incremental)
+
+The explicit resource-bundle unpacker now rejects ASCII control characters
+(including newline, tab, carriage return and DEL) in both ZIP member names and
+manifest registry paths. This is an additional fail-closed portability and
+input-integrity guard, not a replacement for existing path traversal,
+symlink, exact SHA-256, version or source-revision checks. No checkout-local
+fallback or production compatibility claim is introduced.
