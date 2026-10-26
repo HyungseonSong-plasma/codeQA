@@ -43,3 +43,21 @@ matched to the selected source, and a real Pyright run against an
 exact-source named consumer/typed negative controls; classify all
 uncovered patterns as `NOT_EVALUATED` rather than claiming PASS.
 Issue #92 remains OPEN and Draft PRs require human review.
+
+## Release-tag versus selected source commit
+
+Independently inspected annotated upstream `v16.0.0` tag resolves to
+commit `29363094b09a67f8b1b50f577b463edbbb27ec9a`, tree
+`d11d37ace1173fb7dfb4d66afa29b4b9a6760f4c`. This differs from
+the selected newer source commit despite both declaring version
+`16.0.0`. In particular, `stripe/_util.py` has release-tag blob
+`8b378c63c880eda7180a025ec8d9f745895f619f` versus selected
+`e034b209fa5d6284759ab10a50ba3bbd84e200a7`, and
+`stripe/_webhook.py` has release-tag blob
+`9fc269e691b6566e804d19132ef79b2d270f4da8` versus selected
+`a9a041454c80c5996352adb0a5a47222422187d9`.
+Therefore this benchmark attests **the exact selected Git source**, not
+equivalence to the published PyPI `stripe==16.0.0` wheel. A future
+typechecker run against an installed wheel must independently bind its
+bytes to an approved release-tag/source snapshot, or report
+`UNRESOLVED` rather than transferring this source-only PASS.
