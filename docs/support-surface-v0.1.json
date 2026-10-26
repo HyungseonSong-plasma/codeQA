@@ -165,6 +165,29 @@
       ]
     },
     {
+      "id": "official_naming_v05_exact_field",
+      "mode": "OPT_IN",
+      "languages": [
+        "Python"
+      ],
+      "authority": "SCOPED_REVIEW",
+      "scope": "EXACT_FIELD_LEXICAL_ONLY",
+      "source": "src/codeqa/pipeline/naming_official_policy_v05.py",
+      "entrypoint": "codeqa.pipeline.naming_official_policy_v05:evaluate_pinned_official_naming_v05",
+      "evidence": [
+        "docs/naming-official-policy-v05.md"
+      ],
+      "resources": [
+        "codeqa_python_naming_scoped_v05_policy"
+      ],
+      "principles": [],
+      "limitations": [
+        "only ControlFlowObservation.node_id at pinned src/codeqa/core/complexity.py:10",
+        "not a semantic glossary PASS or external API compatibility",
+        "automatic rename forbidden"
+      ]
+    },
+    {
       "id": "qa_result_contract",
       "mode": "CONTRACT_ONLY",
       "languages": [

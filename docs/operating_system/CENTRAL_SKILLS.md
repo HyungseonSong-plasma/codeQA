@@ -1,6 +1,6 @@
 # Central Samuel skills — codeQA consumer
 
-**Source:** `HyungseonSong-plasma/chatgpt-operation@059050330a549fce0b543687e2e9d4dca6c3f624`
+**Source:** `HyungseonSong-plasma/chatgpt-operation@cb785d898c624ba2b47fbb3d3840d48387605f47`
 
 ## Required init
 
@@ -9,13 +9,17 @@ Verify/read from the exact source revision and recorded blob SHA:
 - `docs/operating_system/README.md` and `ESSENTIAL_RULES.md`
 - `skills/session-bootstrap/README.md`
 - `skills/state-refresh/README.md`
+- `skills/problem-oriented-response/README.md` and its
+  `skills/problem-oriented-response/contract.json` (mandatory `INIT`;
+  `samuel.problem-first-response.v1`, `problem_first`, `on_request`)
 - `skills/catalog.json` and `skills/capability-registry.json`
 - `skills/repository-mutation/README.md` (eagerly trigger-loaded for
   `GITHUB_BRANCH_DELETE` readiness only, without mutation)
 
 The machine-readable pin and expected blob identities belong to
 `docs/operating_system/central_skills.json`. Do not mix revisions or
-silently follow `main` / `latest`.
+silently follow `main` / `latest`. The response skill and machine contract must
+both match the pinned blobs; otherwise report `BLOCKED_RESPONSE_CONTRACT`.
 
 ## Always-ready deletion routing
 
@@ -47,4 +51,4 @@ Other skills load only when triggered (e.g., `GITHUB_PR_MERGE`,
 
 ## GitHub creation and update routing
 
-Samuel `059050330a549fce0b543687e2e9d4dca6c3f624` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled by `pull-request-create` through `github-connector` only. Existing `GITHUB_BRANCH_DELETE` native-first and `GITHUB_PR_MERGE` guarded routes are unchanged. A successful create action does not certify CI, domain semantics, or human acceptance. Read exact target identities before and after any mutation; do not modify the capability registry with the native repository mutation workflow, whose protected policy explicitly denies that path.
+Samuel `cb785d898c624ba2b47fbb3d3840d48387605f47` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled by `pull-request-create` through `github-connector` only. Existing `GITHUB_BRANCH_DELETE` native-first and `GITHUB_PR_MERGE` guarded routes are unchanged. A successful create action does not certify CI, domain semantics, or human acceptance. Read exact target identities before and after any mutation; do not modify the capability registry with the native repository mutation workflow, whose protected policy explicitly denies that path.
