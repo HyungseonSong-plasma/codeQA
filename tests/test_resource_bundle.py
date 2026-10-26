@@ -102,6 +102,15 @@ class ResourceBundleTests(unittest.TestCase):
             })))
         self.assertFalse((self.root / "extracted").exists())
 
+    def test_hash_consistent_numeric_overflow_rejected_before_extraction(self):
+        for number in (b"1e9999", b"-1e9999"):
+            with self.subTest(number=number):
+                with self.assertRaisesRegex(ResourceBundleError, "non-finite registered JSON"):
+                    self.unpack(self.bundle(files_change=lambda files: files.update({
+                        "contracts/ccg.json": b'{"limit":' + number + b'}',
+                    })))
+                self.assertFalse((self.root / "extracted").exists())
+
     def test_missing_registered_file_fails_closed(self):
         with self.assertRaises(ResourceBundleError):
             self.unpack(self.bundle(files_change=lambda f: f.pop("profiles/mechanical.json")))
