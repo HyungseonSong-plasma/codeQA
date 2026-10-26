@@ -111,3 +111,12 @@ manifest registry paths. This is an additional fail-closed portability and
 input-integrity guard, not a replacement for existing path traversal,
 symlink, exact SHA-256, version or source-revision checks. No checkout-local
 fallback or production compatibility claim is introduced.
+
+## Hash-consistent malformed JSON rejection (#125)
+
+Resource extraction also parses every registered JSON payload **before any
+filesystem writes**, rejecting malformed UTF-8/JSON, duplicate object keys and
+non-finite JSON constants even if the ZIP manifest SHA-256 matches the invalid
+bytes. This is input-integrity validation, not schema conformance, signed
+provenance or a public consumer compatibility claim. The separate resource
+registry still requires an explicitly supplied, trusted extraction root.
