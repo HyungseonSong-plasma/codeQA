@@ -103,39 +103,6 @@ release/commit; neither this validator nor the SHA256SUMS artifact independently
 establishes an external SDK, production DB or deployed source compatibility.
 Human newcomer onboarding success remains `NOT_EVALUATED`.
 
-## Installed-wheel static typechecker consumer (#92/#125 integration)
-
-In **both Python 3.12 and 3.13** distribution jobs, the isolated
-`codeqa-wheel` environment now installs **real Pyright 1.1.414** and
-typechecks a controlled `AnalysisRequest`/`AnalysisOptions` consumer
-copied to a fresh temporary project outside the source checkout.
-A positive typed consumer must have zero native errors; a separate
-negative source must yield at least three `reportArgumentType` errors
-and one `reportAssignmentType` error. The runner rejects incomplete
-tool/config results, wrong versions, mismatched native error counts and
-out-of-scope diagnostics. Each Python job uploads a
-`installed-consumer-pyright-<python>.json` witness with fixture/config/
-native-JSON SHA-256s alongside the existing wheel/sdist and resource
-artifacts; it is **informational and not included in the three
-distribution files' SHA256SUMS**.
-
-This is a real typechecker against the installed codeQA wheel, **not**
-an independently identified external SDK, user application, public
-DTO/DB migration or verified production ABI. Those remain
-`NOT_EVALUATED`. Human newcomer usability testing is still required
-for #125; the static check does not substitute for a user study.
-
-## Installed AnalysisRequest authority negatives (#123/#125 integration)
-
-The isolated wheel/sdist consumer smoke now exercises 15 combinations of
-unsupported/ambiguous `naming`, `formal` and `external_gate` option values
-(`True`, integer zero, `None`, empty string, empty list) through the
-**installed package**. Every case must raise `AnalysisRequestError`; a
-falsy non-Boolean value cannot silently become an opt-out or be promoted to a
-Formal/Gate authorization. The successful baseline still uses the unchanged
-Mechanical P1/P3 pipeline. These tests are not an independent public user
-study or production release certification.
-
 ## Resource archive control-character rejection (#125 incremental)
 
 The explicit resource-bundle unpacker now rejects ASCII control characters
@@ -144,3 +111,12 @@ manifest registry paths. This is an additional fail-closed portability and
 input-integrity guard, not a replacement for existing path traversal,
 symlink, exact SHA-256, version or source-revision checks. No checkout-local
 fallback or production compatibility claim is introduced.
+
+## Hash-consistent malformed JSON rejection (#125)
+
+Resource extraction also parses every registered JSON payload **before any
+filesystem writes**, rejecting malformed UTF-8/JSON, duplicate object keys and
+non-finite JSON constants even if the ZIP manifest SHA-256 matches the invalid
+bytes. This is input-integrity validation, not schema conformance, signed
+provenance or a public consumer compatibility claim. The separate resource
+registry still requires an explicitly supplied, trusted extraction root.

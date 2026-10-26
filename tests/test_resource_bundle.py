@@ -81,6 +81,27 @@ class ResourceBundleTests(unittest.TestCase):
                 {"contracts/ccg.json": "0" * 64}
             )))
 
+    def test_hash_consistent_but_malformed_json_resource_rejected(self):
+        with self.assertRaisesRegex(ResourceBundleError, "malformed registered JSON"):
+            self.unpack(self.bundle(files_change=lambda f: f.update({
+                "contracts/ccg.json": b'{"type":'
+            })))
+        self.assertFalse((self.root / "extracted").exists())
+
+    def test_hash_consistent_but_duplicate_json_keys_rejected(self):
+        with self.assertRaisesRegex(ResourceBundleError, "duplicate JSON"):
+            self.unpack(self.bundle(files_change=lambda f: f.update({
+                "contracts/ccg.json": b'{"type":"object","type":"array"}'
+            })))
+        self.assertFalse((self.root / "extracted").exists())
+
+    def test_hash_consistent_but_nonfinite_json_rejected(self):
+        with self.assertRaisesRegex(ResourceBundleError, "non-finite registered JSON"):
+            self.unpack(self.bundle(files_change=lambda f: f.update({
+                "contracts/ccg.json": b'{"unsafe": NaN}'
+            })))
+        self.assertFalse((self.root / "extracted").exists())
+
     def test_missing_registered_file_fails_closed(self):
         with self.assertRaises(ResourceBundleError):
             self.unpack(self.bundle(files_change=lambda f: f.pop("profiles/mechanical.json")))

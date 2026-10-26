@@ -28,6 +28,10 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _reject_nonfinite_json(value: str) -> Any:
+    raise ResourceBundleError("non-finite registered JSON resource value")
+
+
 def _safe_path(value: Any) -> bool:
     return (
         isinstance(value, str) and bool(value)
@@ -101,6 +105,19 @@ def unpack_verified_resource_bundle(
                 data = archive.read(name)
                 if sha256(data).hexdigest() != digest:
                     raise ResourceBundleError("resource content SHA-256 mismatch: " + name)
+                # A self-consistent manifest can hash invalid JSON bytes.
+                # Validate registered JSON resources before extracting any file;
+                # the caller still owns schema/policy interpretation.
+                if name != "pyproject.toml":
+                    try:
+                        json.loads(
+                            data.decode("utf-8"), object_pairs_hook=_unique_object,
+                            parse_constant=_reject_nonfinite_json,
+                        )
+                    except (UnicodeError, json.JSONDecodeError) as exc:
+                        raise ResourceBundleError(
+                            "malformed registered JSON resource: " + name
+                        ) from exc
                 payloads[name] = data
     except (BadZipFile, OSError, KeyError, UnicodeError, json.JSONDecodeError, tomllib.TOMLDecodeError) as exc:
         raise ResourceBundleError("unreadable or malformed resource archive") from exc
