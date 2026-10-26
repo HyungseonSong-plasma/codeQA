@@ -20,6 +20,10 @@ class DomainMetricTests(unittest.TestCase):
             "src/codeqa/core/naming.py": "class Rule: pass\n",
             "src/codeqa/evaluation/naming.py": "from codeqa.core.naming import Rule\n",
             "src/codeqa/core/graph.py": "x = 1\n",
+            "src/codeqa/adapters/__init__.py": "",
+            "src/codeqa/pipeline/__init__.py": "",
+            "src/codeqa/governance/__init__.py": "",
+            "src/codeqa/infrastructure/__init__.py": "",
         }
         self.edges = (
             StaticDependency(
