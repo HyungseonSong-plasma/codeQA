@@ -200,7 +200,7 @@ def test_runtime(contract: dict) -> dict:
     from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, ValidationError, computed_field
     from pydantic.alias_generators import to_camel
     from sqlalchemy import Integer, String, create_engine, event, inspect
-    from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+    from sqlalchemy.orm import DeclarativeBase, Session, mapped_column
     from sqlalchemy.schema import CreateTable
 
     class Payload(BaseModel):
@@ -344,22 +344,22 @@ def test_extended_orm(contract: dict) -> dict:
 
     class Parent(Base):
         __tablename__ = "sdk_parent"
-        id: Mapped[int] = mapped_column(Integer, primary_key=True)
-        kind: Mapped[str] = mapped_column(String(16))
-        label: Mapped[str] = mapped_column(String(30))
+        id = mapped_column(Integer, primary_key=True)
+        kind = mapped_column(String(16))
+        label = mapped_column(String(30))
         __mapper_args__ = {"polymorphic_on": kind, "polymorphic_identity": "parent"}
 
     class Child(Parent):
         __tablename__ = "sdk_child"
-        id: Mapped[int] = mapped_column(ForeignKey("sdk_parent.id"), primary_key=True)
-        child_label: Mapped[str] = mapped_column(String(30))
+        id = mapped_column(ForeignKey("sdk_parent.id"), primary_key=True)
+        child_label = mapped_column(String(30))
         __mapper_args__ = {"polymorphic_identity": "child"}
 
     class ComputedRow(Base):
         __tablename__ = "sdk_computed"
-        id: Mapped[int] = mapped_column(Integer, primary_key=True)
-        quantity: Mapped[int] = mapped_column(Integer)
-        doubled: Mapped[int] = mapped_column(Integer, Computed("quantity * 2"))
+        id = mapped_column(Integer, primary_key=True)
+        quantity = mapped_column(Integer)
+        doubled = mapped_column(Integer, Computed("quantity * 2"))
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
