@@ -32,6 +32,10 @@ class InternalImportCensusTests(unittest.TestCase):
         x = self.actual
         self.assertEqual(x["selected_source_files"], 100)
         self.assertEqual(x["ast_parsed_files"], 100)
+        self.assertEqual(x["total_import_statements"], 618)
+        self.assertEqual(len(x["target_graph"]["target_from_import_edges"]), 2)
+        self.assertEqual(x["target_graph"]["syntax_candidate_edges"], 2)
+        self.assertEqual(x["target_graph"]["unresolved_target_edges"], 0)
         self.assertEqual(len(x["source_file_evidence"]), 100)
         self.assertEqual(len({r["path"] for r in x["source_file_evidence"]}), 100)
         self.assertTrue(all(r["ast_parse"] == "PASS" and
