@@ -87,6 +87,7 @@ license/metadata review and separate compatibility review.
 
 ## Installed consumer failure modes (#125)
 
+
 The wheel and sdist smoke now use the shared, opt-in
 `codeqa.infrastructure.resource_bundle.unpack_verified_resource_bundle`
 validator. It verifies the exact version/source SHA, bundled registry against
@@ -162,3 +163,5 @@ alternate-data-stream/device names, trailing dot/space and non-NFC Unicode
 components. This aligns the explicit local registry's path acceptance with
 verified-bundle portability checks; it does not introduce automatic resource
 discovery or a claim that a mutable local filesystem is authenticated.
+
+The installed wheel and sdist smoke now execute these negative bundle checks using the isolated interpreter **without altering the packaging workflow YAML**. The existing installed AnalysisRequest/default Mechanical equality smoke from #123 remains mandatory. This revision avoids invalidating the versioned #124 workflow Git-blob ledger merely to add an equivalent negative step.

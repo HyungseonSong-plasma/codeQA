@@ -1,0 +1,400 @@
+{
+  "schema_version": "0.4-source-scope-discovery",
+  "repo": "HyungseonSong-plasma/codeQA",
+  "source_commit": "667a5f17f9890c5588d4f1c8ae079aba241501f3",
+  "source_tree_sha": "e9a78ccc3a5ccf75f6ee4818289549f39f526d2d",
+  "selection": "src/codeqa/**/*.py",
+  "target_spellings": [
+    "time_step",
+    "timestep",
+    "node_id",
+    "nodeid"
+  ],
+  "observed_semantics": "NOT_EVALUATED",
+  "applied_role_scopes": [],
+  "glob_policy": "TRACKED_GIT_TREE_EXACT_PATHS",
+  "files": [
+    {
+      "path": "src/codeqa/__init__.py",
+      "git_blob_sha": "3799d45298649087b758a4284868a5acd5d0e654"
+    },
+    {
+      "path": "src/codeqa/adapters/__init__.py",
+      "git_blob_sha": "ecec04d0d0e20d04f838c633a6e1ecc0a8765e6b"
+    },
+    {
+      "path": "src/codeqa/adapters/capability.py",
+      "git_blob_sha": "cec06b18faea46b9cfed481b7ce7fe75406f7be3"
+    },
+    {
+      "path": "src/codeqa/adapters/lexical.py",
+      "git_blob_sha": "3e1ac92b7e47c642c92aeb15e9d101beed1e98c7"
+    },
+    {
+      "path": "src/codeqa/adapters/python_behavior.py",
+      "git_blob_sha": "d4aa9913854807908bba58ea5247087d319d0160"
+    },
+    {
+      "path": "src/codeqa/adapters/python_complexity.py",
+      "git_blob_sha": "caadcb45638869efc327f589d3a300c8ba2d9456"
+    },
+    {
+      "path": "src/codeqa/adapters/python_context.py",
+      "git_blob_sha": "ee1a65ac2b0dce924cd7b92283bd5cfab8949986"
+    },
+    {
+      "path": "src/codeqa/adapters/python_dependencies.py",
+      "git_blob_sha": "bcdbe8db999dd343543942d1383aa790c2ac805f"
+    },
+    {
+      "path": "src/codeqa/adapters/python_duplication.py",
+      "git_blob_sha": "c4738ce21a708e2b765533cbbca08383fa1be7f2"
+    },
+    {
+      "path": "src/codeqa/adapters/python_evidence.py",
+      "git_blob_sha": "b8a9b93c83d8e0e838c581994c31693bf2b73910"
+    },
+    {
+      "path": "src/codeqa/adapters/python_naming_ancestor.py",
+      "git_blob_sha": "ec3572c40f8ab078868ca2b2630e09bf5bcfbe89"
+    },
+    {
+      "path": "src/codeqa/adapters/python_naming_coverage_v02.py",
+      "git_blob_sha": "2d93abf5cdf78eccd20cc89ae052e480cbde9bdf"
+    },
+    {
+      "path": "src/codeqa/adapters/python_naming_fields.py",
+      "git_blob_sha": "30e244288d1585c8552a98c7f947cd914e72a524"
+    },
+    {
+      "path": "src/codeqa/adapters/python_naming.py",
+      "git_blob_sha": "9e3c33c8a7044ba711d456853df6d6314eeea803"
+    },
+    {
+      "path": "src/codeqa/adapters/python_p3_witness.py",
+      "git_blob_sha": "6b6ced9df98bd28c2660c0649bfdd2337bc83024"
+    },
+    {
+      "path": "src/codeqa/adapters/python_persistent_cache.py",
+      "git_blob_sha": "6fcbc39a7736a5e56786559de810e9d67bbf9361"
+    },
+    {
+      "path": "src/codeqa/adapters/python_snapshot.py",
+      "git_blob_sha": "5c419b49dbf54b5cb439be9e269da6729656db2e"
+    },
+    {
+      "path": "src/codeqa/adapters/python_statement_similarity.py",
+      "git_blob_sha": "2aa72d817acb569d2b04eecf9284ca1388b292dc"
+    },
+    {
+      "path": "src/codeqa/adapters/python_symbols.py",
+      "git_blob_sha": "d7a5de5fd4f97e758390aa0fe46c8e4259c76fb2"
+    },
+    {
+      "path": "src/codeqa/adapters/python.py",
+      "git_blob_sha": "f6ded8c9a6eadbcf61c14acbf647918df8bc2286"
+    },
+    {
+      "path": "src/codeqa/adapters/semgrep_json.py",
+      "git_blob_sha": "4c8cd8aa4754ac4ba5c507edc7f0d6686e88a32e"
+    },
+    {
+      "path": "src/codeqa/core/__init__.py",
+      "git_blob_sha": "2626934e06d078f1eb93d5921c0242076470746c"
+    },
+    {
+      "path": "src/codeqa/core/behavior.py",
+      "git_blob_sha": "650f6a9aefa17750e57009fc20adc656f99572b5"
+    },
+    {
+      "path": "src/codeqa/core/complexity.py",
+      "git_blob_sha": "3b883e0daaf915b653da07650c533317a596623b"
+    },
+    {
+      "path": "src/codeqa/core/dependency.py",
+      "git_blob_sha": "dde39d8e801e475bd589505e8135a7deb4f86840"
+    },
+    {
+      "path": "src/codeqa/core/duplication.py",
+      "git_blob_sha": "51144c6728c7a2ce8697be6b39ae3570577092cb"
+    },
+    {
+      "path": "src/codeqa/core/evidence.py",
+      "git_blob_sha": "256a02857eae044f45277ca4fa19067c7a01b117"
+    },
+    {
+      "path": "src/codeqa/core/external_evidence.py",
+      "git_blob_sha": "6cbc2f3e5ffaaf7b34c0724dbb5e85241213e02e"
+    },
+    {
+      "path": "src/codeqa/core/function_context.py",
+      "git_blob_sha": "59bc042048eb59aba0fa659510971599794a88ac"
+    },
+    {
+      "path": "src/codeqa/core/graph.py",
+      "git_blob_sha": "0545d0266b9e9856f1be6ec875c46e23b7588655"
+    },
+    {
+      "path": "src/codeqa/core/naming_ancestor.py",
+      "git_blob_sha": "77022efe1720e16c472e1ee6072b477855f18140"
+    },
+    {
+      "path": "src/codeqa/core/naming_coverage_v02.py",
+      "git_blob_sha": "b7fd40f3256efcd91fd56b6eba36d94e28036619"
+    },
+    {
+      "path": "src/codeqa/core/naming_declaration_evidence_v03.py",
+      "git_blob_sha": "f25a26d9d3c430498666e06eea2e8457f7f76d32"
+    },
+    {
+      "path": "src/codeqa/core/naming_field_classification_v03.py",
+      "git_blob_sha": "defcccb2441d2251d616359ab546e23a03cd387d"
+    },
+    {
+      "path": "src/codeqa/core/naming_field_evidence_v03.py",
+      "git_blob_sha": "1b068eed939f9ee43555f33578c00c561d19c347"
+    },
+    {
+      "path": "src/codeqa/core/naming_fields.py",
+      "git_blob_sha": "9a9e947e1f6d8ea04a283b777bf3234bbca5dbb4"
+    },
+    {
+      "path": "src/codeqa/core/naming_glossary_governance_v02.py",
+      "git_blob_sha": "04193ecccbc0f1b375c26acb2d1bfb6a13904c3a"
+    },
+    {
+      "path": "src/codeqa/core/naming_glossary.py",
+      "git_blob_sha": "e5da126ead5f25c2eb3be5bb0e16d1c09a430df4"
+    },
+    {
+      "path": "src/codeqa/core/naming_policy_precedence_v03.py",
+      "git_blob_sha": "5284317dc059af38984c0e8b10355e2915c00765"
+    },
+    {
+      "path": "src/codeqa/core/naming_review_worklist_v03.py",
+      "git_blob_sha": "8d0c2fdf1768c29b803cd0adabe33774fc98ab7e"
+    },
+    {
+      "path": "src/codeqa/core/naming_rule_inventory_v03.py",
+      "git_blob_sha": "922840b23f87f7c1c4f9a557f22e01b3ae6af916"
+    },
+    {
+      "path": "src/codeqa/core/naming_snapshot_coverage_v03.py",
+      "git_blob_sha": "4c1a5777519ec26b567cbcfd25973bc492d6e620"
+    },
+    {
+      "path": "src/codeqa/core/naming.py",
+      "git_blob_sha": "ad4faacd29306cb0c48b3bf4a5877db9d245456d"
+    },
+    {
+      "path": "src/codeqa/core/p3_witness.py",
+      "git_blob_sha": "8b11a67e0ab7d943dea7d12662d04619222fe636"
+    },
+    {
+      "path": "src/codeqa/core/semantic_architecture.py",
+      "git_blob_sha": "b6ce0a398316153ecbe780e0cf94826a524273c9"
+    },
+    {
+      "path": "src/codeqa/core/statement_similarity.py",
+      "git_blob_sha": "9e0ed5c0b632d2ec1ca6c80e4ad8afa6dd936449"
+    },
+    {
+      "path": "src/codeqa/core/symbols.py",
+      "git_blob_sha": "f0e6f0bdea5219641b26f555663ee5754bd0a79c"
+    },
+    {
+      "path": "src/codeqa/core/validation.py",
+      "git_blob_sha": "e424df936a75944a7815a1ca70a83108fb0a8ffa"
+    },
+    {
+      "path": "src/codeqa/evaluation/__init__.py",
+      "git_blob_sha": "6f8899f8f8bf36c9cadc3afe2cc7054f3e17826e"
+    },
+    {
+      "path": "src/codeqa/evaluation/architecture_rules.py",
+      "git_blob_sha": "137e320c1084b0d13971d5abd47cd82544fb496b"
+    },
+    {
+      "path": "src/codeqa/evaluation/body_complexity.py",
+      "git_blob_sha": "fc18a364d598dfa0971688cc41b5d94a960eefaa"
+    },
+    {
+      "path": "src/codeqa/evaluation/complexity.py",
+      "git_blob_sha": "31587ca465dc2659c806cf6858715bb55c3e64c1"
+    },
+    {
+      "path": "src/codeqa/evaluation/contextual.py",
+      "git_blob_sha": "469626a62d2f4e0bbe5e68ccf6aa8095c40934b7"
+    },
+    {
+      "path": "src/codeqa/evaluation/dependency_metrics.py",
+      "git_blob_sha": "94ee389e2c9118e7fed221ed2d0413cb1c1abf6f"
+    },
+    {
+      "path": "src/codeqa/evaluation/dto_orm_runtime_v02.py",
+      "git_blob_sha": "fb8ccfeaa6bba5d77ac31caf70d1c0c05ee1a810"
+    },
+    {
+      "path": "src/codeqa/evaluation/duplication.py",
+      "git_blob_sha": "f3c6ff5a865d294726690839aab098c4aaa6f954"
+    },
+    {
+      "path": "src/codeqa/evaluation/evidence_gate.py",
+      "git_blob_sha": "6ebd5af57365782db934e00ccd46f1c25965c664"
+    },
+    {
+      "path": "src/codeqa/evaluation/extraction_aware_p3.py",
+      "git_blob_sha": "a4eef017e78419ee6ab466c6cc7c6dccf92f31e9"
+    },
+    {
+      "path": "src/codeqa/evaluation/formal_binding.py",
+      "git_blob_sha": "bce76c1f256e34ea60740b702788f8b13f81cc20"
+    },
+    {
+      "path": "src/codeqa/evaluation/formal_generated_gate.py",
+      "git_blob_sha": "204c963f6a2131211a3d82556d3c203f3c9ab854"
+    },
+    {
+      "path": "src/codeqa/evaluation/impact.py",
+      "git_blob_sha": "b26c7f9581dbd17f2efbd666c69ea58d5172395f"
+    },
+    {
+      "path": "src/codeqa/evaluation/incremental.py",
+      "git_blob_sha": "7d4a585e86db99606898a2a68448bf0a1eec4ef2"
+    },
+    {
+      "path": "src/codeqa/evaluation/layout.py",
+      "git_blob_sha": "666ac03fbcd2addee4bf9a53d46fd062c728a9d9"
+    },
+    {
+      "path": "src/codeqa/evaluation/mechanical.py",
+      "git_blob_sha": "3cd6e8703aace18d0d6a4f4fde3accde577df6d5"
+    },
+    {
+      "path": "src/codeqa/evaluation/moose_dsl_naming_v02.py",
+      "git_blob_sha": "c26898e4d4b6f30d28221ce4d453179617cb41cf"
+    },
+    {
+      "path": "src/codeqa/evaluation/naming_ancestor.py",
+      "git_blob_sha": "43381036a134699700d180363746dac2d0803177"
+    },
+    {
+      "path": "src/codeqa/evaluation/naming_coverage_v02.py",
+      "git_blob_sha": "916ace1fb783dd28e24318f42372e781676a79b2"
+    },
+    {
+      "path": "src/codeqa/evaluation/naming_fields.py",
+      "git_blob_sha": "4eb31d30a5920fcdc7964e21614bce0648ebba4f"
+    },
+    {
+      "path": "src/codeqa/evaluation/naming_glossary.py",
+      "git_blob_sha": "94ca93404bba999f505985779c71c7b672c4c182"
+    },
+    {
+      "path": "src/codeqa/evaluation/naming_rename_impact_v02.py",
+      "git_blob_sha": "32496e2a6d86ae962af687a6f1454c7c67cbb1dc"
+    },
+    {
+      "path": "src/codeqa/evaluation/naming_source_delta.py",
+      "git_blob_sha": "ee3978fd76f98b12b87a00dd07f3295ac53852e1"
+    },
+    {
+      "path": "src/codeqa/evaluation/naming.py",
+      "git_blob_sha": "7803ec6bbca95d460c3305173e61fa586aec36c9"
+    },
+    {
+      "path": "src/codeqa/evaluation/python_binding_runtime_v02.py",
+      "git_blob_sha": "c951a272fca4635400099baa84ed2188d4546dda"
+    },
+    {
+      "path": "src/codeqa/evaluation/qa_result.py",
+      "git_blob_sha": "056e0caa6bb05f089e797a1dd7cc58347be24c57"
+    },
+    {
+      "path": "src/codeqa/evaluation/quality_delta_companions.py",
+      "git_blob_sha": "4dc7581aa0d23eb8696784ba86f5e9d94436aeff"
+    },
+    {
+      "path": "src/codeqa/evaluation/quality_delta_v02.py",
+      "git_blob_sha": "6ccc49232303272272b5a7e903d449add3158613"
+    },
+    {
+      "path": "src/codeqa/evaluation/responsibility_behavior.py",
+      "git_blob_sha": "ed4637157238ed1feab2ca9c160941ed998a4c75"
+    },
+    {
+      "path": "src/codeqa/evaluation/rust_naming_manual_v02.py",
+      "git_blob_sha": "b467c7292a0f8d33dce39a1a06c758277af40313"
+    },
+    {
+      "path": "src/codeqa/evaluation/semantic_architecture.py",
+      "git_blob_sha": "b720147354cc4569e54bee9e68c969b2922640b1"
+    },
+    {
+      "path": "src/codeqa/evaluation/semantic_layout.py",
+      "git_blob_sha": "c84972f9ec63aabf6c7b9149f989ea49dc9394c3"
+    },
+    {
+      "path": "src/codeqa/evaluation/statement_similarity.py",
+      "git_blob_sha": "37a04d7773ccc428c01059d8312ae684671317b7"
+    },
+    {
+      "path": "src/codeqa/evaluation/structural_p3_delta.py",
+      "git_blob_sha": "41d1c6073af0767de5915010b566cf4552a45bf8"
+    },
+    {
+      "path": "src/codeqa/governance/__init__.py",
+      "git_blob_sha": "a41f802630eeb44b271bfe304469bc355f8bda25"
+    },
+    {
+      "path": "src/codeqa/governance/frozen_policy.py",
+      "git_blob_sha": "b73a4f845509a36230cd395f6947318f43aab68a"
+    },
+    {
+      "path": "src/codeqa/governance/samuel_issue_executor.py",
+      "git_blob_sha": "7a628ce7747d18d64bb229f95144f570efe1dfc4"
+    },
+    {
+      "path": "src/codeqa/governance/samuel_target_preflight.py",
+      "git_blob_sha": "b19b6528794a36f22ccb5a380fb7d2a3d3f84344"
+    },
+    {
+      "path": "src/codeqa/infrastructure/__init__.py",
+      "git_blob_sha": "41fe5ef3d88a7d21df973d417647165daf0fc064"
+    },
+    {
+      "path": "src/codeqa/infrastructure/git.py",
+      "git_blob_sha": "a403510942c1bd318b41ca4666ae06f969d6e045"
+    },
+    {
+      "path": "src/codeqa/infrastructure/resources.py",
+      "git_blob_sha": "1f5de677cb29636eb870e83026e7b1d3400d0e89"
+    },
+    {
+      "path": "src/codeqa/pipeline/__init__.py",
+      "git_blob_sha": "b203ece3815ddc456ab65f757648bbcc8cae0f2e"
+    },
+    {
+      "path": "src/codeqa/pipeline/naming_field_evidence_v03.py",
+      "git_blob_sha": "939abb8b4ef8ab08594f3a8d28b741ebea96d53d"
+    },
+    {
+      "path": "src/codeqa/pipeline/naming_rule_inventory_v03.py",
+      "git_blob_sha": "83e689e9595db9f5e45570d4798dfc0c56155913"
+    },
+    {
+      "path": "src/codeqa/pipeline/naming_snapshot_coverage_v03.py",
+      "git_blob_sha": "d73d9c8637d30ab667dac79046156044309463f3"
+    },
+    {
+      "path": "src/codeqa/pipeline/python.py",
+      "git_blob_sha": "af599495d06e8d48d4e2bd014d71dfd9fcd2d6ec"
+    },
+    {
+      "path": "src/codeqa/pipeline/source_coverage.py",
+      "git_blob_sha": "29f3dba877e4a568f6d5dbf1c5d9de7e0e8575ef"
+    }
+  ],
+  "coverage_claim": "PINNED_TRACKED_PYTHON_PATHS_ONLY",
+  "automatic_rename_authorized": false
+}
