@@ -75,3 +75,18 @@ name is rejected as ambiguous even if the GitHub ruleset still lists
 appends a second named job and expects the catalog guard to fail. This is a
 static source constraint; live GitHub ruleset readback and exact-head CI are
 still separate obligations.
+
+## Required check shadowing and execution guard (#124)
+
+The static catalog rejects another workflow that declares a job ID `layout`
+or an explicit job `name: layout`: GitHub status contexts must not be
+confusable across unrelated workflow files. The observed required job also
+must retain an unfiltered `pull_request` event, unconditional job execution,
+non-ignored failures and the existing unit, semantic-layout and frozen-policy
+guard commands. Negative tests cover duplicate contexts across workflows,
+job-level `if`/`needs`/`continue-on-error`, PR branch filters and removed
+unit tests. These are deliberately conservative checks for the repository's
+block-form YAML, **not** a full GitHub Actions YAML parser, a proof that a
+runner executed every command, or a substitute for live ruleset readback.
+A future legitimate change to the required job needs reviewed guard evolution
+and exact-head CI before any merge.
