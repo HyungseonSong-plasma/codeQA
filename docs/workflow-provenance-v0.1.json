@@ -10,7 +10,7 @@
     },
     {
       "path": ".github/workflows/mixed-source-conformance.yml",
-      "blob_sha": "aa1adcea43a29ecdebc3f117574a67b7a3af36e5"
+      "blob_sha": "19887b18231759dbc28c0cf14766626ec50bb73c"
     },
     {
       "path": ".github/workflows/moose-p3-refactor-conformance.yml",

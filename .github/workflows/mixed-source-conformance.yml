@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'fixtures/mixed/**'
+      - 'fixtures/cpp-override/**'
+      - 'tests/test_cpp_parser_evidence.py'
+      - 'src/codeqa/adapters/cpp_parser_evidence.py'
+      - 'docs/cpp-parser-evidence-v0.1.md'
       - 'tests/test_mixed_source_coverage.py'
       - 'docs/mixed-source-coverage.md'
       - 'contracts/adapters/source-selection-v0.1.schema.json'
@@ -12,6 +16,10 @@ on:
     branches: [main]
     paths:
       - 'fixtures/mixed/**'
+      - 'fixtures/cpp-override/**'
+      - 'tests/test_cpp_parser_evidence.py'
+      - 'src/codeqa/adapters/cpp_parser_evidence.py'
+      - 'docs/cpp-parser-evidence-v0.1.md'
       - 'tests/test_mixed_source_coverage.py'
       - 'docs/mixed-source-coverage.md'
       - 'contracts/adapters/source-selection-v0.1.schema.json'
@@ -55,3 +63,46 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check -e ./codeqa
       - name: Run caller selection and mixed-language coverage conformance
         run: python3 -m unittest discover -s codeqa/tests -p test_mixed_source_coverage.py -v
+      - name: Install exact optional C++ syntax grammar
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'tree-sitter==0.25.2' 'tree-sitter-cpp==0.23.4'
+          python3 -m pip check
+      - name: Require parser-backed C++ controls with no skipped tests
+        run: |
+          python3 - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.discover(
+              start_dir="codeqa/tests", pattern="test_cpp_parser_evidence.py")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun < 9:
+              raise SystemExit(f"CPP_PARSER=FAIL tests={result.testsRun} skipped={result.skipped}")
+          print("CPP_PARSER=PASS tests=", result.testsRun)
+          PY
+      - name: Produce pinned real MOOSE application syntax receipt
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          from codeqa.adapters.cpp_parser_evidence import parse_cpp_syntax
+          raw = Path("codeqa/fixtures/mixed/cpp/PhysicsApp.C.txt").read_bytes()
+          report = parse_cpp_syntax(
+              raw, source_repository="HyungseonSong-plasma/moose-test-repo",
+              source_revision="1977ad5559e5aa7a1c8d04c83735c15e007130d5",
+              source_path="physics_app/src/base/PhysicsApp.C",
+              expected_source_sha256=sha256(raw).hexdigest(),
+              require_complete_parse=False,
+          )
+          assert any("PhysicsApp" in d.spelling for d in report.declarations)
+          assert "MOOSE_FRAMEWORK_AND_INPUT_DSL_NOT_EVALUATED" in report.unknowns
+          Path("cpp-parser-evidence.json").write_text(report.canonical_json() + "\n")
+          print("CPP_PARSER_SOURCE=PASS syntax=", report.parse_status,
+                "abi=NOT_EVALUATED moose_dsl=NOT_EVALUATED")
+          PY
+      - name: Upload parser-only C++ receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-cpp-moose-syntax
+          path: cpp-parser-evidence.json
+          if-no-files-found: error
+          retention-days: 30
