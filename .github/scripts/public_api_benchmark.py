@@ -287,6 +287,121 @@ def negative_controls(manifest: dict, sources: dict[str, bytes], tree: dict[str,
     return len(cases)
 
 
+
+def attest_history(history: dict, sources: dict[str, bytes], tree: dict[str, str]) -> None:
+    require(history["scope"] == "HISTORICAL_SOURCE_SNAPSHOT_ONLY"
+            and history["commit"] == "c612641e92e9c45ef6af4795fe2450bac5830369"
+            and history["tree"] == "8965cb4b707bf05d0acd6703a4c0cf08add9bef2",
+            "HISTORICAL_SELECTION_DRIFT")
+    files = history["files"]
+    require(len(files) == 10 and len({x[0] for x in files}) == 10
+            and set(x[0] for x in files) == set(sources),
+            "HISTORICAL_FILE_SET_DRIFT")
+    migrations = {p for p in tree if p.startswith(MIGRATION_PREFIX) and p.endswith(".py")}
+    require(migrations == {p for p in sources if p.startswith(MIGRATION_PREFIX) and p.endswith(".py")},
+            "HISTORICAL_MIGRATION_TREE_DRIFT")
+    for path, blob, digest in files:
+        raw = sources[path]
+        require(tree.get(path) == blob and git_blob(raw) == blob
+                and hashlib.sha256(raw).hexdigest() == digest,
+                "HISTORICAL_SOURCE_HASH_DRIFT " + path)
+
+
+def compare_history(history: dict, old: dict[str, bytes],
+                    current: dict[str, bytes]) -> dict:
+    old_models = {n.name: n for n in ast.parse(old["backend/app/models.py"].decode()).body
+                  if isinstance(n, ast.ClassDef)}
+    new_models = {n.name: n for n in ast.parse(current["backend/app/models.py"].decode()).body
+                  if isinstance(n, ast.ClassDef)}
+    old_ts = old["frontend/src/client/types.gen.ts"].decode()
+    new_ts = current["frontend/src/client/types.gen.ts"].decode()
+    added = {}
+    for name, expected in history["expected_added_optional_dto_fields"].items():
+        prior, later = fields_for(name, old_models), fields_for(name, new_models)
+        require(prior == ts_fields(old_ts, name)
+                and later == ts_fields(new_ts, name),
+                "HISTORICAL_CONSUMER_MODEL_MISMATCH " + name)
+        delta = set(later) - set(prior)
+        require(delta == set(expected) and not (set(prior) - set(later))
+                and all(later[k] is True for k in delta)
+                and all(prior[k] == later[k] for k in prior),
+                "HISTORICAL_PUBLIC_DTO_DELTA_DRIFT " + name)
+        added[name] = sorted(delta)
+    for name in history["expected_unchanged_dto"]:
+        prior, later = fields_for(name, old_models), fields_for(name, new_models)
+        require(prior == later and prior == ts_fields(old_ts, name)
+                and later == ts_fields(new_ts, name),
+                "HISTORICAL_UNCHANGED_DTO_DRIFT " + name)
+    for table, model in (("user", "User"), ("item", "Item")):
+        prior, later = fields_for(model, old_models), fields_for(model, new_models)
+        require(set(later) - set(prior) ==
+                set(history["expected_added_orm_columns"][table])
+                and not (set(prior) - set(later)),
+                "HISTORICAL_ORM_COLUMN_DELTA_DRIFT " + table)
+    migrations = {}
+    for path, raw in old.items():
+        if path.startswith(MIGRATION_PREFIX) and path.endswith(".py"):
+            tree = ast.parse(raw.decode())
+            revision = literal_assign(tree, "revision")
+            require(revision not in migrations, "HISTORICAL_DUPLICATE_MIGRATION")
+            migrations[revision] = literal_assign(tree, "down_revision")
+    require(migrations == history["historical_migrations"],
+            "HISTORICAL_MIGRATION_GRAPH_DRIFT")
+    require(history["expected_new_migration"] not in migrations
+            and history["expected_new_migration"] == "fe56fa70289e",
+            "HISTORICAL_ADDED_MIGRATION_DRIFT")
+    old_project = tomllib.loads(old["backend/pyproject.toml"].decode())["project"]
+    new_project = tomllib.loads(current["backend/pyproject.toml"].decode())["project"]
+    require(old_project["version"] == new_project["version"] == "0.1.0"
+            and old_project["requires-python"] == history["backend_python_requires"]
+            and old_project["requires-python"] != new_project["requires-python"],
+            "HISTORICAL_DEPENDENCY_WINDOW_DRIFT")
+    return {"older_commit": history["commit"],
+            "newer_commit": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+            "consumer": "TypeScript generated client in both exact source trees",
+            "added_optional_dto_fields": added,
+            "added_orm_columns": history["expected_added_orm_columns"],
+            "added_migration": history["expected_new_migration"],
+            "project_version_both_snapshots": old_project["version"],
+            "python_requirement_old": old_project["requires-python"],
+            "python_requirement_new": new_project["requires-python"],
+            "selected_source_delta": "PASS_ATTESTED_SNAPSHOT_PAIR_ONLY",
+            "published_release_compatibility_window": "NOT_EVALUATED",
+            "data_migration_and_deployment": "NOT_EVALUATED"}
+
+
+def history_negative_controls(history: dict, old: dict[str, bytes],
+                              current: dict[str, bytes], tree: dict[str, str]) -> int:
+    checks = []
+    def reject(label: str, call) -> None:
+        try:
+            call()
+        except (RuntimeError, ValueError, SyntaxError):
+            checks.append(label)
+        else:
+            raise RuntimeError("HISTORY_NEGATIVE_ACCEPTED " + label)
+    def replace(path: str, before: str, after: str) -> dict[str, bytes]:
+        source = old[path].decode()
+        require(before in source, "HISTORY_NEGATIVE_TARGET_MISSING")
+        return {**old, path: source.replace(before, after, 1).encode()}
+    reject("historical_digest", lambda: attest_history(history, replace(
+        "backend/app/models.py", "class UserPublic", "class OtherPublic"), tree))
+    reject("historical_ts_alias", lambda: compare_history(history, replace(
+        "frontend/src/client/types.gen.ts", "export type UserPublic = {",
+        "export type UserPublic = {\n    alias_added?: string;"), current))
+    reject("historical_model_field", lambda: compare_history(history, replace(
+        "backend/app/models.py", "class UserPublic(UserBase):",
+        "class UserPublic(UserBase):\n    added: str = None"), current))
+    forged = {**history, "historical_migrations":
+              {**history["historical_migrations"], "1a31ce608336": None}}
+    reject("missing_migration_edge", lambda: compare_history(forged, old, current))
+    forged = {**history, "expected_added_optional_dto_fields":
+              {**history["expected_added_optional_dto_fields"],
+               "UserPublic": ["renamed_field"]}}
+    reject("forged_compatibility_delta", lambda: compare_history(forged, old, current))
+    return len(checks)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
@@ -295,13 +410,27 @@ def main() -> None:
     sources, tree = fetch_pinned(manifest)
     attest(manifest, sources, tree)
     report = inspect_contract(manifest, sources)
+    history_path = ROOT / "fixtures/python-sdk/public-api-history-v0.1.json"
+    history = json.loads(history_path.read_bytes())
+    older_sources, older_tree = fetch_pinned(history)
+    attest_history(history, older_sources, older_tree)
+    history_report = compare_history(history, older_sources, sources)
+    history_report["negative_controls"] = history_negative_controls(
+        history, older_sources, sources, older_tree)
+    history_report["manifest_sha256"] = hashlib.sha256(history_path.read_bytes()).hexdigest()
     report["source_files"] = [{"path": path, "git_blob": blob, "sha256": digest}
                               for path, blob, digest in manifest["files"]]
     report["negative_controls"] = negative_controls(manifest, sources, tree)
     report["manifest_sha256"] = hashlib.sha256(MANIFEST.read_bytes()).hexdigest()
     args.output.mkdir(parents=True, exist_ok=True)
+    (args.output / "public-api-history.json").write_text(
+        json.dumps(history_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (args.output / "public-api-benchmark.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print("PUBLIC_API_HISTORY=PASS older_files=10/10 added_optional="
+          + repr(history_report["added_optional_dto_fields"])
+          + " negative_controls=" + str(history_report["negative_controls"])
+          + " deployed_version_window=NOT_EVALUATED")
     print("PUBLIC_API_BENCHMARK=PASS source_attestation=11/11 "
           "negative_controls=" + str(report["negative_controls"])
           + " consumer=TypeScript compatibility=PINNED_SOURCE_ONLY "
