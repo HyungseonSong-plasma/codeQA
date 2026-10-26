@@ -392,9 +392,7 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
 
     def test_decorator_expression_literal_whitespace_cannot_be_erased(self):
         from codeqa.core.naming_declaration_evidence_v03 import observe_pinned_python
-        source = b'@tag(label="a b")\\ndef f(): pass\\n'
-        # Keep the source bytes as real newline-delimited Python.
-        source = source.replace(b"\\\\n", b"\\n")
+        source = b'@tag(label="a b")\ndef f(): pass\n'
         review = observe_pinned_python(source, expected_sha256=sha256(source).hexdigest())
         for expression, expected in (('tag(label="a b")', "SYNTAX_ONLY"),
                                      ('tag(label="ab")', "NOT_EVALUATED"),
