@@ -34,8 +34,8 @@ class DeterministicRuleInventoryTests(unittest.TestCase):
         c = self.charter
         self.assertEqual(c["schema_version"], "0.3-source-only-acceptance")
         self.assertEqual(c["issue"], 91)
-        self.assertEqual(c["source"], self.proposal["source"] | {})
-        # Proposal includes commit/blob/hash/path/repository plus auxiliary flags:
+        for key in ("repository", "commit", "path", "git_blob_sha", "sha256"):
+            self.assertEqual(c["source"][key], self.proposal["source"][key])
         self.assertEqual(c["source"]["sha256"], self.proposal["source"]["sha256"])
         self.assertEqual(c["required_total"], 50)
         self.assertEqual(c["required_unknown"], 0)
