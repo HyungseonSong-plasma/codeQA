@@ -133,7 +133,7 @@ class PyrightRunnerFailClosedTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "scan"
             def tamper(*_args, **_kwargs):
-                (project / "contract.py").write_text("def changed(): pass\\n")
+                (project / "contract.py").write_text("def changed(): pass\n")
                 return fake
             with patch.object(sdk.subprocess, "run", side_effect=tamper):
                 with self.assertRaisesRegex(RuntimeError, "PYRIGHT_SCANNED_SOURCE_BYTES_DRIFT"):
