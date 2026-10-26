@@ -83,6 +83,19 @@ class RenameImpactTests(unittest.TestCase):
         with self.assertRaises(RenameImpactError):
             self.assess(symbol=self.make_symbol(path="../escape.py"))
 
+    def test_immutable_revision_repository_dot_segments_rejected(self):
+        for repository in ("../repo", "./repo", "owner/..", "owner/."):
+            with self.subTest(repository=repository):
+                with self.assertRaisesRegex(RenameImpactError, "immutable Git revision"):
+                    self.assess(revision="git:" + repository + "@" + "a" * 40)
+
+    def test_python_keyword_is_not_a_declaration_symbol(self):
+        source = "def Actual(): pass\n"
+        digest = sha256(source.encode()).hexdigest()
+        witness = self.make_symbol(name="def", source_sha256=digest)
+        with self.assertRaisesRegex(RenameImpactError, "Python source identifier"):
+            self.assess(sources={"src/sample.py": source}, symbol=witness)
+
     def test_substring_reference_is_not_a_valid_token(self):
         ref = ReferenceWitness(
             "src/sample.py", 3, DIGEST, "verified_lexical", "OldName")
