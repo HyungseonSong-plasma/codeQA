@@ -17,3 +17,14 @@ Every result has `human_review_required=True` and `semantic_proven=False`. `CHEC
 The policy remains an **unapproved draft** until a reviewer attributes the actual catalog/glossary, source inventory, positive/negative controls, ownership and exceptions to independently pinned source/profile identities. The #91 original acceptance additionally requires human-adjudicated false positives/negatives, manual inventory outcomes and approved glossary semantics. Neither this draft nor passing tests closes #91.
 
 `tests/test_naming_policy_precedence_v03.py` exercises five-level selection, narrower path precedence, prefix collisions, exact exception matching, missing scopes, stale policy/profile/catalog/source identities, malformed source paths, conflicting overrides, expired exceptions, and refusal to return automatic PASS. This implementation has no filesystem writes or source edits.
+
+## Pinned-file lexical presence guard (2026-10-26)
+
+A requested symbol absent from the exact selected source bytes now yields
+`NOT_EVALUATED` rather than an apparent `CHECK_CANDIDATE` or exception
+selection. Prefix-only matches are rejected; a comment/string-only match
+remains possible and is explicitly **not declaration or semantic proof**.
+This guard is a conservative source-observation prerequisite, not a Python
+AST inventory or human-adjudicated glossary. Positive results continue to
+require independent review, and Unicode/confusable, reexport, dynamic and
+public consumer semantics remain outside this draft selector.
