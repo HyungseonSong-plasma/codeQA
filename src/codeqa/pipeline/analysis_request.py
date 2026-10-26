@@ -133,6 +133,7 @@ def analyze_python_request(
     return AnalysisResponse(
         analysis=analysis,
         options_fingerprint=opts.fingerprint(),
+        profile_fingerprints={"ccg_schema": sha256(json.dumps(request.ccg_schema, sort_keys=True).encode()).hexdigest(), "mechanical_profile": sha256(json.dumps(request.mechanical_profile, sort_keys=True).encode()).hexdigest()},
         companion_states={
             "impact": "EXECUTED" if analysis.impact is not None else "NOT_REQUESTED",
             "semantic_architecture": (
