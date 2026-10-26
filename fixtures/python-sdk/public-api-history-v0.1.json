@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "fastapi/full-stack-fastapi-template",
+  "repository": "https://github.com/fastapi/full-stack-fastapi-template",
+  "commit": "c612641e92e9c45ef6af4795fe2450bac5830369",
+  "tree": "8965cb4b707bf05d0acd6703a4c0cf08add9bef2",
+  "scope": "HISTORICAL_SOURCE_SNAPSHOT_ONLY",
+  "backend_project_version": "0.1.0",
+  "backend_python_requires": ">=3.10,<4.0",
+  "consumer": "frontend/src/client/types.gen.ts (TypeScript)",
+  "files": [
+    [
+      "LICENSE",
+      "f11987b50cfa15ae4f99d4c559137458c87d7a69",
+      "0bd4e76cdd06ab24cce2de5e74f490920897f90a22ad35e8403ed006d4560f48"
+    ],
+    [
+      "backend/pyproject.toml",
+      "d72454c28af40905b7051644ff6943be81b02635",
+      "54dff29a5969597a108dd2a19089360040703e123740fcd7caeb7181a6198c6a"
+    ],
+    [
+      "backend/app/models.py",
+      "2d060ba0b41075be983bc12ecaf6f13c92f2227f",
+      "709987d3b0c89d654483d5c5979c0dd07a84e4fb59fb183f9377a925ce83f900"
+    ],
+    [
+      "backend/app/api/routes/users.py",
+      "6429818458aafe1fb291fb018adb732860701d26",
+      "019b851f1d9ceb89fec926517439ec75f146a3553380afa8ac81a86581753bd2"
+    ],
+    [
+      "backend/app/alembic/versions/e2412789c190_initialize_models.py",
+      "7529ea91fa7ceb3d0b3b1a4c4769565dea1d3af9",
+      "a73fcd9ff8a143b0a75228b63b6589e0ecbfa14c27286d33d4adeffe99c40075"
+    ],
+    [
+      "backend/app/alembic/versions/9c0a54914c78_add_max_length_for_string_varchar_.py",
+      "78a41773b9be608c3789ebbe4917b940a15bc60f",
+      "d9919ae828a0d1aa0fa68fd75bc75a90994a256b66a3a153918149d9578c0c1b"
+    ],
+    [
+      "backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py",
+      "37af1fa21533b0d2aebff992c4287ce026a79dd2",
+      "d5c549df50ddda6c9877e637e146cd757095460ee6285a7db06bb66724f32730"
+    ],
+    [
+      "backend/app/alembic/versions/1a31ce608336_add_cascade_delete_relationships.py",
+      "10e47a145689fa8d1a439ea7c3dd74d2c3e50f5b",
+      "37e70a0a762eeb416e453be5b5fafdc22cd441da4ae7b6bd28e5190c3a78cc86"
+    ],
+    [
+      "frontend/src/client/types.gen.ts",
+      "e5cf34c34c193692c7d545e8b59514937cccc760",
+      "e27ce2c3a6c2605d228cbfa93155f407da5e90d36df7fb24c3294d8d265cef95"
+    ],
+    [
+      "frontend/src/client/sdk.gen.ts",
+      "ba79e3f7264bb7bb98d799ac2f08006068285c40",
+      "c29fc16be7b0cc2caa383aef94d346635b153b96fb80668b0145685c9b39f4eb"
+    ]
+  ],
+  "historical_migrations": {
+    "e2412789c190": null,
+    "9c0a54914c78": "e2412789c190",
+    "d98dd8ec85a3": "9c0a54914c78",
+    "1a31ce608336": "d98dd8ec85a3"
+  },
+  "expected_added_optional_dto_fields": {
+    "UserPublic": [
+      "created_at"
+    ],
+    "ItemPublic": [
+      "created_at"
+    ]
+  },
+  "expected_unchanged_dto": [
+    "UserCreate",
+    "UserRegister",
+    "UsersPublic",
+    "UserUpdateMe"
+  ],
+  "expected_added_orm_columns": {
+    "user": [
+      "created_at"
+    ],
+    "item": [
+      "created_at"
+    ]
+  },
+  "expected_new_migration": "fe56fa70289e",
+  "versioned_deployed_compatibility_window": "NOT_EVALUATED"
+}
