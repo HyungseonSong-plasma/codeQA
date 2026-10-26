@@ -114,11 +114,11 @@
       "layers": [
         {
           "layer": "parser",
-          "status": "NOT_EVALUATED",
-          "source": null,
-          "entrypoint": null,
-          "workflow": null,
-          "limitation": "no production C++/MOOSE parser adapter contract"
+          "status": "PARTIAL_FIXTURE",
+          "source": "src/codeqa/adapters/cpp_parser_evidence.py",
+          "entrypoint": "codeqa.adapters.cpp_parser_evidence:parse_cpp_syntax",
+          "workflow": ".github/workflows/mixed-source-conformance.yml",
+          "limitation": "real pinned MOOSE application C++ tree-sitter syntax only; headers, compiler ABI and MOOSE DSL NOT_EVALUATED"
         },
         {
           "layer": "ccg",
