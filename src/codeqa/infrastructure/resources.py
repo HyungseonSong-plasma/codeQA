@@ -10,10 +10,15 @@ import math
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import tomllib
+import unicodedata
 from typing import Any
 
 
 _RESOURCE_ID = re.compile(r"[a-z][a-z0-9_]*\Z")
+
+_WINDOWS_DEVICE_NAMES = {"CON", "PRN", "AUX", "NUL"} | {
+    f"{prefix}{number}" for prefix in ("COM", "LPT") for number in range(1, 10)
+}
 
 
 class ResourceResolutionError(ValueError):
@@ -29,7 +34,14 @@ def validate_resource_path(relative: str, resource_id: str) -> PurePosixPath:
         path.is_absolute()
         or PureWindowsPath(relative).is_absolute()
         or "\\" in relative
-        or any(part in {"", ".", ".."} for part in relative.split("/"))
+        or any(ord(char) < 32 or ord(char) == 127 for char in relative)
+        or any(
+            part in {"", ".", ".."} or ":" in part
+            or part.endswith((".", " "))
+            or unicodedata.normalize("NFC", part) != part
+            or part.split(".", 1)[0].upper() in _WINDOWS_DEVICE_NAMES
+            for part in relative.split("/")
+        )
     ):
         raise ResourceResolutionError(f"unsafe path for resource: {resource_id}")
     return path
