@@ -39,3 +39,10 @@ Mechanical-before/after equality witness and separate opt-in Naming report,
 plus unresolved external and invalid profile negatives. It is not a user
 study or human glossary approval. Do not silently enable experimental
 companions or conflate Mechanical P1/P3 with Naming v0.3.
+
+The additional `test_naming_public_qa_isolation.py` converts Mechanical evidence
+to the frozen Public QA Result v0.1 before and after explicitly invoking safe
+Naming on real Python AST fixtures. It asserts byte-identical canonical public
+QA JSON, unchanged unsupported-rule coverage, and separate Naming review.
+This is a controlled test, not production SDK or independently reviewed
+Naming glossary evidence.
