@@ -28,3 +28,12 @@ This guard is a conservative source-observation prerequisite, not a Python
 AST inventory or human-adjudicated glossary. Positive results continue to
 require independent review, and Unicode/confusable, reexport, dynamic and
 public consumer semantics remain outside this draft selector.
+
+## Candidate source identity guard
+
+The opt-in v0.3 draft refuses Python keywords as candidate symbol spellings,
+even when they appear as lexer tokens, and rejects source/selector paths
+containing Windows ADS colons or trailing dot/space components. This avoids
+portable source identity ambiguity; it does not establish a verified
+semantic glossary, external SDK compatibility, independent Git source
+attestation, or human approval. No source rename is performed.
