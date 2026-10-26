@@ -1,0 +1,86 @@
+{
+  "schema_version": "0.3-unsigned-batch1-contract-evidence",
+  "issue": 91,
+  "pr": 142,
+  "human_comment": {
+    "url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106",
+    "observed_github_author": "HyungseonSong-plasma",
+    "github_identity_independently_authenticated_by_packet": false,
+    "substantive_independent_human_review_completed": false
+  },
+  "source": {
+    "repository": "HyungseonSong-plasma/codeQA",
+    "revision": "dfd94bb25d52642bb2e46766b1ebe074c2f82803",
+    "path": "src/codeqa/core/naming_glossary.py",
+    "git_blob_sha": "e5da126ead5f25c2eb3be5bb0e16d1c09a430df4",
+    "sha256": "09b89f5f492f6d449257e1c6baa4bc1ea98dedd17e93b9f13ced1c62fbcd9d2c"
+  },
+  "cases": [
+    {
+      "index": 11,
+      "site_id": "n91-beb9347ad0807b5e163376d6",
+      "name": "tokenize_identifier",
+      "kind": "function",
+      "line": 19,
+      "owner": "",
+      "human_decision": "UNRESOLVED",
+      "ast_observation": "AST_OBSERVED",
+      "known_reference_candidates": [
+        "src/codeqa/evaluation/naming_glossary.py:9",
+        "src/codeqa/evaluation/naming_glossary.py:71",
+        "src/codeqa/evaluation/naming_glossary.py:82"
+      ],
+      "remaining_unknown": [
+        "transitive_import_alias_and_shadowing",
+        "unscanned_non_src_or_external_consumers",
+        "dynamic_attribute_lookup_and_reflection",
+        "domain_role_and_owner_policy"
+      ]
+    },
+    {
+      "index": 15,
+      "site_id": "n91-09e35a4a541b5eac7a96d235",
+      "name": "canonical",
+      "kind": "declared_field",
+      "line": 34,
+      "owner": "GlossaryTerm",
+      "human_decision": "UNRESOLVED",
+      "ast_observation": "AST_OBSERVED",
+      "known_reference_candidates": [
+        "src/codeqa/evaluation/naming_glossary.py:70",
+        "src/codeqa/evaluation/naming_glossary.py:73"
+      ],
+      "remaining_unknown": [
+        "external_keyword_constructor_consumers",
+        "external_serialized_field_contracts",
+        "external_schema_and_fingerprint_consumers",
+        "field_policy_owner_approval"
+      ]
+    },
+    {
+      "index": 25,
+      "site_id": "n91-c6d95a6a746261904f1d793a",
+      "name": "from_mapping",
+      "kind": "method",
+      "line": 47,
+      "owner": "NamingGlossaryProfile",
+      "human_decision": "UNRESOLVED",
+      "ast_observation": "AST_OBSERVED",
+      "known_reference_candidates": [
+        "tests/test_naming_glossary.py:25"
+      ],
+      "remaining_unknown": [
+        "external_method_consumers",
+        "cross_class_homonym_semantic_equivalence",
+        "runtime_dynamic_dispatch_and_aliases",
+        "published_sdk_backward_compatibility"
+      ]
+    }
+  ],
+  "source_reference_classification": "PINNED_AST_SYNTAX_CANDIDATES_NOT_RESOLVED_BINDING_GRAPH",
+  "runtime_contract_classification": "CURRENT_IMPLEMENTATION_BEHAVIOR_ONLY",
+  "external_consumer_coverage": "NOT_EVALUATED",
+  "human_policy_adoption": "NOT_ADOPTED",
+  "automatic_rename_authorized": false,
+  "issue_close_authorized": false
+}
