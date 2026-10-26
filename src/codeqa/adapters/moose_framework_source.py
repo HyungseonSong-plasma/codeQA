@@ -19,6 +19,11 @@ REQUIRED_FILES = frozenset({
     "framework/include/base/MooseApp.h",
     "framework/include/utils/InputParameters.h",
     "framework/src/parser/Parser.C",
+    "framework/include/parser/MooseSyntax.h",
+    "framework/src/parser/Syntax.C",
+    "framework/contrib/hit/src/hit/lex.cc",
+    "framework/contrib/hit/src/hit/parse.cc",
+    "framework/contrib/hit/include/hit/parse.h",
 })
 
 

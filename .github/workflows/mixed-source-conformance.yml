@@ -158,7 +158,15 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s codeqa/tests -p test_moose_framework_source_lock.py -v
           base="https://raw.githubusercontent.com/idaholab/moose/9f388366ccf38b9c34542ec5561198249fde0ac9"
-          for path in framework/include/base/MooseApp.h framework/include/utils/InputParameters.h framework/src/parser/Parser.C; do
+          for path in \
+            framework/include/base/MooseApp.h \
+            framework/include/utils/InputParameters.h \
+            framework/src/parser/Parser.C \
+            framework/include/parser/MooseSyntax.h \
+            framework/src/parser/Syntax.C \
+            framework/contrib/hit/src/hit/lex.cc \
+            framework/contrib/hit/src/hit/parse.cc \
+            framework/contrib/hit/include/hit/parse.h; do
             mkdir -p "moose-framework/$(dirname "$path")"
             curl --fail --show-error --silent --location --retry 3 --connect-timeout 20 \
               --max-time 120 "$base/$path" -o "moose-framework/$path"
@@ -166,10 +174,10 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          from codeqa.adapters.moose_framework_source import verify_framework_source_lock
+          from codeqa.adapters.moose_framework_source import REQUIRED_FILES, verify_framework_source_lock
           lock = json.loads(Path("codeqa/fixtures/moose-framework/source-lock-v0.1.json").read_text())
           deps = Path("moose/physics_app/dependencies.lock").read_text()
-          raw = {path: (Path("moose-framework") / path).read_bytes() for path in lock["files"]}
+          raw = {path: (Path("moose-framework") / path).read_bytes() for path in REQUIRED_FILES}
           receipt = verify_framework_source_lock(
               lock, deps, raw,
               application_revision="1977ad5559e5aa7a1c8d04c83735c15e007130d5")

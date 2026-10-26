@@ -132,3 +132,14 @@ integration tree; its artifact upload count remains **one**.
 A real source fetch and negative checks are required in mixed-source CI.
 This is NOT upstream release/ABI, DSL grammar, parameter semantics or
 production compatibility evidence; those remain `NOT_EVALUATED`.
+
+## Pinned MOOSE HIT parser source extension (#93)
+
+The upstream source lock now covers **eight** exact files at the same
+pinned `idaholab/moose` commit, including `MooseSyntax.h`, `Syntax.C`,
+HIT `lex.cc`, HIT `parse.cc` and HIT `parse.h`.
+The modified `mixed-source-conformance.yml` Git blob is
+`b5cc3fd22572a8181e05b2ffb1b42d566664035c`; the single artifact
+upload still contains only **source/controlled-compiler receipts**.
+This remains NOT_EVALUATED for executed input DSL grammar, reserved
+parameter naming, framework release, public ABI and deployment.

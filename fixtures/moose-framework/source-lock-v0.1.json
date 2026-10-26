@@ -8,6 +8,11 @@
   "files": {
     "framework/include/base/MooseApp.h": "dc0eaa92883e457b6343b19c0208f4c8f2cd01fd",
     "framework/include/utils/InputParameters.h": "ce0e5a3606277b73c219ebb972558a035e744297",
-    "framework/src/parser/Parser.C": "6cf47e2e08555dd335b5c30eec79fa6a60208520"
+    "framework/src/parser/Parser.C": "6cf47e2e08555dd335b5c30eec79fa6a60208520",
+    "framework/include/parser/MooseSyntax.h": "1d04e26073c06ac0e068c627cc688f58c675d881",
+    "framework/src/parser/Syntax.C": "043899193f33be283f047d38c3e69cd3fc3882cc",
+    "framework/contrib/hit/src/hit/lex.cc": "d23e8843065dfd59ec81ade1a59950c18d961167",
+    "framework/contrib/hit/src/hit/parse.cc": "ef87fede999e8a43910a87bc2e6ab75e0e4a446b",
+    "framework/contrib/hit/include/hit/parse.h": "f09b512fd4dede0aac23c254558eba5470f131f1"
   }
 }
