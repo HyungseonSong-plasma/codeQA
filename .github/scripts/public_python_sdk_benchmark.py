@@ -224,6 +224,102 @@ def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -
             "callback_dispatch": "NOT_EVALUATED"}
 
 
+
+def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
+                              binary: Path, output: Path) -> dict:
+    """Git-fetch immutable public source in an isolated temp tree; never import it.
+
+    Only Git checkout and static Pyright analysis are performed. No upstream
+    install scripts, tests, imports, hooks, submodules, or API calls execute.
+    """
+    import os
+    with tempfile.TemporaryDirectory(prefix="codeqa-stripe-pinned-git-") as tmp:
+        repo = Path(tmp) / "upstream"
+        repo.mkdir()
+        env = {**os.environ, "GIT_LFS_SKIP_SMUDGE": "1",
+               "GIT_TERMINAL_PROMPT": "0"}
+        commands = [
+            ["git", "-c", "core.hooksPath=/dev/null", "init", "-q", str(repo)],
+            ["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null",
+             "-c", "submodule.recurse=false", "fetch", "--depth=1",
+             "https://github.com/stripe/stripe-python.git", manifest["commit"]],
+            ["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null",
+             "-c", "submodule.recurse=false", "checkout", "-q", "--detach", "FETCH_HEAD"],
+        ]
+        for command in commands:
+            done = subprocess.run(command, capture_output=True, text=True,
+                                  check=False, timeout=120, env=env)
+            require(done.returncode == 0,
+                    "PINNED_SDK_GIT_READ_FAILED " + done.stderr[-400:])
+        def rev(*args: str) -> str:
+            run = subprocess.run(["git", "-C", str(repo), "rev-parse", *args],
+                                 capture_output=True, text=True,
+                                 check=False, timeout=20, env=env)
+            require(run.returncode == 0, "PINNED_SDK_GIT_IDENTITY_ERROR")
+            return run.stdout.strip()
+        require(rev("HEAD") == manifest["commit"]
+                and rev("HEAD^{tree}") == manifest["tree"],
+                "PINNED_SDK_GIT_COMMIT_TREE_MISMATCH")
+        for path, raw in sources.items():
+            target = repo / path
+            require(target.is_file() and target.resolve().is_relative_to(repo.resolve())
+                    and target.read_bytes() == raw,
+                    "PINNED_SDK_CHECKOUT_SOURCE_DRIFT " + path)
+        config = {"typeCheckingMode": "strict",
+                  "include": ["examples/webhooks.py", "stripe/_ephemeral_key.py"],
+                  "extraPaths": ["."], "reportMissingImports": "error"}
+        (repo / "pyrightconfig.json").write_text(
+            json.dumps(config, sort_keys=True), encoding="utf-8")
+        done = subprocess.run(
+            [str(binary.resolve()), "--project", str(repo), "--pythonpath",
+             sys.executable, "--outputjson"],
+            cwd=ROOT, capture_output=True, text=True, check=False, timeout=180)
+        require(done.returncode in (0, 1), "FULL_SOURCE_PYRIGHT_CRASH")
+        try:
+            native = json.loads(done.stdout)
+        except ValueError as exc:
+            raise RuntimeError("FULL_SOURCE_PYRIGHT_INVALID_JSON") from exc
+        require(native.get("version") == "1.1.414"
+                and isinstance(native.get("summary"), dict)
+                and isinstance(native.get("generalDiagnostics"), list)
+                and not native.get("fatalErrorOccurred")
+                and not native.get("configParseErrorOccurred"),
+                "FULL_SOURCE_PYRIGHT_INCOMPLETE")
+        count = native["summary"].get("errorCount")
+        analyzed = native["summary"].get("filesAnalyzed")
+        require(type(count) is int and type(analyzed) is int and analyzed >= 2,
+                "FULL_SOURCE_PYRIGHT_MISSING_COVERAGE")
+        errors = [x for x in native["generalDiagnostics"]
+                  if isinstance(x, dict) and x.get("severity") == "error"]
+        require(count == len(errors) and (done.returncode == 1) == bool(count),
+                "FULL_SOURCE_PYRIGHT_EXIT_MISMATCH")
+        for diagnostic in native["generalDiagnostics"]:
+            require(isinstance(diagnostic, dict)
+                    and isinstance(diagnostic.get("file"), str),
+                    "FULL_SOURCE_PYRIGHT_MALFORMED_DIAGNOSTIC")
+            location = Path(diagnostic["file"])
+            actual = (location if location.is_absolute() else repo / location).resolve()
+            require(actual.is_relative_to(repo.resolve()),
+                    "FULL_SOURCE_PYRIGHT_FOREIGN_DIAGNOSTIC")
+        require(all((repo / p).read_bytes() == raw for p, raw in sources.items()),
+                "FULL_SOURCE_PYRIGHT_MUTATED_SELECTED_SOURCE")
+        raw = done.stdout.encode()
+        output.mkdir(parents=True, exist_ok=True)
+        (output / "public-python-sdk-full-source-pyright.json").write_bytes(raw)
+    print("PYRIGHT_STRIPE_FULL_SOURCE=EXECUTED errors=" + str(count)
+          + " filesAnalyzed=" + str(analyzed)
+          + " dependency_closure=NOT_EVALUATED runtime=NOT_EXECUTED")
+    return {"status": "EXECUTED_PINNED_REPOSITORY_SOURCE",
+            "version": "1.1.414", "commit": manifest["commit"],
+            "tree": manifest["tree"], "files_analyzed": analyzed,
+            "errors": count, "exit_code": done.returncode,
+            "native_json_sha256": hashlib.sha256(raw).hexdigest(),
+            "third_party_dependency_closure": "NOT_EVALUATED",
+            "installed_wheel_identity": "NOT_EVALUATED",
+            "override_compatibility": "NOT_EVALUATED",
+            "runtime_callback_dispatch": "NOT_EVALUATED"}
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--output", type=Path, required=True)
@@ -235,6 +331,8 @@ def main() -> None:
     result = inspect(manifest, sources)
     result["negative_controls"] = negative_controls(manifest, sources, tree)
     result["partial_typechecker"] = run_partial_pyright(sources, args.pyright, args.output)
+    result["full_source_typechecker"] = run_full_repository_pyright(
+        manifest, sources, args.pyright, args.output)
     result["manifest_sha256"] = hashlib.sha256(MANIFEST.read_bytes()).hexdigest()
     result["source_files"] = [{"path": p, "git_blob": b, "sha256": h}
                               for p, b, h in manifest["files"]]
