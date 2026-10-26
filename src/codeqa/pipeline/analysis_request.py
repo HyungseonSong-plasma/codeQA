@@ -62,11 +62,11 @@ class AnalysisOptions:
             if policy is not None and not isinstance(policy, Mapping):
                 raise AnalysisRequestError("optional policy must be a mapping")
         if (not isinstance(self.changed_paths, tuple)
-                or len(set(self.changed_paths)) != len(self.changed_paths)
                 or any(not isinstance(p, str) or not p or p.startswith("/")
                        or "\\" in p or any(ord(c) < 32 or ord(c) == 127 for c in p)
                        or any(part in ("", ".", "..") for part in p.split("/"))
-                       for p in self.changed_paths)):
+                       for p in self.changed_paths)
+                or len(set(self.changed_paths)) != len(self.changed_paths)):
             raise AnalysisRequestError("invalid changed paths")
         self.fingerprint()
 
