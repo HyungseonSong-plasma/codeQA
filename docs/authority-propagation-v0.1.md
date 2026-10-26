@@ -53,3 +53,12 @@ requirements, or an unadmitted requirement, is reported as `BLOCK` with
 consumer safeguard and **does not** replace the original Gate policy validator
 or authenticate the caller-supplied receipt. Production merge authorization
 remains false for every case.
+
+The consumer additionally requires the caller's exact snapshot identity to
+have the form `git:<owner>/<repo>@<40-hex-source-sha>` and to match the
+separately pinned source SHA. A coherent forged receipt for a stale SHA or an
+opaque snapshot cannot yield `SCOPED_GATE_ALLOW` or `FIXTURE_ONLY`.
+This is only **syntactic revision binding**: it does not authenticate GitHub,
+prove the source was checked out by the runner, or establish deployed binary
+identity. Two negative regression tests exercise the previously unguarded
+cross-field mismatch.
