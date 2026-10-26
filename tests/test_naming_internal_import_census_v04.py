@@ -125,6 +125,55 @@ class InternalImportCensusTests(unittest.TestCase):
                 self.assertEqual(graph["syntax_candidate_edges"], 0)
                 self.assertEqual(graph["runtime_symbol_identity"], "NOT_EVALUATED")
 
+    def test_competing_same_symbol_module_bindings_block_provenance(self):
+        root = _scan("src/codeqa/core/complexity.py",
+                     "class ControlFlowObservation: pass\n")
+        specimens = [
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "from another import ControlFlowObservation\n",
+            "from another import ControlFlowObservation\n"
+            "from codeqa.core.complexity import ControlFlowObservation\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "from codeqa.core.complexity import ControlFlowObservation\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "import other as ControlFlowObservation\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "(ControlFlowObservation, ignore) = (None, 0)\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "del ControlFlowObservation\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "for ControlFlowObservation in range(2): pass\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "if flag:\n    ControlFlowObservation = None\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "if (ControlFlowObservation := object()): pass\n",
+            "from codeqa.core.complexity import ControlFlowObservation\n"
+            "def f():\n    global ControlFlowObservation\n"
+            "    ControlFlowObservation = None\n",
+        ]
+        for code in specimens:
+            with self.subTest(code=code[:65]):
+                client = _scan("src/codeqa/core/client.py", code)
+                graph = classify_static_import_chains({
+                    entry["module"]: entry for entry in (root, client)})
+                self.assertEqual(graph["syntax_candidate_edges"], 0)
+                self.assertNotIn("codeqa.core.client",
+                                 graph["source_syntax_chain_modules"])
+                self.assertEqual(graph["runtime_symbol_identity"], "NOT_EVALUATED")
+
+    def test_nested_local_shadow_does_not_rebind_module_level(self):
+        root = _scan("src/codeqa/core/complexity.py",
+                     "class ControlFlowObservation: pass\n")
+        client = _scan("src/codeqa/core/client.py",
+                       "from codeqa.core.complexity import ControlFlowObservation\n"
+                       "def use():\n"
+                       "    ControlFlowObservation = 'local'\n"
+                       "    return ControlFlowObservation\n")
+        graph = classify_static_import_chains({
+            entry["module"]: entry for entry in (root, client)})
+        self.assertEqual(graph["syntax_candidate_edges"], 1)
+        self.assertEqual(graph["runtime_symbol_identity"], "NOT_EVALUATED")
+
     def test_cycles_and_non_provenance_chains_are_not_silently_proven(self):
         root = _scan("src/codeqa/core/complexity.py",
                      "class ControlFlowObservation: pass\n")

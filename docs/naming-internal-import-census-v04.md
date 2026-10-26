@@ -74,3 +74,24 @@ resolution with real-source positive/negative witnesses, and establish
 a separately versioned domain-semantic owner authority. External
 compatibility work resumes only when actual permitted client sources
 become available.
+
+## Stage 7 — fail-closed competing symbol bindings
+
+A direct import line does **not** establish a uniquely bound module-level
+symbol if the same name is imported again, assigned, deleted, bound in a
+top-level loop or conditional statement, or targeted by a walrus expression
+or possible nested `global` mutation. The static graph now excludes those
+modules with `AMBIGUOUS_TARGET_MODULE_BINDING` or
+`UNSUPPORTED_TARGET_MODULE_BINDING`. Repeated imports of the same symbol
+from the same source are also ambiguous: the graph does not infer that the
+second import is harmless.
+
+A local-only assignment inside a function without `global` is not a
+module-level overwrite. The distinction is covered by adversarial tests.
+The 100-file pinned source denominator and historic import witness lines
+remain unchanged; any count drift is treated as a regression. Even a
+conflict-free source chain remains a **syntax candidate**, not runtime
+binding identity, Naming semantic approval, or rename safety.
+
+The external-client requirements remain archived in **closed, not-planned
+Issue #147**. No external compatibility PASS or reopening is implied.
