@@ -175,3 +175,12 @@ invocation, rejecting changed bytes. A dedicated mocked-tool negative test
 mutates the scanned source mid-run and requires rejection. This guards the
 controlled temporary inputs but does not authenticate a third-party runner or
 establish independent production consumer provenance.
+
+## Diagnostic location completeness (#92)
+
+All real Pyright diagnostic records, including warnings, must now provide a
+source range whose zero-based start line exists in the exact copied input
+file. Missing ranges or out-of-bounds lines are rejected before constructing
+external evidence; the runner no longer substitutes line 1 for a missing
+location. This is a controlled tool-output integrity check, not independent
+file-by-file scan coverage or real production SDK/DTO/DB compatibility.

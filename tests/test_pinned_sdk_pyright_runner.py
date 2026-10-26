@@ -123,6 +123,20 @@ class PyrightRunnerFailClosedTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "PYRIGHT_UNKNOWN_DIAGNOSTIC_SEVERITY"):
             self.run_parser(report, exit_code=1)
 
+    def test_missing_diagnostic_range_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        del report["generalDiagnostics"][0]["range"]
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_MALFORMED_DIAGNOSTIC_RANGE"):
+            self.run_parser(report, exit_code=1)
+
+    def test_out_of_bounds_diagnostic_line_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        report["generalDiagnostics"][0]["range"]["start"]["line"] = 100000
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_DIAGNOSTIC_LINE_OUTSIDE_SOURCE"):
+            self.run_parser(report, exit_code=1)
+
     def test_scanned_source_mutation_during_tool_run_rejected(self) -> None:
         report = self.report("reportIncompatibleMethodOverride",
                              "reportAssignmentType", "reportCallIssue")

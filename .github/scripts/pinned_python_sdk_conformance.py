@@ -71,19 +71,21 @@ def _validate_pyright_diagnostics(
          "PYRIGHT_INCOMPLETE_SCAN_COUNT")
     diagnostics = parsed["generalDiagnostics"]
     for issue in diagnostics:
-        _attested_diagnostic_file(issue, project, extra_source=extra_source)
+        file_name = _attested_diagnostic_file(
+            issue, project, extra_source=extra_source)
         need(issue.get("severity") in ("error", "warning", "information"),
              "PYRIGHT_UNKNOWN_DIAGNOSTIC_SEVERITY")
         rule = issue.get("rule")
         need(rule is None or (isinstance(rule, str) and bool(rule)),
              "PYRIGHT_MALFORMED_DIAGNOSTIC_RULE")
         span = issue.get("range")
-        if span is not None:
-            need(isinstance(span, dict) and isinstance(span.get("start"), dict),
-                 "PYRIGHT_MALFORMED_DIAGNOSTIC_RANGE")
-            line = span["start"].get("line")
-            need(type(line) is int and line >= 0,
-                 "PYRIGHT_MALFORMED_DIAGNOSTIC_LINE")
+        need(isinstance(span, dict) and isinstance(span.get("start"), dict),
+             "PYRIGHT_MALFORMED_DIAGNOSTIC_RANGE")
+        line = span["start"].get("line")
+        need(type(line) is int and line >= 0,
+             "PYRIGHT_MALFORMED_DIAGNOSTIC_LINE")
+        source_lines = (project / file_name).read_text(encoding="utf-8").splitlines()
+        need(line < len(source_lines), "PYRIGHT_DIAGNOSTIC_LINE_OUTSIDE_SOURCE")
     errors = [issue for issue in diagnostics if issue["severity"] == "error"]
     need(count == len(errors), "PYRIGHT_ERROR_COUNT_MISMATCH")
     return errors
