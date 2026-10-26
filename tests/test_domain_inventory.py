@@ -87,6 +87,16 @@ class DomainInventoryTests(unittest.TestCase):
                 "git:fixture", ("src/codeqa/core/graph.py",), (), (), (),
             ), POLICY, ROLES)
 
+    def test_nonportable_product_source_paths_rejected(self) -> None:
+        for bad in ("src/codeqa/core/unsafe\n.py",
+                    "src/codeqa/core/file:stream.py",
+                    "src/codeqa/core/trailing./name.py",
+                    "src/codeqa/core/unsafe\x7f.py"):
+            with self.subTest(path=repr(bad)):
+                sources = {**self.sources, bad: "x = 1\n"}
+                with self.assertRaisesRegex(DomainInventoryError, "product Python sources"):
+                    analyze_domain_inventory(sources, self._graph(), POLICY, ROLES)
+
     def test_out_of_scope_dependency_rejected(self) -> None:
         bad = self.edges + (StaticDependency(
             "src/codeqa/core/graph.py", "outside.py", 1, "import outside", "top_level",
