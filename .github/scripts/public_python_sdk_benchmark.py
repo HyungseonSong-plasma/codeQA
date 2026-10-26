@@ -10,6 +10,7 @@ import argparse
 import ast
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -21,6 +22,12 @@ from public_api_benchmark import fetch_pinned, git_blob, require
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "fixtures/python-sdk/public-python-sdk-benchmark-v0.1.json"
+
+
+def unprivileged_analyzer_env() -> dict[str, str]:
+    """Remove GitHub REST credentials from Git and third-party Pyright tools."""
+    return {key: value for key, value in os.environ.items()
+            if key not in {"GITHUB_TOKEN", "GH_TOKEN"}}
 
 
 def attest(manifest: dict, sources: dict[str, bytes], tree: dict[str, str]) -> None:
@@ -254,7 +261,8 @@ def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -
         completed = subprocess.run(
             [str(binary.resolve()), "--project", str(project), "--pythonpath",
              sys.executable, "--outputjson"],
-            cwd=ROOT, capture_output=True, text=True, check=False, timeout=120)
+            cwd=ROOT, capture_output=True, text=True, check=False, timeout=120,
+            env=unprivileged_analyzer_env())
         require(completed.returncode in (0, 1), "EXTERNAL_PYRIGHT_TOOL_CRASH")
         try:
             native = json.loads(completed.stdout)
@@ -338,7 +346,7 @@ def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
     with tempfile.TemporaryDirectory(prefix="codeqa-stripe-pinned-git-") as tmp:
         repo = Path(tmp) / "upstream"
         repo.mkdir()
-        env = {**os.environ, "GIT_LFS_SKIP_SMUDGE": "1",
+        env = {**unprivileged_analyzer_env(), "GIT_LFS_SKIP_SMUDGE": "1",
                "GIT_TERMINAL_PROMPT": "0"}
         commands = [
             ["git", "-c", "core.hooksPath=/dev/null", "init", "-q", str(repo)],
@@ -375,7 +383,8 @@ def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
         done = subprocess.run(
             [str(binary.resolve()), "--project", str(repo), "--pythonpath",
              sys.executable, "--outputjson"],
-            cwd=ROOT, capture_output=True, text=True, check=False, timeout=180)
+            cwd=ROOT, capture_output=True, text=True, check=False, timeout=180,
+            env=unprivileged_analyzer_env())
         require(done.returncode in (0, 1), "FULL_SOURCE_PYRIGHT_CRASH")
         try:
             native = json.loads(done.stdout)
