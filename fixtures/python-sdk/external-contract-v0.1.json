@@ -96,5 +96,33 @@
       "privateNote": "secret"
     },
     "mapping_scope": "CONTROLLED_DIRECTIONAL_MAPPING_ONLY"
+  },
+  "expected_sqlalchemy_extended": {
+    "scope": "CONTROLLED_IN_MEMORY_SQLITE_ONLY",
+    "before_columns": [
+      "id",
+      "kind",
+      "label"
+    ],
+    "after_columns": [
+      "id",
+      "kind",
+      "label",
+      "optional_note"
+    ],
+    "computed_value": 6,
+    "migration": {
+      "from": "fixture_v0",
+      "to": "fixture_v1",
+      "added_columns": [
+        "optional_note"
+      ],
+      "removed_columns": []
+    },
+    "limitations": [
+      "synthetic joined inheritance only",
+      "real SQLite computed-column execution/reflection only",
+      "no production migration history or consumer compatibility"
+    ]
   }
 }
