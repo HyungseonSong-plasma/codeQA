@@ -77,6 +77,17 @@ class CppParserEvidenceTests(unittest.TestCase):
         with self.assertRaises(CppParserEvidenceError):
             self.parse(b"struct A {};", path="../outside.cpp")
 
+    def test_repository_dot_segment_identity_is_rejected(self):
+        source = b"struct A {};"
+        for repository in ("../repo", "./repo", "owner/..", "owner/."):
+            with self.subTest(repository=repository):
+                with self.assertRaisesRegex(CppParserEvidenceError, "exact source"):
+                    parse_cpp_syntax(
+                        source, source_repository=repository,
+                        source_revision=REV, source_path="fixtures/valid.cpp",
+                        expected_source_sha256=sha256(source).hexdigest(),
+                    )
+
     def test_grammar_version_drift_rejected(self):
         with patch("codeqa.adapters.cpp_parser_evidence.version", return_value="99.99"):
             with self.assertRaisesRegex(CppParserEvidenceError, "unreviewed C\\+\\+ parser"):
