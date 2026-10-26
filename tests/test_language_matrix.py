@@ -53,6 +53,17 @@ class LanguageMatrixTests(unittest.TestCase):
     def test_fake_workflow_proof_rejected(self):
         self._reject(lambda d: self._cell(d, "Python", "ccg").update(workflow=".github/workflows/nonexistent.yml"))
 
+
+    def test_runtime_dispatch_can_not_be_claimed_from_python_ccg(self):
+        self._reject(lambda d: self._cell(d, "Python", "ccg").update(
+            limitation="verified dynamic method dispatch and runtime call resolution"
+        ))
+
+    def test_mechanical_p1p8_cannot_be_claimed_by_limitation_edit(self):
+        self._reject(lambda d: self._cell(d, "Python", "mechanical_p1p3").update(
+            limitation="complete P1-P8 static and semantic certification"
+        ))
+
     def test_no_unsupported_quality_pass_enum(self):
         self._reject(lambda d: self._cell(d, "Python", "ccg").update(status="PASS"))
 
