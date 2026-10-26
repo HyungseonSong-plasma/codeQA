@@ -47,6 +47,16 @@ class LanguageMatrixTests(unittest.TestCase):
     def test_missing_real_python_source_is_rejected(self):
         self._reject(lambda d: self._cell(d, "Python", "parser").update(source="src/codeqa/adapters/imaginary.py"))
 
+    def test_nonportable_evidence_path_rejected_before_lookup(self):
+        for path in ("src/codeqa/adapters/unsafe\r.py",
+                     "src/codeqa/adapters/file:stream.py",
+                     "src/codeqa/adapters/trailing./module.py"):
+            with self.subTest(path=repr(path)):
+                data = deepcopy(self.manifest)
+                self._cell(data, "Python", "parser")["source"] = path
+                with self.assertRaisesRegex(LanguageMatrixError, "invalid evidence path"):
+                    validate_language_matrix(ROOT, data)
+
     def test_missing_language_layer_rejected(self):
         self._reject(lambda d: next(row for row in d["languages"] if row["language"] == "Rust")["layers"].pop())
 
