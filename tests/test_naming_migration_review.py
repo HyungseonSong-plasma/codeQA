@@ -232,8 +232,8 @@ class MigrationReviewTests(unittest.TestCase):
 
     def test_non_python_embedded_substring_is_not_exact_identifier(self):
         before = {
-            "src/a.py": "def unrelated(): return 1\\n",
-            "src/native.cpp": "void PrefixOldNameSuffix();\\n",
+            "src/a.py": "def unrelated(): return 1\n",
+            "src/native.cpp": "void PrefixOldNameSuffix();\n",
         }
         with self.assertRaisesRegex(MigrationPlanError, "old identifier absent"):
             self.make(
