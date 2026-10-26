@@ -222,7 +222,7 @@ class Batch1CompatibilityTests(unittest.TestCase):
                    for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
                    and node.module == "codeqa.core.naming_glossary"
                    for alias in node.names]
-        self.assertIn((9, "tokenize_identifier"), imports)
+        self.assertIn((8, "tokenize_identifier"), imports)
         direct_calls = {n.lineno for n in ast.walk(tree)
                         if isinstance(n, ast.Call)
                         and isinstance(n.func, ast.Name)
