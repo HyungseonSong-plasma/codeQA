@@ -12,8 +12,30 @@ import json
 from pathlib import Path
 import re
 import tomllib
+import unicodedata
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
+
+_WINDOWS_DEVICE_NAMES = {"CON", "PRN", "AUX", "NUL"} | {
+    f"{prefix}{n}" for prefix in ("COM", "LPT") for n in range(1, 10)
+}
+
+
+def _safe_path(value: str) -> bool:
+    if (not value or value.startswith("/")
+            or "\\" in value or any(ord(c) < 32 or ord(c) == 127 for c in value)):
+        return False
+    for part in value.split("/"):
+        if (part in ("", ".", "..") or ":" in part or part.endswith((".", " "))
+                or unicodedata.normalize("NFC", part) != part
+                or part.split(".", 1)[0].upper() in _WINDOWS_DEVICE_NAMES):
+            return False
+    return True
+
+
+def _portable_path_key(value: str) -> str:
+    """Detect archive entries that alias on case-insensitive filesystems."""
+    return unicodedata.normalize("NFC", value).casefold()
 
 def generate(root: Path, destination: Path, git_sha: str) -> dict:
     root = root.resolve()
@@ -31,11 +53,12 @@ def generate(root: Path, destination: Path, git_sha: str) -> dict:
         if not isinstance(relative, str):
             raise ValueError("invalid resource path")
         parts = relative.split("/")
-        if (relative.startswith("/") or "\\" in relative
-                or any(p in {"", ".", ".."} for p in parts)
+        if (not _safe_path(relative)
                 or parts[0] not in {"profiles", "contracts"}):
             raise ValueError("unsafe or unapproved resource path")
         paths.add(relative)
+    if len({_portable_path_key(name) for name in paths}) != len(paths):
+        raise ValueError("portable resource path collision")
     by_path: dict[str, bytes] = {}
     for name in sorted(paths):
         candidate = root.joinpath(*name.split("/"))

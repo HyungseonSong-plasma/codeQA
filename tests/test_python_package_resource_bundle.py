@@ -66,6 +66,30 @@ class PackageResourceBundleTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 generate(root,root/"out.zip","a"*40)
 
+    def test_nonportable_resource_paths_rejected_by_builder(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.fixture(root)
+            config = (root / "pyproject.toml").read_text()
+            for bad in ("contracts/CON.json", "contracts/file.json:stream",
+                        "contracts/cafe\u0301.json", "contracts/name.json."):
+                with self.subTest(bad=repr(bad)):
+                    (root / "pyproject.toml").write_text(
+                        config.replace("contracts/sample.json", bad))
+                    with self.assertRaises(ValueError):
+                        generate(root, root / "out.zip", "a" * 40)
+
+    def test_portable_resource_path_collision_rejected_by_builder(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.fixture(root)
+            (root / "contracts/SAMPLE.json").write_text("{}")
+            config = (root / "pyproject.toml").read_text()
+            (root / "pyproject.toml").write_text(
+                config + 'other = "contracts/SAMPLE.json"\n')
+            with self.assertRaisesRegex(ValueError, "portable resource path collision"):
+                generate(root, root / "out.zip", "a" * 40)
+
     def test_commit_id_must_be_exact(self):
         with TemporaryDirectory() as tmp:
             root=Path(tmp)
