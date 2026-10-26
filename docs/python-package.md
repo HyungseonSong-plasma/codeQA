@@ -132,3 +132,13 @@ case-insensitive or Unicode-normalizing filesystems. They do **not** establish
 signed publisher provenance, protection against a concurrent filesystem
 attacker, or production consumer compatibility. Existing explicit root and
 exact-byte SHA-256 checks remain mandatory.
+
+## Pre-extraction file/directory conflict guard (#125)
+
+Even a self-consistent, fully hashed resource manifest can contain a file
+whose path is also the parent of another file (including a case-folding
+alias on portable filesystems). The unpacker now rejects these archive
+member prefix conflicts **before creating the destination directory**;
+otherwise extraction could fail after partially writing a resource root.
+This remains a local integrity check, not a signed source attestation or
+protection against concurrent filesystem modification.
