@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from hashlib import sha256
 import json
+import keyword
 import re
 from typing import Any
 
@@ -36,8 +37,10 @@ _SELECTORS = {
 
 def _path(value: object) -> str:
     if (not isinstance(value, str) or not value or value.startswith("/")
-            or "\\" in value or any(ord(c) < 32 or ord(c) == 127 for c in value)
-            or any(part in {"", ".", ".."} for part in value.split("/"))):
+            or "\\" in value or ":" in value
+            or any(ord(c) < 32 or ord(c) == 127 for c in value)
+            or any(part in {"", ".", ".."} or part.endswith((".", " "))
+                   for part in value.split("/"))):
         raise NamingPrecedenceError("unsafe or unnormalized source path")
     return value
 
@@ -232,6 +235,8 @@ class NamingPrecedencePolicy:
         _token(language, "language")
         _token(symbol_kind, "symbol_kind")
         _symbol(symbol)
+        if language == "python" and keyword.iskeyword(symbol):
+            raise NamingPrecedenceError("Python keyword is not a source identifier")
         if not isinstance(as_of, date) or isinstance(as_of, type):
             raise NamingPrecedenceError("explicit review date required")
         if (not isinstance(sources, Mapping) or path not in sources
