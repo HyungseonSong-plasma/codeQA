@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -21,6 +22,13 @@ def main():
     p.add_argument("--version", required=True)
     p.add_argument("--source-revision", required=True)
     args = p.parse_args()
+    # The isolated wheel has no external Semgrep/Dafny Python runtime.
+    # Importing their *adapters* must still be safe and non-executing.
+    for optional in ("semgrep", "dafny"):
+        if importlib.util.find_spec(optional) is not None:
+            raise SystemExit("PACKAGE_NEGATIVE_SMOKE=UNVERIFIED optional runtime present: " + optional)
+    from codeqa.adapters.semgrep_json import SemgrepAdapterError
+    from codeqa.evaluation.formal_generated_gate import GeneratedFixturePolicy
     with ZipFile(args.bundle) as original:
         content = {name: original.read(name) for name in original.namelist()}
     manifest = json.loads(content["RESOURCE_MANIFEST.json"])
