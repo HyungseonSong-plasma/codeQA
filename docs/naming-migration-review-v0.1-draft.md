@@ -57,3 +57,15 @@ These controls do not replace #94's full immutable-revision comparator,
 external SDK/public DTO/DB/ABI evidence or independently reviewed staged
 migration/rollback approval. A passing fixture must never authorize a
 production rename.
+
+## Python lexical token guard (incremental #94)
+
+For selected `.py` source bytes, the proposal's old and candidate names
+must now occur as Python `tokenize.NAME` tokens, not merely in comments or
+string literals. The entire token stream must be consumed before the
+observation is accepted; malformed tokenization cannot certify presence.
+Non-Python files retain only bounded regex lexical evidence and add
+`non_python_lexical_presence_only` to the packet's unknowns. An ordinary
+Python NAME token may be a reference rather than a declaration, and dynamic
+bindings, imports, aliases, public consumers and ABI/DB contracts remain
+unresolved. Every packet still requires human review; no migration is run.
