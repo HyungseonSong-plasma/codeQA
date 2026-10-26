@@ -94,7 +94,7 @@ def prepare_migration_review_packet(
     # comments and aliases can still match, so this is never binding proof.
     def observed(name: str, sources: Mapping[str, str]) -> bool:
         return (isinstance(name, str) and bool(name)
-                and any(re.search(r"(?<!\\w)" + re.escape(name) + r"(?!\\w)", text)
+                and any(re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", text)
                         for text in sources.values()))
     if not observed(proposal.old_name, before_sources):
         raise MigrationPlanError("proposal old identifier absent from exact baseline bytes")
