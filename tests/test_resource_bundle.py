@@ -95,6 +95,21 @@ class ResourceBundleTests(unittest.TestCase):
                 {"ccg_schema": "../outside.json"}
             )))
 
+    def test_control_character_archive_member_fails_closed(self):
+        for bad in ("profiles/unsafe\\n.json", "profiles/unsafe\\t.json",
+                    "profiles/unsafe\\x7f.json"):
+            with self.subTest(bad=repr(bad)):
+                with self.assertRaisesRegex(ResourceBundleError, "unsafe archive member"):
+                    self.unpack(self.bundle(files_change=lambda f: f.update({bad: b"{}"})))
+
+    def test_control_character_registry_path_fails_closed(self):
+        for bad in ("profiles/unsafe\\n.json", "profiles/unsafe\\r.json"):
+            with self.subTest(bad=repr(bad)):
+                with self.assertRaises(ResourceBundleError):
+                    self.unpack(self.bundle(manifest_change=lambda m: m["resources"].update(
+                        {"ccg_schema": bad}
+                    )))
+
     def test_wrong_registry_identity_fails_closed(self):
         with self.assertRaises(ResourceBundleError):
             self.unpack(self.bundle(manifest_change=lambda m: m["resources"].update(
