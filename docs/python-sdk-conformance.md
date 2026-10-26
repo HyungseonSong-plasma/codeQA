@@ -101,3 +101,23 @@ unseen public consumer. External API schema baselines, versioned
 compatibility windows, dynamic validators, ORM migration history and
 real database compatibility remain `NOT_EVALUATED` until independent
 consumer artifacts are provided. No public DTO/DB mutation is authorized.
+
+## Additional controlled ORM migration and inheritance witness (#92)
+
+The pinned SQLAlchemy 2.0.50 job now constructs **actual joined-table ORM
+inheritance** in an isolated in-memory SQLite database, executes a mapped
+subclass insert/query, evaluates and reflects a database-generated
+`Computed("quantity * 2")` column, and checks the reflected foreign key.
+A versioned `fixture_v0 → fixture_v1` `ALTER TABLE` adds `optional_note`;
+the job compares exact reflected before/after column sets and an explicit
+added/removed-column manifest, then verifies that a deliberately forged
+migration expectation is rejected. The expectation lives in
+`fixtures/python-sdk/external-contract-v0.1.json` and all results are
+labeled `CONTROLLED_IN_MEMORY_SQLITE_ONLY`.
+
+This is **not** evidence of any user's production DB migration history,
+independent public DTO consumer, external ORM schema baseline, deployed ABI,
+or a human-approved compatibility window. Those remain `NOT_EVALUATED`
+and the original #92 issue stays open. The workflow must execute the new
+runtime assertions at the exact PR-associated revision before they count as
+a CI witness.
