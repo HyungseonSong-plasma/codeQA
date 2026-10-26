@@ -75,3 +75,12 @@ not a zero-import or quality-improvement claim. Negative tests cover forged
 counts, absent witnesses and foreign-source edges. This validates **internal
 static evidence consistency only**; it cannot authenticate the GitHub
 snapshot, prove semantic cohesion or measure human review burden.
+
+## Public import candidate selection integrity
+
+The before/after comparison now rejects `__init__.py` import candidates whose
+file is not present in that report's selected source inventory. Otherwise a
+fabricated unselected `__init__.py` entry could appear as a public import
+removal and manufacture a compatibility-review signal. A selected syntactic
+import is still **not** an independently attested stable public API or proof
+of consumer breakage; such changes remain REVIEW_REQUIRED/NOT_EVALUATED.
