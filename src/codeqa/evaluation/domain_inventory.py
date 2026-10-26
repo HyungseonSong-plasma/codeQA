@@ -149,6 +149,34 @@ def analyze_domain_inventory(
                 else "DOMAIN_UNKNOWN"
             ),
         })
+    # Per-domain counts are observed static sites, not runtime dependencies.
+    # Ambiguous and unclassified domains retain their own evidence buckets.
+    domain_metrics = {
+        domain: {
+            **count,
+            "intra_import_sites": 0,
+            "cross_outgoing_import_sites": 0,
+            "cross_incoming_import_sites": 0,
+            "domain_unknown_outgoing_import_sites": 0,
+            "unknown_import_sites": 0,
+            "potential_reverse_dependents_total": 0,
+            "potential_reverse_dependents_max": 0,
+        }
+        for domain, count in counts.items()
+    }
+    for edge in edges:
+        left, right = edge["source_domain"], edge["target_domain"]
+        if edge["classification"] == "INTRA_DOMAIN":
+            domain_metrics[left]["intra_import_sites"] += 1
+        elif edge["classification"] == "CROSS_DOMAIN":
+            domain_metrics[left]["cross_outgoing_import_sites"] += 1
+            domain_metrics[right]["cross_incoming_import_sites"] += 1
+        else:
+            domain_metrics[left]["domain_unknown_outgoing_import_sites"] += 1
+    for item in dependencies.unknown:
+        if item.source_path not in classified:
+            raise DomainInventoryError("unknown import witness escapes the supplied source set")
+        domain_metrics[classified[item.source_path]]["unknown_import_sites"] += 1
     unknown = [vars(item) if hasattr(item, "__dict__") else {
         "source_path": item.source_path, "line": item.line,
         "expression": item.expression, "reason": item.reason,
@@ -161,6 +189,11 @@ def analyze_domain_inventory(
     for path in sorted(dependencies.analyzed_paths):
         impact = analyze_change_impact(dependencies, [path])
         if impact.affected:
+            bucket = domain_metrics[classified[path]]
+            bucket["potential_reverse_dependents_total"] += len(impact.affected)
+            bucket["potential_reverse_dependents_max"] = max(
+                bucket["potential_reverse_dependents_max"], len(impact.affected)
+            )
             rankings.append({
                 "path": path, "potential_dependents": len(impact.affected),
                 "direct": len(impact.direct_dependents),
@@ -181,6 +214,7 @@ def analyze_domain_inventory(
         "interpretation": "STATIC_SOURCE_WITNESSES_NOT_RUNTIME_COHESION_OR_COMPATIBILITY_PROOF",
         "inventory": inventory,
         "domain_counts": dict(sorted(counts.items())),
+        "domain_metrics": dict(sorted(domain_metrics.items())),
         "observed_import_sites": len(edges),
         "classified_intra_import_sites": intra,
         "classified_cross_import_sites": cross,
@@ -201,6 +235,7 @@ def analyze_domain_inventory(
             "init imports are not independently reviewed stable public APIs",
             "reverse import paths are potential impacts only, not a safe exclusion bound",
             "before/after quality comparisons require one pinned analyzer and identical policy",
+            "per-domain import and reverse-impact metrics are static observed sites only",
         ],
     }
 
