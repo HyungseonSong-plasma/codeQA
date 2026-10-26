@@ -44,3 +44,12 @@ attestation. The result's authority is explicitly
 `CALLER_SUPPLIED_RUN_CONTEXT_NOT_REMOTE_ATTESTATION`. Independent CI readback,
 review of the actual deployed target and human production policy approval
 remain necessary. No general Gate `ALLOW` is inferred from fixture success.
+
+Consumer-side `SCOPED_GATE_ALLOW` now requires a non-empty set of independently
+admitted Gate requirement decisions, each with a valid evidence digest and
+`PASS` status; a caller-created `GateDecision(PASS, ALLOW)` with no evidence
+requirements, or an unadmitted requirement, is reported as `BLOCK` with
+`GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING`. This is an additive, stricter
+consumer safeguard and **does not** replace the original Gate policy validator
+or authenticate the caller-supplied receipt. Production merge authorization
+remains false for every case.
