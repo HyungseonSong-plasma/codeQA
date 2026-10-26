@@ -38,3 +38,7 @@ The existing isolated Python wheel/sdist smoke now also exercises an explicit
 impact-bearing AnalysisRequest and verifies unchanged Mechanical output on the
 installed package (subject to exact-head CI). Independently reviewed public
 request serialization compatibility remains `NOT_EVALUATED`.
+
+The wrapper additionally exposes deterministic SHA-256 hashes of the provided
+CCG schema and Mechanical profile under `profile_fingerprints`. These are
+caller-owned byte identities, not independently certified signatures.
