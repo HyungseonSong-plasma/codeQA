@@ -52,6 +52,17 @@ class WorkflowCatalogTests(unittest.TestCase):
     def test_ruleset_identity_cannot_be_forged(self):
         self._bad(lambda d: d["ruleset"].update(required_check_context="self-audit"))
 
+    def test_duplicate_required_layout_context_rejected(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/layout.yml"
+        sources[path] += (
+            "\\n  another_layout:\\n"
+            "    name: layout\\n"
+            "    runs-on: ubuntu-latest\\n"
+            "    steps: []\\n"
+        )
+        self._bad(lambda d: None, sources=sources)
+
     def test_artifact_upload_drift_rejected(self):
         self._bad(lambda d: next(e for e in d["workflows"] if e["path"].endswith("layout.yml")).update(
             artifact_upload_count=999
