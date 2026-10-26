@@ -81,6 +81,10 @@ class AnalysisRequestTests(unittest.TestCase):
         with self.assertRaisesRegex(AnalysisRequestError, "explicit Boolean"):
             AnalysisOptions(naming=0).validate()
 
+    def test_direct_unhashable_changed_path_fails_with_typed_error(self):
+        with self.assertRaisesRegex(AnalysisRequestError, "invalid changed paths"):
+            AnalysisOptions(changed_paths=(["nested"],)).validate()
+
     def test_control_character_changed_paths_rejected(self):
         for path in ("a\\nb.py", "a\\tb.py", "a\\rb.py", "a\\x7fb.py"):
             with self.subTest(path=path), self.assertRaises(AnalysisRequestError):
