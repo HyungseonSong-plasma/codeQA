@@ -437,6 +437,45 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
         with self.assertRaises(DeclarationEvidenceError):
             observe_pinned_python(self.source, expected_sha256="0"*64)
 
+    def test_versioned_ast_review_proposal_has_exact_sites_and_no_signatures(self):
+        path = self.root / "fixtures/naming-governance/codeqa-ast-review-v03-proposal.json"
+        proposal = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(proposal["review_status"], "PENDING_FINAL_ADJUDICATION")
+        self.assertEqual(proposal["source"]["sha256"], self.fixture["source_sha256"])
+        self.assertEqual(proposal["source"]["git_blob_sha"], self.fixture["source_git_blob_sha"])
+        self.assertEqual(proposal["candidate_count"], 26)
+        self.assertEqual(len(proposal["original_candidates"]), 26)
+        for original, row in zip(self.fixture["candidates"], proposal["original_candidates"]):
+            with self.subTest(name=row["name"], line=row["line"]):
+                self.assertEqual((row["name"], row["kind"], row["line"], row["owner"]),
+                                 (original["name"], original["kind"],
+                                  original["line"], original["owner"]))
+                self.assertEqual(row["ast_observation"],
+                                 self.review.classify_candidate(original))
+                self.assertIsNone(row["human_adjudication"])
+        self.assertEqual(len(proposal["omitted_observation_candidates"]), 17)
+        sites = {(d.name, d.kind, d.line, d.owner): d
+                 for d in self.review.declarations}
+        for row in proposal["omitted_observation_candidates"]:
+            with self.subTest(site=row):
+                key = (row["name"], row["kind"], row["line"], row["owner"])
+                self.assertIn(key, sites)
+                self.assertEqual(row["eligible_kind_only"], sites[key].eligible_kind)
+                self.assertEqual(row["extractor_false_negative"],
+                                 "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR")
+                self.assertIsNone(row["human_adjudication"])
+        negative = json.loads((self.root / "fixtures/naming-governance/"
+            "codeqa-negative-control-review-candidates-v02.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(proposal["negative_control_candidates"]), 7)
+        for row, original in zip(proposal["negative_control_candidates"],
+                                 negative["candidates"]):
+            self.assertEqual((row["name"], row["kind"], row["line"]),
+                             (original["name"], original["kind"], original["line"]))
+            self.assertIsNone(row["human_review_outcome"])
+        self.assertFalse(proposal["independent_ai_review"]["human_signature"])
+        self.assertFalse(proposal["decision_boundaries"]["auto_rename_authorized"])
+        self.assertFalse(proposal["decision_boundaries"]["policy_finally_adopted"])
+
     def test_owner_policy_is_proposal_only_and_opt_in(self):
         p = self.proposal
         self.assertEqual(p["review_status"], "PENDING_FINAL_ADJUDICATION")
