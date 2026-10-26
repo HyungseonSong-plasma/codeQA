@@ -1,7 +1,7 @@
 # Workflow governance catalog v0.1 (#124)
 
-The [machine-readable catalog](workflow-catalog-v0.1.json) inventories **21
-tracked workflows** at codeQA main `f7859c7f742ba55025bf1633ef7438d18e8a9416`.
+The [machine-readable catalog](workflow-catalog-v0.1.json) inventories **22
+tracked workflows** at codeQA main `82e1678b6fb6dd784456770f38f45fa538f04245`.
 The controller independently read GitHub repository ruleset **25360323**,
 `codeQA-main-protection`, on **2026-10-25**. It was active on the default
 branch and required exactly the job check `layout` (integration 15368), with
@@ -49,8 +49,8 @@ workflow setting mutation is authorized by this document.
 ## Tracked workflow source provenance
 
 A companion [Git-blob manifest](workflow-provenance-v0.1.json)
-records exact tracked SHA-1 Git blob identities for all 21 baseline workflows
-at `f7859c7f742ba55025bf1633ef7438d18e8a9416`.
+records exact tracked SHA-1 Git blob identities for all 22 pinned baseline workflows
+at `82e1678b6fb6dd784456770f38f45fa538f04245`.
 `codeqa.governance.workflow_provenance` independently recomputes each blob
 identity from checked-out YAML and rejects changed, deleted, invented or
 duplicate workflow entries. The pinned **retirement policy** is
@@ -111,3 +111,7 @@ source that previously preserved the guarded commands in the first mapping
 while an alternate mapping could suppress their execution. This is a
 static guard for the observed workflow shape, not a general YAML parser,
 proof of GitHub runner behavior, or live branch-protection authorization.
+
+## 2026-10-26 snapshot update
+
+Reconciled the original historical 21-workflow source catalog with the 22 Git-tracked workflows at the pinned main revision above. The additional `naming-policy-precedence-v03.yml` is `conformance`, not the required Layout workflow. Self Audit contains two artifact-upload actions at this pinned revision. Updated the independently recomputed workflow Git blob hashes and the dated verified `layout` GitHub ruleset readback; a source-manifest identity does not attest runtime check execution or broaden branch protection. No workflow was deleted or auto-retired.
