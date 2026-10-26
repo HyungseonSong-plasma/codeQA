@@ -103,6 +103,20 @@ class WorkflowCatalogTests(unittest.TestCase):
         )
         self._bad(lambda d: None, sources=sources)
 
+    def test_required_checkout_cannot_be_replaced_or_redirected(self):
+        path = ".github/workflows/layout.yml"
+        for extra in ("        uses: attacker/checkout@v1\n",
+                      "          ref: unreviewed-branch\n",
+                      "          repository: other/untrusted\n",
+                      "          path: elsewhere\n"):
+            with self.subTest(extra=extra):
+                sources = dict(self.sources)
+                sources[path] = sources[path].replace(
+                    "          fetch-depth: 0\n",
+                    "          fetch-depth: 0\n" + extra,
+                )
+                self._bad(lambda d: None, sources=sources)
+
     def test_required_guard_commands_cannot_be_removed(self):
         sources = dict(self.sources)
         path = ".github/workflows/layout.yml"
