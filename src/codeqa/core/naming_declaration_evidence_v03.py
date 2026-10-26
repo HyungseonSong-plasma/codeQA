@@ -63,9 +63,17 @@ class PythonDeclarationReview:
                 or type(line) is not int or not isinstance(owner, str)):
             raise DeclarationEvidenceError("candidate identity has invalid types")
         if kind == "decorator":
+            # Compare parsed syntax, not whitespace-stripped text: whitespace
+            # inside a literal is semantically significant.
+            try:
+                candidate_ast = ast.dump(ast.parse(name, mode="eval").body,
+                                         include_attributes=False)
+            except SyntaxError:
+                return "NOT_EVALUATED"
             return ("SYNTAX_ONLY" if any(
                 d.line == line and d.owner == owner
-                and re.sub(r"\s+", "", d.expression) == re.sub(r"\s+", "", name)
+                and ast.dump(ast.parse(d.expression, mode="eval").body,
+                             include_attributes=False) == candidate_ast
                 for d in self.decorators
             ) else "NOT_EVALUATED")
         if any(d.name == name and d.kind == kind and d.line == line
