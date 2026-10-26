@@ -45,7 +45,7 @@ def classify_direct_import(source: bytes, *, path: str, symbol: str,
     name_refs = 0
     for stmt in tree.body:
         if isinstance(stmt, ast.ImportFrom):
-            if stmt.level != 0 or any(a.name == "*" for a in stmt.names):
+            if any(a.name == "*" for a in stmt.names):
                 unsupported.add("RELATIVE_OR_WILDCARD_IMPORT")
             for a in stmt.names:
                 bound = a.asname or a.name
