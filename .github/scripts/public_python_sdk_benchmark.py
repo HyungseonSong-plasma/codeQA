@@ -42,7 +42,7 @@ def inspect(manifest: dict, sources: dict[str, bytes]) -> dict:
     project = tomllib.loads(sources["pyproject.toml"].decode())["project"]
     require(project["name"] == "stripe"
             and project["version"] == manifest["sdk_version"] == "16.0.0"
-            and sources["LICENSE"].startswith(b"MIT License"),
+            and sources["LICENSE"].startswith(b"The MIT License"),
             "PYTHON_SDK_PACKAGE_VERSION_OR_LICENSE_DRIFT")
     version = parse("stripe/_version.py")
     require(any(isinstance(n, ast.Assign) and any(
