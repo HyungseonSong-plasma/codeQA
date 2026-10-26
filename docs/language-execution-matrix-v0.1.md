@@ -62,3 +62,11 @@ A syntactically valid but compiler-invalid `override` is explicitly not
 promoted to compiler evidence. The source/entrypoint/workflow and bounded
 limitation are guarded by negative tests on the combined tree. This is
 not an independently approved C++/MOOSE production parser pipeline.
+
+## Portable evidence path guard
+
+The read-only matrix rejects control-byte, alternate-data-stream colon and
+trailing dot/space source/workflow paths before looking up claimed evidence.
+A portable path plus a present source file still does not attest executed
+matching-SHA CI, real non-Python Mechanical parity, compiler ABI or DSL
+compatibility. Those claims remain limited by each cell's explicit status.
