@@ -6,7 +6,7 @@ from hashlib import sha256
 import unittest
 
 from codeqa.evaluation.authority_audit import audit_authority_propagation
-from codeqa.evaluation.evidence_gate import GateDecision
+from codeqa.evaluation.evidence_gate import GateDecision, RequirementDecision
 from codeqa.evaluation.formal_generated_gate import GeneratedFixtureDecision
 
 
@@ -21,7 +21,12 @@ class AuthorityPropagationTests(unittest.TestCase):
         self.gate = GateDecision(
             schema_version="0.1", policy_id="test", policy_fingerprint=POLICY,
             snapshot_id=SNAPSHOT, evaluated_at="2026-10-25T00:00:00Z",
-            status="PASS", authorization="ALLOW", requirements=(), reasons=(),
+            status="PASS", authorization="ALLOW",
+            requirements=(RequirementDecision(
+                id="scope-gate", status="PASS", admission_status="ADMISSIBLE",
+                scope=("a.py",), reasons=(), observed_violations=0,
+                waived_violations=0, evidence_sha256="d"*64,
+            ),), reasons=(),
         )
         self.fixture = GeneratedFixtureDecision(
             version="0.1", scope="CONTROLLED_GENERATED_PYTHON_FIXTURE",
@@ -59,6 +64,23 @@ class AuthorityPropagationTests(unittest.TestCase):
         self.assertEqual(result.consumer_authorization, "FIXTURE_ONLY")
         self.assertFalse(result.production_merge_authorized)
         self.assertIn("PRODUCTION_AUTHORITY_NOT_ESTABLISHED_BY_FIXTURE", result.reasons)
+
+
+    def test_empty_gate_pass_fails_closed_for_missing_evidence(self) -> None:
+        empty = replace(self.gate, requirements=())
+        result = self.check(empty, self.receipt(empty, "codeqa.evidence_gate"))
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertIn("GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING", result.reasons)
+        self.assertFalse(result.production_merge_authorized)
+
+    def test_non_admitted_gate_requirement_does_not_authorize(self) -> None:
+        rejected = replace(
+            self.gate, requirements=(replace(
+                self.gate.requirements[0], admission_status="NOT_EVALUATED",
+            ),),
+        )
+        result = self.check(rejected, self.receipt(rejected, "codeqa.evidence_gate"))
+        self.assertEqual(result.consumer_authorization, "BLOCK")
 
     def test_missing_receipt_blocks_even_when_gate_passes(self) -> None:
         self.assertEqual(self.check(self.gate, None).consumer_authorization, "BLOCK")
