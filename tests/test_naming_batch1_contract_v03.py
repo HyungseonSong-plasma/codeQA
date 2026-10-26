@@ -18,7 +18,9 @@ import unittest
 from codeqa.core.naming_glossary import (
     GlossaryTerm, NamingGlossaryError, NamingGlossaryProfile, tokenize_identifier,
 )
-from codeqa.core.naming_review_worklist_v03 import build_review_worklist
+from codeqa.core.naming_review_worklist_v03 import (
+    NamingReviewWorklistError, assess_review_worklist, build_review_worklist,
+)
 from codeqa.infrastructure.git import GitReader
 from codeqa.pipeline.naming_snapshot_coverage_v03 import scan_pinned_git
 
@@ -62,7 +64,7 @@ class Batch1CompatibilityTests(unittest.TestCase):
         self.assertEqual(packet["human_policy_adoption"], "NOT_ADOPTED")
         self.assertFalse(packet["automatic_rename_authorized"])
         self.assertFalse(packet["issue_close_authorized"])
-        self.assertEqual(packet["external_consumer_coverage"], "NOT_EVALUATED")
+        self.assertEqual(packet["external_consumer_coverage"], "OUT_OF_SCOPE")
         rows = build_review_worklist(self.proposal)["rows"]
         self.assertEqual([x["index"] for x in packet["cases"]], [11, 15, 25])
         for c in packet["cases"]:
@@ -82,6 +84,51 @@ class Batch1CompatibilityTests(unittest.TestCase):
         self.assertEqual(packet["source"]["git_blob_sha"],
                          self.proposal["source"]["git_blob_sha"])
         self.assertEqual(packet["source"]["revision"], self.proposal["source"]["commit"])
+
+    def test_review_scope_exclusions_cannot_upgrade_human_or_policy_decisions(self):
+        packet = self.packet
+        scope = packet["review_scope"]
+        self.assertEqual(scope["decision_axis"], "PINNED_SOURCE_AST_OBSERVATION_ONLY")
+        self.assertEqual(scope["authorized_limited_review"],
+                         "SOURCE_DECLARATION_EXISTENCE_KIND_LINE_OWNER")
+        self.assertEqual(
+            {x["domain"] for x in scope["excluded_domains"]},
+            {"EXTERNAL_CONSUMER_COMPATIBILITY",
+             "DYNAMIC_AND_TRANSITIVE_BINDING_RESOLUTION",
+             "API_RENAME_OR_CHANGE_IMPACT"},
+        )
+        self.assertEqual(len(scope["excluded_domains"]), 3)
+        for excluded in scope["excluded_domains"]:
+            self.assertEqual(excluded["status"], "OUT_OF_SCOPE")
+            self.assertTrue(excluded["not_proven"])
+        self.assertEqual(packet["external_consumer_coverage"], "OUT_OF_SCOPE")
+        self.assertEqual(packet["dynamic_reference_coverage"], "OUT_OF_SCOPE")
+        self.assertEqual(packet["api_change_impact_coverage"], "OUT_OF_SCOPE")
+        self.assertEqual(scope["policy_applicability"], "NOT_EVALUATED")
+        self.assertEqual(scope["semantic_equivalence"], "NOT_EVALUATED")
+        self.assertEqual(scope["external_impact_safety"], "NOT_EVALUATED")
+        self.assertTrue(scope["human_re_adjudication_pending"])
+        self.assertTrue(scope["scope_does_not_satisfy_uncovered_issue_acceptance"])
+        self.assertTrue(scope["out_of_scope_must_not_be_interpreted_as_pass"])
+        self.assertEqual(packet["human_policy_adoption"], "NOT_ADOPTED")
+        self.assertFalse(packet["automatic_rename_authorized"])
+        self.assertFalse(packet["issue_close_authorized"])
+        self.assertEqual([x["human_decision"] for x in packet["cases"]],
+                         ["UNRESOLVED"] * 3)
+
+    def test_out_of_scope_is_not_a_human_observation_verdict(self):
+        worklist = build_review_worklist(self.proposal)
+        row = worklist["rows"][10]
+        row.update({
+            "decision": "OUT_OF_SCOPE",
+            "reviewer_login": "HyungseonSong-plasma",
+            "review_comment_url":
+                "https://github.com/HyungseonSong-plasma/codeQA/issues/91"
+                "#issuecomment-6414512106",
+            "rationale": "External API and dynamic refs excluded from review",
+        })
+        with self.assertRaises(NamingReviewWorklistError):
+            assess_review_worklist(self.proposal, worklist)
 
     def test_historical_git_bytes_blob_and_ast_declarations(self):
         witness = self.packet["source"]
