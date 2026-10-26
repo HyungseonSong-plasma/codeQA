@@ -114,5 +114,24 @@ class MigrationReviewTests(unittest.TestCase):
             self.make(proposal=replace(proposal, migration_plan="AUTO_APPROVED"))
 
 
+    def test_proposal_source_and_policy_fingerprints_remain_unattested(self):
+        packet = self.make()
+        self.assertIn("proposal_source_manifest_binding_not_evaluated", packet.unknowns)
+        self.assertIn("proposal_policy_fingerprint_not_attested", packet.unknowns)
+        self.assertEqual(packet.status, "HUMAN_REVIEW_REQUIRED")
+
+    def test_extra_selected_source_not_covered_by_proposal_is_explicit_unknown(self):
+        before = {"src/a.py": SOURCE1, "src/extra.py": "x = 1\\n"}
+        digests = {path: sha256(data.encode()).hexdigest() for path, data in before.items()}
+        packet = self.make(before_sources=before, before_sha256=digests)
+        self.assertIn("proposal_source_selection_differs", packet.unknowns)
+        self.assertFalse(packet.mutation_performed)
+
+    def test_string_claim_of_complete_selection_is_not_a_boolean(self):
+        with self.assertRaises(MigrationPlanError):
+            self.make(source_selection_complete="false")
+
+
+
 if __name__ == "__main__":
     unittest.main()
