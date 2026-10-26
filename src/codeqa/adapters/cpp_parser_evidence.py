@@ -111,6 +111,7 @@ def parse_cpp_syntax(
         if node is None:
             return None
         if node.type in ("identifier", "field_identifier", "qualified_identifier",
+                         "type_identifier", "namespace_identifier",
                          "destructor_name", "operator_name"):
             return decode(node)
         child = node.child_by_field_name("declarator")
