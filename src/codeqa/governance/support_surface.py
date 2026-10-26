@@ -178,6 +178,7 @@ def audit_support_surface(
         if (mode != "NOT_IMPLEMENTED" and feature["principles"]
                 and set(feature["languages"]) & {"Rust", "C++", "MOOSE"}):
             _reject("unverified non-Python Mechanical support")
+    by_id = {f["id"]: f for f in features}
     if not set(PROTECTED_BOUNDARIES).issubset(ids):
         _reject("missing protected feature boundary")
     for fid, expected in PROTECTED_BOUNDARIES.items():
@@ -214,7 +215,6 @@ def audit_support_surface(
             _reject("default Python Mechanical module imports opt-in Naming")
     if ids < REQUIRED:
         _reject("mandatory negative capability not declared")
-    by_id = {f["id"]: f for f in features}
     mechanical = by_id["python_mechanical"]
     if (mechanical["mode"] != "DEFAULT_SCOPED"
             or mechanical["languages"] != ["Python"]
