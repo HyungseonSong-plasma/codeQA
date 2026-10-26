@@ -58,6 +58,7 @@ def parse_cpp_syntax(
     if (type(source) is not bytes or len(source) > 1_000_000
             or not isinstance(source_repository, str)
             or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", source_repository)
+            or any(part in (".", "..") for part in source_repository.split("/"))
             or not isinstance(source_revision, str)
             or not re.fullmatch(r"[0-9a-f]{40}", source_revision)
             or not isinstance(source_path, str)
