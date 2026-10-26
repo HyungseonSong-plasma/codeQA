@@ -51,7 +51,7 @@ class PyrightRunnerFailClosedTests(unittest.TestCase):
                  "range": {"start": {"line": index}}}
                 for index, rule in enumerate(rules)
             ],
-            "summary": {"errorCount": len(rules)},
+            "summary": {"errorCount": len(rules), "filesAnalyzed": 1},
             "fatalErrorOccurred": fatal,
             "configParseErrorOccurred": config_error,
         }
@@ -77,6 +77,51 @@ class PyrightRunnerFailClosedTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "VALID_SDK_TYPES_REJECTED"):
             self.run_parser(self.report("reportAssignmentType"), exit_code=1,
                             negative=False)
+
+    def test_unattested_same_basename_outside_project_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        report["generalDiagnostics"][0]["file"] = "/tmp/other/contract.py"
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE"):
+            self.run_parser(report, exit_code=1)
+
+    def test_path_traversal_with_matching_basename_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        report["generalDiagnostics"][0]["file"] = "../contract.py"
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE"):
+            self.run_parser(report, exit_code=1)
+
+    def test_unselected_warning_source_rejected_before_gate(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        report["generalDiagnostics"].append({
+            "severity": "warning", "rule": "reportUnknownMemberType",
+            "file": "/tmp/foreign.py", "range": {"start": {"line": 0}},
+        })
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE"):
+            self.run_parser(report, exit_code=1)
+
+    def test_forged_summary_count_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        report["summary"]["errorCount"] = 1
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_ERROR_COUNT_MISMATCH"):
+            self.run_parser(report, exit_code=1)
+
+    def test_missing_scan_count_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        del report["summary"]["filesAnalyzed"]
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_INCOMPLETE_SCAN_COUNT"):
+            self.run_parser(report, exit_code=1)
+
+    def test_unknown_diagnostic_severity_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        report["generalDiagnostics"][0]["severity"] = "pass"
+        with self.assertRaisesRegex(RuntimeError, "PYRIGHT_UNKNOWN_DIAGNOSTIC_SEVERITY"):
+            self.run_parser(report, exit_code=1)
 
     def test_extra_source_outside_pinned_fixture_rejected(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "UNTRUSTED_EXTRA_SDK_SOURCE"):
