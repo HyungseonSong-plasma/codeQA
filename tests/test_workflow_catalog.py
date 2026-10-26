@@ -63,6 +63,46 @@ class WorkflowCatalogTests(unittest.TestCase):
         )
         self._bad(lambda d: None, sources=sources)
 
+    def test_duplicate_layout_job_mapping_cannot_shadow_guarded_job(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/layout.yml"
+        # No second name: layout: the old named-context counter saw only one.
+        sources[path] += (
+            "\n  layout:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - run: echo bypassed-unit-tests\n"
+        )
+        self._bad(lambda d: None, sources=sources)
+
+    def test_duplicate_top_level_jobs_mapping_cannot_shadow_guarded_job(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/layout.yml"
+        sources[path] += (
+            "\njobs:\n"
+            "  replacement:\n"
+            "    name: layout\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - run: echo bypassed-unit-tests\n"
+        )
+        self._bad(lambda d: None, sources=sources)
+
+    def test_duplicate_steps_mapping_cannot_shadow_guarded_steps(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/layout.yml"
+        sources[path] += (
+            "\n    steps:\n"
+            "      - run: echo bypassed-unit-tests\n"
+        )
+        self._bad(lambda d: None, sources=sources)
+
+    def test_duplicate_on_mapping_cannot_shadow_required_pr_trigger(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/layout.yml"
+        sources[path] += "\non:\n  workflow_dispatch:\n"
+        self._bad(lambda d: None, sources=sources)
+
     def test_other_workflow_cannot_shadow_required_context_by_job_name(self):
         sources = dict(self.sources)
         path = ".github/workflows/self-audit.yml"

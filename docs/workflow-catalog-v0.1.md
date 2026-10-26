@@ -100,3 +100,14 @@ checkout `path` is rejected by the catalog's narrow static guard. Otherwise
 an unrelated source tree could be tested under the required `layout` context.
 This is a source-shape invariant, not a replacement for independently
 observed exact-head GitHub Actions and active branch ruleset evidence.
+
+## Duplicate YAML mapping-key shadowing controls (2026-10-26)
+
+A valid-looking first `on`, `jobs`, `layout` job or `steps` mapping can be
+shadowed by a later duplicate YAML key. The narrow required-check source
+audit now rejects repeated top-level `on`/`jobs`, repeated job IDs and
+repeated required-job `steps` mappings. Four adversarial tests construct
+source that previously preserved the guarded commands in the first mapping
+while an alternate mapping could suppress their execution. This is a
+static guard for the observed workflow shape, not a general YAML parser,
+proof of GitHub runner behavior, or live branch-protection authorization.

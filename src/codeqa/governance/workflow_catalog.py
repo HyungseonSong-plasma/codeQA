@@ -32,6 +32,9 @@ RULESET_ID = 25360323
 
 
 def _events(text: str) -> list[str]:
+    # YAML duplicate mapping keys may shadow an earlier, apparently valid trigger.
+    if len(re.findall(r"(?m)^on:[ \t]*(?:#.*)?$", text)) != 1:
+        raise WorkflowCatalogError("duplicate or missing workflow event mapping")
     match = re.search(r"(?m)^on:\s*\n((?:[ \t]+.*\n|\s*\n)*)", text)
     if not match:
         raise WorkflowCatalogError("unrecognized workflow event syntax")
@@ -60,6 +63,10 @@ def _required_layout_executable(text: str) -> bool:
 
     This is a static source constraint, not independent Actions execution proof.
     """
+    # GitHub may interpret the *last* repeated YAML mapping key, whereas a
+    # regex matching the first jobs block would bless an unguarded replacement.
+    if len(re.findall(r"(?m)^jobs:[ \t]*(?:#.*)?$", text)) != 1:
+        return False
     on_block = re.search(r"(?m)^on:[ \t]*\n((?:[ \t]+.*\n|[ \t]*\n)*)", text)
     if not on_block:
         return False
@@ -78,6 +85,9 @@ def _required_layout_executable(text: str) -> bool:
     if not jobs:
         return False
     block = jobs.group(1)
+    declared_jobs = re.findall(r"(?m)^  ([A-Za-z_][\w-]*):[ \t]*(?:#.*)?$", block)
+    if len(declared_jobs) != len(set(declared_jobs)) or declared_jobs.count("layout") != 1:
+        return False
     match = re.search(r"(?m)^  layout:[ \t]*(?:#.*)?$", block)
     if not match:
         return False
@@ -92,7 +102,8 @@ def _required_layout_executable(text: str) -> bool:
     # ignored-error shell line does not constitute an executable guard.
     # Parse the small, repository-owned required-job step shape strictly;
     # this is intentionally NOT a general GitHub Actions interpreter.
-    if not re.search(r"(?m)^    steps:[ \t]*$", body):
+    # A later duplicate steps mapping can discard every guarded step.
+    if len(re.findall(r"(?m)^    steps:[ \t]*(?:#.*)?$", body)) != 1:
         return False
     parts = re.split(r"(?m)^      - name: ", body)
     steps: dict[str, str] = {}
