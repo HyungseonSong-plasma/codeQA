@@ -63,6 +63,54 @@ class WorkflowCatalogTests(unittest.TestCase):
         )
         self._bad(lambda d: None, sources=sources)
 
+    def test_other_workflow_cannot_shadow_required_context_by_job_name(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/self-audit.yml"
+        sources[path] += (
+            "\n  shadow_layout:\n"
+            "    name: layout\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps: []\n"
+        )
+        self._bad(lambda d: None, sources=sources)
+
+    def test_other_workflow_cannot_shadow_required_context_by_job_id(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/self-audit.yml"
+        sources[path] += (
+            "\n  layout:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps: []\n"
+        )
+        self._bad(lambda d: None, sources=sources)
+
+    def test_required_job_cannot_be_conditional_or_continue_on_error(self):
+        path = ".github/workflows/layout.yml"
+        for injection in ("    if: false\n", "    needs: missing_job\n",
+                          "    continue-on-error: true\n"):
+            with self.subTest(injection=injection):
+                sources = dict(self.sources)
+                sources[path] = sources[path].replace(
+                    "    name: layout\n", "    name: layout\n" + injection
+                )
+                self._bad(lambda d: None, sources=sources)
+
+    def test_required_pr_event_cannot_be_filtered(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/layout.yml"
+        sources[path] = sources[path].replace(
+            "  pull_request:\n", "  pull_request:\n    branches: [not-main]\n"
+        )
+        self._bad(lambda d: None, sources=sources)
+
+    def test_required_guard_commands_cannot_be_removed(self):
+        sources = dict(self.sources)
+        path = ".github/workflows/layout.yml"
+        sources[path] = sources[path].replace(
+            "python3 -m unittest discover -s tests", "echo skipped-tests"
+        )
+        self._bad(lambda d: None, sources=sources)
+
     def test_artifact_upload_drift_rejected(self):
         self._bad(lambda d: next(e for e in d["workflows"] if e["path"].endswith("layout.yml")).update(
             artifact_upload_count=999
