@@ -43,3 +43,11 @@ P1–P8 Mechanical support is rejected until a separately reviewed/versioned
 capability update with new source and execution evidence. Two regression
 tests cover these negative promotions. This is a source/contract boundary,
 not a substitute for real compiler, SDK or installed-consumer conformance.
+
+## Portable evidence path guard
+
+The read-only matrix rejects control-byte, alternate-data-stream colon and
+trailing dot/space source/workflow paths before looking up claimed evidence.
+A portable path plus a present source file still does not attest executed
+matching-SHA CI, real non-Python Mechanical parity, compiler ABI or DSL
+compatibility. Those claims remain limited by each cell's explicit status.
