@@ -39,7 +39,7 @@ class AnalysisOptions:
         paths = value.get("changed_paths", ())
         if not isinstance(paths, (tuple, list)) or any(
             not isinstance(p, str) or not p or p.startswith("/")
-            or "\\" in p or "\x00" in p
+            or "\\" in p or any(ord(c) < 32 or ord(c) == 127 for c in p)
             or any(part in ("", ".", "..") for part in p.split("/"))
             for p in paths
         ) or len(set(paths)) != len(paths):
@@ -51,6 +51,9 @@ class AnalysisOptions:
     def validate(self) -> None:
         if self.version != "0.1":
             raise AnalysisRequestError("unknown analysis request version")
+        for authority in ("naming", "formal", "external_gate"):
+            if type(getattr(self, authority)) is not bool:
+                raise AnalysisRequestError("authority option must be an explicit Boolean")
         if self.naming or self.formal or self.external_gate:
             raise AnalysisRequestError(
                 "Naming, Formal and external Gate require separate opt-in APIs and evidence"
@@ -61,7 +64,7 @@ class AnalysisOptions:
         if (not isinstance(self.changed_paths, tuple)
                 or len(set(self.changed_paths)) != len(self.changed_paths)
                 or any(not isinstance(p, str) or not p or p.startswith("/")
-                       or "\\" in p or "\x00" in p
+                       or "\\" in p or any(ord(c) < 32 or ord(c) == 127 for c in p)
                        or any(part in ("", ".", "..") for part in p.split("/"))
                        for p in self.changed_paths)):
             raise AnalysisRequestError("invalid changed paths")
