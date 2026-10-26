@@ -158,6 +158,85 @@ def negative_controls(manifest: dict, sources: dict[str, bytes], tree: dict[str,
 
 
 
+def compare_release_selection(manifest: dict, observed_blobs: dict[str, str]) -> dict:
+    """Fail closed if release-tag source is silently equated to a dev snapshot."""
+    selected = {path: blob for path, blob, _ in manifest["files"]}
+    release = manifest["release_tag"]
+    expected = release["selected_blobs"]
+    require(set(selected) == set(expected) == set(observed_blobs),
+            "RELEASE_SELECTED_FILE_SET_DRIFT")
+    require(all(isinstance(blob, str) and len(blob) == 40
+                and all(c in "0123456789abcdef" for c in blob)
+                for blob in expected.values()), "RELEASE_BLOB_IDENTITY_INVALID")
+    require(all(observed_blobs[path] == expected[path] for path in selected),
+            "RELEASE_SELECTED_BLOB_MISMATCH")
+    drift = sorted(path for path in selected if selected[path] != observed_blobs[path])
+    require(drift == release["expected_drift_paths"]
+            and drift == ["stripe/_util.py", "stripe/_webhook.py"],
+            "RELEASE_SOURCE_EQUIVALENCE_DRIFT")
+    require(release["wheel_equivalence"] == "NOT_EVALUATED",
+            "RELEASE_WHEEL_PROOF_FORGED")
+    return {"status": "RELEASE_TAG_ATTESTED_SOURCE_MISMATCH",
+            "tag": release["tag"], "tag_commit": release["commit"],
+            "tag_tree": release["tree"], "selected_files": len(selected),
+            "matching_selected_files": len(selected) - len(drift),
+            "mismatched_selected_files": len(drift), "mismatched_paths": drift,
+            "observed_selected_blobs": observed_blobs,
+            "installed_wheel_equivalence": "NOT_EVALUATED"}
+
+
+def attest_release_tag(manifest: dict) -> dict:
+    """Read-only GitHub annotated tag→commit→tree attestation; no upstream code."""
+    from public_api_benchmark import request_bytes
+    release = manifest["release_tag"]
+    repo = manifest["benchmark"]
+    require(repo == "stripe/stripe-python" and release["tag"] == "v16.0.0",
+            "RELEASE_SELECTION_DRIFT")
+    base = "https://api.github.com/repos/" + repo + "/git/"
+    ref = json.loads(request_bytes(base + "ref/tags/v16.0.0"))
+    require(ref.get("ref") == "refs/tags/v16.0.0"
+            and ref.get("object", {}).get("type") == "tag"
+            and ref["object"].get("sha") == release["annotated_tag_object_sha"],
+            "RELEASE_TAG_OBJECT_DRIFT")
+    tag = json.loads(request_bytes(base + "tags/" + release["annotated_tag_object_sha"]))
+    require(tag.get("sha") == release["annotated_tag_object_sha"]
+            and tag.get("tag") == release["tag"]
+            and tag.get("object", {}).get("type") == "commit"
+            and tag["object"].get("sha") == release["commit"],
+            "RELEASE_TAG_COMMIT_DRIFT")
+    commit = json.loads(request_bytes(base + "commits/" + release["commit"]))
+    require(commit.get("sha") == release["commit"]
+            and commit.get("tree", {}).get("sha") == release["tree"],
+            "RELEASE_TAG_TREE_DRIFT")
+    tree = json.loads(request_bytes(base + "trees/" + release["tree"] + "?recursive=1"))
+    require(tree.get("sha") == release["tree"] and tree.get("truncated") is False,
+            "RELEASE_TREE_INCOMPLETE")
+    entries = {row["path"]: row["sha"] for row in tree["tree"]
+               if row["type"] == "blob"}
+    selected = {path: entries[path] for path, _, _ in manifest["files"]
+                if path in entries}
+    return compare_release_selection(manifest, selected)
+
+
+def release_negative_controls(manifest: dict, observed: dict[str, str]) -> int:
+    from copy import deepcopy
+    cases = []
+    bad = deepcopy(manifest)
+    bad["release_tag"]["selected_blobs"]["stripe/_util.py"] = "0" * 40
+    cases.append(("forged_release_blob", bad, observed))
+    bad = deepcopy(manifest)
+    bad["release_tag"]["expected_drift_paths"] = []
+    cases.append(("forged_source_equivalence", bad, observed))
+    cases.append(("missing_release_file", manifest,
+                  {k: v for k, v in observed.items() if k != "stripe/_webhook.py"}))
+    for label, fixture, actual in cases:
+        try:
+            compare_release_selection(fixture, actual)
+        except RuntimeError:
+            continue
+        raise RuntimeError("RELEASE_NEGATIVE_ACCEPTED " + label)
+    return len(cases)
+
 def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -> dict:
     """Run actual Pyright on exact source bytes, with unresolved imports explicit."""
     require(binary.is_file(), "EXTERNAL_PYRIGHT_MISSING")
@@ -336,6 +415,9 @@ def main() -> None:
     attest(manifest, sources, tree)
     result = inspect(manifest, sources)
     result["negative_controls"] = negative_controls(manifest, sources, tree)
+    result["release_tag"] = attest_release_tag(manifest)
+    result["release_negative_controls"] = release_negative_controls(
+        manifest, result["release_tag"]["observed_selected_blobs"])
     result["partial_typechecker"] = run_partial_pyright(sources, args.pyright, args.output)
     result["full_source_typechecker"] = run_full_repository_pyright(
         manifest, sources, args.pyright, args.output)
@@ -348,7 +430,9 @@ def main() -> None:
     print("PUBLIC_PYTHON_SDK=PASS source_attestation=10/10 "
           "negative_controls=" + str(result["negative_controls"])
           + " named_consumer=Stripe-Flask-example "
-          "pyright_external=NOT_EVALUATED callback_dispatch=NOT_EVALUATED")
+          + " release_tag_mismatch=2/10 release_negatives="
+          + str(result["release_negative_controls"])
+          + " pyright_external=NOT_EVALUATED callback_dispatch=NOT_EVALUATED")
 
 
 if __name__ == "__main__":
