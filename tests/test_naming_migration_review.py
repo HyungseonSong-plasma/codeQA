@@ -230,6 +230,18 @@ class MigrationReviewTests(unittest.TestCase):
                          packet.unknowns)
         self.assertIn("lexical_presence_not_source_binding_proof", packet.unknowns)
 
+    def test_non_python_embedded_substring_is_not_exact_identifier(self):
+        before = {
+            "src/a.py": "def unrelated(): return 1\\n",
+            "src/native.cpp": "void PrefixOldNameSuffix();\\n",
+        }
+        with self.assertRaisesRegex(MigrationPlanError, "old identifier absent"):
+            self.make(
+                before_sources=before,
+                before_sha256={p: sha256(v.encode()).hexdigest()
+                               for p, v in before.items()},
+            )
+
     def test_non_python_source_is_explicitly_lexical_only(self):
         before = {"src/a.py": SOURCE1, "src/native.cpp": "void OldName();\n"}
         after = {"src/a.py": SOURCE2, "src/native.cpp": "void new_name();\n"}

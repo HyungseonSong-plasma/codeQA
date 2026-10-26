@@ -110,7 +110,7 @@ def prepare_migration_review_packet(
                 except (tokenize.TokenError, IndentationError, SyntaxError):
                     # A malformed token stream must not certify name presence.
                     continue
-            elif re.search(r"(?<!\\w)" + re.escape(name) + r"(?!\\w)", content):
+            elif re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", content):
                 # Non-Python sources have no parser-backed binding evidence.
                 return True
         return False

@@ -69,3 +69,11 @@ Non-Python files retain only bounded regex lexical evidence and add
 Python NAME token may be a reference rather than a declaration, and dynamic
 bindings, imports, aliases, public consumers and ABI/DB contracts remain
 unresolved. Every packet still requires human review; no migration is run.
+
+## Non-Python lexical boundary correction (#94)
+
+The proposal-only non-Python fallback now uses actual regex word boundaries
+around an escaped candidate identifier. A substring such as `OldName` inside
+`PrefixOldNameSuffix` is **not** a separate lexical witness. This is still
+not a parser-backed C++/Rust binding or external ABI/DSL compatibility proof;
+all migration packets remain human-review-required and non-mutating.
