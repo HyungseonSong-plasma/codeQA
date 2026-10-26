@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from hashlib import sha256
 import json
+import math
 from typing import Any
 
 from codeqa.adapters.python_snapshot import PythonAnalysisCache
@@ -38,6 +39,8 @@ def _validate_json_tree(value: Any, active: set[int] | None = None) -> None:
                     _validate_json_tree(nested, active)
         finally:
             active.remove(id(value))
+    elif type(value) is float and not math.isfinite(value):
+        raise AnalysisRequestError("non-finite analysis policy JSON value")
     elif type(value) not in (str, int, float, bool, type(None)):
         raise AnalysisRequestError("analysis policy must use JSON-compatible values")
 
