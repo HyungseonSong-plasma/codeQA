@@ -121,7 +121,11 @@ def fields_for(name: str, classes: dict[str, ast.ClassDef], stack=()) -> dict[st
                 require(not any(k.arg in {"alias", "validation_alias", "serialization_alias",
                                            "alias_priority"} for k in item.value.keywords),
                         "UNREVIEWED_FIELD_ALIAS " + name + "." + field)
-        fields[field] = item.value is not None
+        if isinstance(item.value, ast.Call) and isinstance(item.value.func, ast.Name) and item.value.func.id == "Field":
+            fields[field] = bool(item.value.args) or any(
+                k.arg in {"default", "default_factory"} for k in item.value.keywords)
+        else:
+            fields[field] = item.value is not None
     return fields
 
 
