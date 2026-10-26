@@ -8,7 +8,11 @@ def record(sha, exported):
         "source_scope": "CODEQA_PRODUCT_PYTHON",
         "domain_policy_sha256": "a"*64, "role_policy_sha256": "b"*64,
         "interpretation": "STATIC_SOURCE_WITNESSES_NOT_RUNTIME_COHESION_OR_COMPATIBILITY_PROOF",
-        "status": "NOT_EVALUATED", "inventory": [],
+        "status": "NOT_EVALUATED", "inventory": [{
+            "path": "src/codeqa/core/__init__.py",
+            "sha256": "c" * 64,
+            "domain": "UNCLASSIFIED",
+        }],
         "observed_import_sites": 0, "classified_intra_import_sites": 0,
         "classified_cross_import_sites": 0, "import_witnesses": [],
         "init_import_candidates": exported,
