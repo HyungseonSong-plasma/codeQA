@@ -123,6 +123,28 @@ class PyrightRunnerFailClosedTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "PYRIGHT_UNKNOWN_DIAGNOSTIC_SEVERITY"):
             self.run_parser(report, exit_code=1)
 
+    def test_scanned_source_mutation_during_tool_run_rejected(self) -> None:
+        report = self.report("reportIncompatibleMethodOverride",
+                             "reportAssignmentType", "reportCallIssue")
+        fake = subprocess.CompletedProcess(
+            args=["synthetic-unit-test-only"], returncode=1,
+            stdout=json.dumps(report), stderr="",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "scan"
+            def tamper(*_args, **_kwargs):
+                (project / "contract.py").write_text("def changed(): pass\\n")
+                return fake
+            with patch.object(sdk.subprocess, "run", side_effect=tamper):
+                with self.assertRaisesRegex(RuntimeError, "PYRIGHT_SCANNED_SOURCE_BYTES_DRIFT"):
+                    sdk.pyright_scan(
+                        Path(sys.executable), project,
+                        sdk.FIXTURE / "invalid_advanced_contract.py",
+                        expect_errors=True,
+                        required_rules=("reportIncompatibleMethodOverride",
+                                        "reportAssignmentType", "reportCallIssue"),
+                    )
+
     def test_extra_source_outside_pinned_fixture_rejected(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "UNTRUSTED_EXTRA_SDK_SOURCE"):
             self.run_parser(self.report(), exit_code=0, negative=False,
