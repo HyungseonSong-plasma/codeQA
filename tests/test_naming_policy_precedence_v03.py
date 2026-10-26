@@ -104,7 +104,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
 
     def test_exact_exception_never_matches_another_symbol(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
-        source = SOURCE + "def other_function(): pass\\n"
+        source = SOURCE + "def other_function(): pass\n"
         sources = {"src/codeqa/physics/electron.py": source}
         r = p.resolve(**args(
             p, symbol="other_function", sources=sources,
@@ -225,7 +225,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
         raw = sample()
         raw["rules"][-1]["selector"]["symbol"] = "__init__"
         p = NamingPrecedencePolicy.from_mapping(raw)
-        source = SOURCE + "def __init__(): pass\\n"
+        source = SOURCE + "def __init__(): pass\n"
         sources = {"src/codeqa/physics/electron.py": source}
         self.assertEqual(p.resolve(**args(
             p, symbol="__init__", sources=sources,
@@ -246,7 +246,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
 
     def test_comment_only_lexical_hit_does_not_prove_declaration(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
-        source = "# comment_only\\n"
+        source = "# comment_only\n"
         sources = {"src/codeqa/physics/electron.py": source}
         r = p.resolve(**args(
             p, symbol="comment_only", sources=sources,
