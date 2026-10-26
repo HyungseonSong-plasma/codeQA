@@ -119,3 +119,16 @@ merged on top of the integrated tree as duplicate overlapping changes.
 Human review, repository ruleset readback and issue-level original
 acceptance gates remain separate; the combined test PR does not confer
 production Formal, Naming, SDK, ABI or migration authority.
+
+## Upstream MOOSE source lock integration (#93)
+
+This combined Draft now also incorporates #93 source PR #137's upstream
+`idaholab/moose@9f388366ccf38b9c34542ec5561198249fde0ac9`
+**three-file source identity** witness, tied to the pinned application
+`physics_app/dependencies.lock` and exact Git blob identities.
+`mixed-source-conformance.yml` is re-pinned to blob
+`d2d76c5853ca4b0a4ac9f81164efaa2a87622acb` in this same
+integration tree; its artifact upload count remains **one**.
+A real source fetch and negative checks are required in mixed-source CI.
+This is NOT upstream release/ABI, DSL grammar, parameter semantics or
+production compatibility evidence; those remain `NOT_EVALUATED`.

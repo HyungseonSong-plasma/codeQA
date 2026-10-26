@@ -8,6 +8,9 @@ on:
       - 'tests/test_cpp_parser_evidence.py'
       - 'src/codeqa/adapters/cpp_parser_evidence.py'
       - 'docs/cpp-parser-evidence-v0.1.md'
+      - 'src/codeqa/adapters/moose_framework_source.py'
+      - 'tests/test_moose_framework_source_lock.py'
+      - 'fixtures/moose-framework/**'
       - 'tests/test_mixed_source_coverage.py'
       - 'docs/mixed-source-coverage.md'
       - 'contracts/adapters/source-selection-v0.1.schema.json'
@@ -20,6 +23,9 @@ on:
       - 'tests/test_cpp_parser_evidence.py'
       - 'src/codeqa/adapters/cpp_parser_evidence.py'
       - 'docs/cpp-parser-evidence-v0.1.md'
+      - 'src/codeqa/adapters/moose_framework_source.py'
+      - 'tests/test_moose_framework_source_lock.py'
+      - 'fixtures/moose-framework/**'
       - 'tests/test_mixed_source_coverage.py'
       - 'docs/mixed-source-coverage.md'
       - 'contracts/adapters/source-selection-v0.1.schema.json'
@@ -146,6 +152,31 @@ jobs:
           print("CPP_PARSER_SOURCE=PASS syntax=", report.parse_status,
                 "abi=NOT_EVALUATED moose_dsl=NOT_EVALUATED")
           PY
+      - name: Verify pinned upstream MOOSE framework source identity (not ABI or DSL)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s codeqa/tests -p test_moose_framework_source_lock.py -v
+          base="https://raw.githubusercontent.com/idaholab/moose/9f388366ccf38b9c34542ec5561198249fde0ac9"
+          for path in framework/include/base/MooseApp.h framework/include/utils/InputParameters.h framework/src/parser/Parser.C; do
+            mkdir -p "moose-framework/$(dirname "$path")"
+            curl --fail --show-error --silent --location --retry 3 --connect-timeout 20 \
+              --max-time 120 "$base/$path" -o "moose-framework/$path"
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from codeqa.adapters.moose_framework_source import verify_framework_source_lock
+          lock = json.loads(Path("codeqa/fixtures/moose-framework/source-lock-v0.1.json").read_text())
+          deps = Path("moose/physics_app/dependencies.lock").read_text()
+          raw = {path: (Path("moose-framework") / path).read_bytes() for path in lock["files"]}
+          receipt = verify_framework_source_lock(
+              lock, deps, raw,
+              application_revision="1977ad5559e5aa7a1c8d04c83735c15e007130d5")
+          Path("moose-framework-source-evidence.json").write_text(
+              json.dumps(receipt, sort_keys=True, indent=2) + "\n")
+          print("MOOSE_FRAMEWORK_SOURCE=PINNED_IDENTITY_ONLY abi=NOT_EVALUATED dsl=NOT_EVALUATED")
+          PY
       - name: Upload parser-only C++ receipt
         uses: actions/upload-artifact@v4
         with:
@@ -153,5 +184,6 @@ jobs:
           path: |
             cpp-parser-evidence.json
             cpp-compiler-evidence.json
+            moose-framework-source-evidence.json
           if-no-files-found: error
           retention-days: 30
