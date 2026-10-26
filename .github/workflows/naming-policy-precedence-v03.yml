@@ -13,6 +13,20 @@ on:
       - 'tests/test_naming_field_classification_v03.py'
       - 'tests/test_naming_field_evidence_v03.py'
       - 'tests/test_naming_rule_inventory_v03.py'
+      - 'tests/test_naming_semantic_candidate_v04.py'
+      - 'src/codeqa/core/naming_scope_discovery_v04.py'
+      - 'src/codeqa/pipeline/naming_scope_discovery_v04.py'
+      - 'tests/test_naming_scope_discovery_v04.py'
+      - 'tests/test_naming_node_id_role_evidence_v04.py'
+      - 'src/codeqa/core/naming_node_id_role_evidence_v04.py'
+      - 'fixtures/naming-governance/codeqa-node-id-role-witness-v04.json'
+      - 'docs/naming-node-id-role-evidence-v04.md'
+      - 'fixtures/naming-governance/codeqa-real-source-role-sites-v04.json'
+      - 'fixtures/naming-governance/codeqa-source-scope-manifest-v04.json'
+      - 'docs/naming-scope-discovery-v04.md'
+      - 'src/codeqa/core/naming_semantic_candidate_v04.py'
+      - 'fixtures/naming-governance/codeqa-semantic-candidate-v04.json'
+      - 'docs/naming-semantic-candidate-v04.md'
       - 'src/codeqa/core/naming_rule_inventory_v03.py'
       - 'src/codeqa/pipeline/naming_rule_inventory_v03.py'
       - 'fixtures/naming-governance/codeqa-rule-acceptance-v03.json'
@@ -41,6 +55,20 @@ on:
       - 'tests/test_naming_field_classification_v03.py'
       - 'tests/test_naming_field_evidence_v03.py'
       - 'tests/test_naming_rule_inventory_v03.py'
+      - 'tests/test_naming_semantic_candidate_v04.py'
+      - 'src/codeqa/core/naming_scope_discovery_v04.py'
+      - 'src/codeqa/pipeline/naming_scope_discovery_v04.py'
+      - 'tests/test_naming_scope_discovery_v04.py'
+      - 'tests/test_naming_node_id_role_evidence_v04.py'
+      - 'src/codeqa/core/naming_node_id_role_evidence_v04.py'
+      - 'fixtures/naming-governance/codeqa-node-id-role-witness-v04.json'
+      - 'docs/naming-node-id-role-evidence-v04.md'
+      - 'fixtures/naming-governance/codeqa-real-source-role-sites-v04.json'
+      - 'fixtures/naming-governance/codeqa-source-scope-manifest-v04.json'
+      - 'docs/naming-scope-discovery-v04.md'
+      - 'src/codeqa/core/naming_semantic_candidate_v04.py'
+      - 'fixtures/naming-governance/codeqa-semantic-candidate-v04.json'
+      - 'docs/naming-semantic-candidate-v04.md'
       - 'src/codeqa/core/naming_rule_inventory_v03.py'
       - 'src/codeqa/pipeline/naming_rule_inventory_v03.py'
       - 'fixtures/naming-governance/codeqa-rule-acceptance-v03.json'
@@ -82,6 +110,9 @@ jobs:
           python -m unittest discover -s tests -p 'test_naming_field_classification_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_field_evidence_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_rule_inventory_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_semantic_candidate_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_scope_discovery_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_node_id_role_evidence_v04.py' -v
           python -m unittest discover -s tests -p 'test_naming_snapshot_coverage_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_review_worklist_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_policy_precedence_v03.py' -v

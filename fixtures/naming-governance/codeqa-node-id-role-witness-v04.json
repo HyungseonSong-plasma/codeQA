@@ -1,0 +1,128 @@
+{
+  "schema_version": "0.4-node-id-role-witness",
+  "source_commit": "667a5f17f9890c5588d4f1c8ae079aba241501f3",
+  "source_tree_sha": "e9a78ccc3a5ccf75f6ee4818289549f39f526d2d",
+  "status": "SOURCE_ROLE_CANDIDATES_ONLY",
+  "sites": [
+    {
+      "path": "src/codeqa/adapters/python_behavior.py",
+      "line": 78,
+      "owner": "_Calls.visit_FunctionDef",
+      "name": "node_id",
+      "syntax_kind": "local_binding",
+      "evidence_rule": "DECLARATION_ID_FSTRING_GENERATOR",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/adapters/python_p3_witness.py",
+      "line": 17,
+      "owner": "_Calls.__init__",
+      "name": "node_id",
+      "syntax_kind": "parameter",
+      "evidence_rule": "STRING_ANNOTATED_PARAMETER",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/adapters/python_p3_witness.py",
+      "line": 59,
+      "owner": "_Functions.visit_FunctionDef",
+      "name": "node_id",
+      "syntax_kind": "local_binding",
+      "evidence_rule": "DECLARATION_ID_FSTRING_GENERATOR",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/core/complexity.py",
+      "line": 10,
+      "owner": "ControlFlowObservation",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/core/duplication.py",
+      "line": 9,
+      "owner": "TokenBlock",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/core/function_context.py",
+      "line": 15,
+      "owner": "FunctionSyntaxContext",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/core/p3_witness.py",
+      "line": 9,
+      "owner": "P3CallWitness",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/evaluation/body_complexity.py",
+      "line": 19,
+      "owner": "BodyComplexityReview",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/evaluation/complexity.py",
+      "line": 39,
+      "owner": "ComplexityReview",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/evaluation/contextual.py",
+      "line": 20,
+      "owner": "ContextualCallReview",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/evaluation/mechanical.py",
+      "line": 40,
+      "owner": "MechanicalFinding",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/evaluation/mechanical.py",
+      "line": 51,
+      "owner": "CallMetrics",
+      "name": "node_id",
+      "syntax_kind": "class_annotation",
+      "evidence_rule": "STDLIB_DATACLASS_STRING_FIELD_CANDIDATE",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    },
+    {
+      "path": "src/codeqa/evaluation/quality_delta_v02.py",
+      "line": 69,
+      "owner": "_stable_symbol",
+      "name": "node_id",
+      "syntax_kind": "parameter",
+      "evidence_rule": "STRING_ANNOTATED_PARAMETER",
+      "role_candidate": "internal_declaration_node_identity_candidate"
+    }
+  ],
+  "approved_scopes": [],
+  "semantic_policy": "NOT_ADOPTED",
+  "rename_authorized": false
+}
