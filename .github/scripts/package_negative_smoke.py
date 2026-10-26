@@ -45,6 +45,19 @@ def main():
     extra = dict(content)
     extra["profiles/not-registered.json"] = b"{}"
     cases.append(("extra-unregistered-file", manifest, extra))
+    # Recompute the declared digest: these archives are internally consistent,
+    # yet the installed consumer must reject ambiguous/non-finite JSON bytes.
+    for label, payload in (
+        ("duplicate-json-key", b'{"nested":{"key":1,"key":2}}'),
+        ("nonfinite-json-constant", b'{"value":NaN}'),
+        ("nonfinite-json-overflow", b'{"value":1e9999}'),
+    ):
+        changed = dict(content)
+        changed[target] = payload
+        consistent = {**manifest, "files_sha256": {
+            **manifest["files_sha256"], target: sha256(payload).hexdigest(),
+        }}
+        cases.append((label, consistent, changed))
     with TemporaryDirectory(prefix="codeqa-negative-consumer-") as tmp:
         for index, (label, changed_manifest, files) in enumerate(cases):
             files["RESOURCE_MANIFEST.json"] = json.dumps(changed_manifest).encode()
@@ -58,6 +71,8 @@ def main():
                     version=args.version, source_revision=args.source_revision,
                 )
             except ResourceBundleError:
+                if (Path(tmp) / f"extract-{index}").exists():
+                    raise SystemExit("PACKAGE_NEGATIVE_SMOKE=FAIL partial-extraction " + label)
                 continue
             raise SystemExit("PACKAGE_NEGATIVE_SMOKE=FAIL " + label)
         # Reuse the real, verified installed bundle: the registry must not
