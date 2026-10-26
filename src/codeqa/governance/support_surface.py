@@ -47,6 +47,24 @@ PROTECTED_BOUNDARIES = {
 }
 
 
+# A coherent README edit cannot manufacture a second default pipeline, a new
+# policy Gate, or an additional Formal fixture authority. Such expansion needs
+# a separately reviewed, versioned supported-surface contract.
+EXCLUSIVE_MODES = {
+    "DEFAULT_SCOPED": {"python_mechanical"},
+    "FIXTURE_ONLY": {"formal_generated_fixture"},
+}
+EXCLUSIVE_AUTHORITIES = {"SCOPED_GATE": {"external_evidence_gate"}}
+PROTECTED_SOURCE_IDENTITIES = {
+    "python_mechanical": ("Python", "codeqa.pipeline.python:analyze_python"),
+    "python_naming_safe": ("Python", "codeqa.evaluation.naming:evaluate_naming"),
+    "naming_companions": ("Python", "codeqa.evaluation.naming:evaluate_naming"),
+    "external_evidence_gate": ("language-neutral", "codeqa.evaluation.evidence_gate:evaluate_gate"),
+    "formal_generated_fixture": ("Dafny", "codeqa.evaluation.formal_generated_gate:evaluate_generated_fixture_gate"),
+    "qa_result_contract": ("language-neutral", "codeqa.evaluation.qa_result:validate_qa_result"),
+}
+
+
 def _reject(message: str) -> None:
     raise SupportSurfaceError(message)
 
@@ -166,6 +184,19 @@ def audit_support_surface(
         feature = next(item for item in features if item["id"] == fid)
         if (feature["mode"], feature["authority"], feature["scope"]) != expected:
             _reject("protected feature activation/authority drift: " + fid)
+    for mode, expected_ids in EXCLUSIVE_MODES.items():
+        actual_ids = {f["id"] for f in features if f["mode"] == mode}
+        if actual_ids != expected_ids:
+            _reject("unreviewed exclusive support mode: " + mode)
+    for authority, expected_ids in EXCLUSIVE_AUTHORITIES.items():
+        actual_ids = {f["id"] for f in features if f["authority"] == authority}
+        if actual_ids != expected_ids:
+            _reject("unreviewed scoped authority: " + authority)
+    for fid, (required_language, expected_entrypoint) in PROTECTED_SOURCE_IDENTITIES.items():
+        feature = by_id[fid]
+        if (required_language not in feature["languages"]
+                or feature["entrypoint"] != expected_entrypoint):
+            _reject("protected language/source identity drift: " + fid)
     # Source-level guard: the default Python Mechanical path must not import
     # opt-in Naming. Dynamic dispatch and runtime effects remain NOT_EVALUATED.
     default_source = _path(root, "src/codeqa/pipeline/python.py")
