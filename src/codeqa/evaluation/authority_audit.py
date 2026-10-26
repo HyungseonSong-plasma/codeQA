@@ -86,6 +86,19 @@ def audit_authority_propagation(
         reasons.add("POLICY_MISMATCH_OR_UNPINNED")
     if not re.fullmatch(r"[0-9a-f]{40}", expected_source_sha or ""):
         reasons.add("SOURCE_SHA_UNPINNED")
+    # A matching opaque snapshot string and separately matching source SHA do
+    # not establish that the decision was evaluated against those source bytes.
+    # Require one canonical Git revision identity before emitting scoped allow.
+    # This is syntactic binding, NOT independent GitHub/run authentication.
+    if (not isinstance(expected_snapshot_id, str)
+            or not re.fullmatch(
+                r"git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}",
+                expected_snapshot_id,
+            )
+            or not isinstance(expected_source_sha, str)
+            or not expected_snapshot_id.endswith("@" + expected_source_sha)):
+        reasons.add("SNAPSHOT_SOURCE_BINDING_UNVERIFIED")
+
     url = None
     if receipt is None:
         reasons.add("INDEPENDENT_RECEIPT_MISSING")
