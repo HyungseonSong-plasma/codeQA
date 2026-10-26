@@ -100,6 +100,8 @@ def _validated_source_paths(sources: Mapping[str, bytes],
     paths = tuple(sorted(sources))
     for path in paths:
         if (not isinstance(path, str) or not _PATH.fullmatch(path)
+                or any(component in {".", ".."} or component.endswith((".", " "))
+                       for component in path.split("/"))
                 or not isinstance(sources[path], bytes)
                 or not isinstance(expected_digests[path], str)
                 or not re.fullmatch(r"[0-9a-f]{64}", expected_digests[path])
@@ -209,7 +211,10 @@ def scan_pinned_git(root: Path, *, revision: str) -> NamingSnapshotCoverage:
         if not path.endswith(".py"):
             continue
         if (mode not in {b"100644", b"100755"} or object_type != b"blob"
-                or not _PATH.fullmatch(path) or not _SHA.fullmatch(blob)
+                or not _PATH.fullmatch(path)
+                or any(c in {".", ".."} or c.endswith((".", " "))
+                       for c in path.split("/"))
+                or not _SHA.fullmatch(blob)
                 or path in sources):
             raise NamingSnapshotCoverageError("unsafe, ambiguous or untracked Python Git entry")
         body = reader.read_file(revision, path)
