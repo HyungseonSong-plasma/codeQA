@@ -63,14 +63,21 @@ def main() -> None:
                 or requested.companion_states["naming"] != "NOT_REQUESTED"
                 or requested.companion_states["formal"] != "NOT_REQUESTED"):
             raise SystemExit("PACKAGE_SMOKE=FAIL opt-in request changed Mechanical or activated unsupported companions")
+        authority_negative_count = 0
         for unsupported in ("naming", "formal", "external_gate"):
-            try:
-                AnalysisOptions.from_mapping({unsupported: True})
-            except AnalysisRequestError:
-                pass
-            else:
-                raise SystemExit("PACKAGE_REQUEST_SMOKE=FAIL unsupported authority activated: " + unsupported)
-        print("PACKAGE_REQUEST_SMOKE=PASS impact=EXECUTED naming/formal/external_gate=NOT_REQUESTED")
+            for invalid in (True, 0, None, "", []):
+                try:
+                    AnalysisOptions.from_mapping({unsupported: invalid})
+                except AnalysisRequestError:
+                    authority_negative_count += 1
+                else:
+                    raise SystemExit(
+                        "PACKAGE_REQUEST_SMOKE=FAIL unsupported/ambiguous authority: "
+                        + unsupported + " value=" + repr(invalid)
+                    )
+        if authority_negative_count != 15:
+            raise SystemExit("PACKAGE_REQUEST_SMOKE=FAIL missing negative cases")
+        print("PACKAGE_REQUEST_SMOKE=PASS impact=EXECUTED naming/formal/external_gate=NOT_REQUESTED authority_negatives=15")
 
         print("PACKAGE_SMOKE=PASS", installed, "node_count=", len(report.graph.nodes),
               "resource_count=", len(hashes), "version=", version("codeqa"))
