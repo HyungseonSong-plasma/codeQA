@@ -78,7 +78,7 @@ Against the newer pinned snapshot, selected `UserPublic` and
 `fe56fa70289e` Alembic revision appears in the newer chain only.
 Selected unchanged request/response DTO field names and requiredness
 are independently checked against **both** TypeScript generated client
-snapshots. Five negative controls cover forged historical bytes, a
+snapshots. Six negative controls cover forged historical bytes, a
 mismatched historical TS alias, forged historical model field, missing
 migration edge and fabricated compatibility delta.
 
