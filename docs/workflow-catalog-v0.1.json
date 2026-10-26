@@ -135,8 +135,7 @@
       "owner": "codeQA source/conformance",
       "trigger_events": [
         "pull_request",
-        "push",
-        "workflow_dispatch"
+        "push"
       ],
       "required_check": null,
       "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
