@@ -306,10 +306,16 @@ def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
         raw = done.stdout.encode()
         output.mkdir(parents=True, exist_ok=True)
         (output / "public-python-sdk-full-source-pyright.json").write_bytes(raw)
+    rule_counts = {}
+    for diagnostic in errors:
+        rule = diagnostic.get("rule") or "UNCLASSIFIED"
+        rule_counts[rule] = rule_counts.get(rule, 0) + 1
     print("PYRIGHT_STRIPE_FULL_SOURCE=EXECUTED errors=" + str(count)
           + " filesAnalyzed=" + str(analyzed)
+          + " rules=" + json.dumps(rule_counts, sort_keys=True)
           + " dependency_closure=NOT_EVALUATED runtime=NOT_EXECUTED")
     return {"status": "EXECUTED_PINNED_REPOSITORY_SOURCE",
+            "diagnostic_rule_counts": rule_counts,
             "version": "1.1.414", "commit": manifest["commit"],
             "tree": manifest["tree"], "files_analyzed": analyzed,
             "errors": count, "exit_code": done.returncode,
