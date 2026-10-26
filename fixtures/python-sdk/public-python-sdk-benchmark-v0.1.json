@@ -70,5 +70,28 @@
     "callback_runtime_dispatch": "NOT_EVALUATED",
     "pyright_verified_override": "NOT_EVALUATED",
     "sdk_install_compatibility": "NOT_EVALUATED"
+  },
+  "release_tag": {
+    "tag": "v16.0.0",
+    "annotated_tag_object_sha": "8f2bd3f5bf2e21553b08bb0d47f0a3984a576e47",
+    "commit": "29363094b09a67f8b1b50f577b463edbbb27ec9a",
+    "tree": "d11d37ace1173fb7dfb4d66afa29b4b9a6760f4c",
+    "selected_blobs": {
+      "LICENSE": "f9ee781c976b733377d99911319769bf95229bd8",
+      "pyproject.toml": "e9374390fe1749ce33191352e569a48da88e8907",
+      "stripe/_version.py": "7360302a433b308818a923b3a26745645ca9e853",
+      "stripe/__init__.py": "d5124858af100a01c9eca619c33d0a94ecbc0cec",
+      "stripe/_util.py": "8b378c63c880eda7180a025ec8d9f745895f619f",
+      "stripe/_ephemeral_key.py": "5ca8ca1e973e7acdd35f34cd35c61819b4d72e1b",
+      "stripe/_createable_api_resource.py": "993a3261669a53816c842e0e49191dae297848ce",
+      "stripe/_deletable_api_resource.py": "ee23c742cb7e5ed003d590cb07759214bab67600",
+      "stripe/_webhook.py": "9fc269e691b6566e804d19132ef79b2d270f4da8",
+      "examples/webhooks.py": "5f393bf00d2044edb14d83e09e759aa04c84c62f"
+    },
+    "expected_drift_paths": [
+      "stripe/_util.py",
+      "stripe/_webhook.py"
+    ],
+    "wheel_equivalence": "NOT_EVALUATED"
   }
 }

@@ -82,3 +82,10 @@ metaclass behavior, callback dispatch, complete dependency closure and
 installed wheel equivalence remain `NOT_EVALUATED`. This does not
 replace the independently pinned installed SDK and real consumer
 conformance still required for issue closure.
+
+
+## Machine-verifiable release-tag identity boundary (2026-10-26)
+
+The selected source snapshot has `pyproject.toml` version `16.0.0`, but **it is not the same Git tree as the annotated `v16.0.0` release**. The new `release_tag` evidence records the independently fetched annotated tag object `8f2bd3f5bf2e21553b08bb0d47f0a3984a576e47` → release commit `29363094b09a67f8b1b50f577b463edbbb27ec9a` → tree `d11d37ace1173fb7dfb4d66afa29b4b9a6760f4c`. Of the **same 10 selected files**, **8 Git blobs match** and **2 differ**: `stripe/_util.py` and `stripe/_webhook.py`. This is a real selected-source mismatch, not a Pyright or SDK compatibility verdict.
+
+The read-only CI now independently checks the live annotated tag ref, tag object, commit/tree identity and all ten release-tag blob identities against the versioned manifest; it rejects moved tags, missing/truncated trees, forged blob identities and a false source-equivalence claim. Three pure negative controls deliberately forge release identity, expected drift and file coverage. The JSON receipt records `RELEASE_TAG_ATTESTED_SOURCE_MISMATCH`, **not** installed release wheel equivalence. No PyPI wheel was installed or authenticated for this release-tag witness; runtime/API/consumer/override compatibility remain `NOT_EVALUATED`. Existing source-only Stripe snapshot and partial Pyright checks remain separate and unchanged.

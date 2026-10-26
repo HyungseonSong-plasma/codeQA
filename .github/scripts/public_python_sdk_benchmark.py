@@ -158,6 +158,85 @@ def negative_controls(manifest: dict, sources: dict[str, bytes], tree: dict[str,
 
 
 
+def compare_release_selection(manifest: dict, observed_blobs: dict[str, str]) -> dict:
+    """Fail closed if release-tag source is silently equated to a dev snapshot."""
+    selected = {path: blob for path, blob, _ in manifest["files"]}
+    release = manifest["release_tag"]
+    expected = release["selected_blobs"]
+    require(set(selected) == set(expected) == set(observed_blobs),
+            "RELEASE_SELECTED_FILE_SET_DRIFT")
+    require(all(isinstance(blob, str) and len(blob) == 40
+                and all(c in "0123456789abcdef" for c in blob)
+                for blob in expected.values()), "RELEASE_BLOB_IDENTITY_INVALID")
+    require(all(observed_blobs[path] == expected[path] for path in selected),
+            "RELEASE_SELECTED_BLOB_MISMATCH")
+    drift = sorted(path for path in selected if selected[path] != observed_blobs[path])
+    require(drift == release["expected_drift_paths"]
+            and drift == ["stripe/_util.py", "stripe/_webhook.py"],
+            "RELEASE_SOURCE_EQUIVALENCE_DRIFT")
+    require(release["wheel_equivalence"] == "NOT_EVALUATED",
+            "RELEASE_WHEEL_PROOF_FORGED")
+    return {"status": "RELEASE_TAG_ATTESTED_SOURCE_MISMATCH",
+            "tag": release["tag"], "tag_commit": release["commit"],
+            "tag_tree": release["tree"], "selected_files": len(selected),
+            "matching_selected_files": len(selected) - len(drift),
+            "mismatched_selected_files": len(drift), "mismatched_paths": drift,
+            "observed_selected_blobs": observed_blobs,
+            "installed_wheel_equivalence": "NOT_EVALUATED"}
+
+
+def attest_release_tag(manifest: dict) -> dict:
+    """Read-only GitHub annotated tag→commit→tree attestation; no upstream code."""
+    from public_api_benchmark import request_bytes
+    release = manifest["release_tag"]
+    repo = manifest["benchmark"]
+    require(repo == "stripe/stripe-python" and release["tag"] == "v16.0.0",
+            "RELEASE_SELECTION_DRIFT")
+    base = "https://api.github.com/repos/" + repo + "/git/"
+    ref = json.loads(request_bytes(base + "ref/tags/v16.0.0"))
+    require(ref.get("ref") == "refs/tags/v16.0.0"
+            and ref.get("object", {}).get("type") == "tag"
+            and ref["object"].get("sha") == release["annotated_tag_object_sha"],
+            "RELEASE_TAG_OBJECT_DRIFT")
+    tag = json.loads(request_bytes(base + "tags/" + release["annotated_tag_object_sha"]))
+    require(tag.get("sha") == release["annotated_tag_object_sha"]
+            and tag.get("tag") == release["tag"]
+            and tag.get("object", {}).get("type") == "commit"
+            and tag["object"].get("sha") == release["commit"],
+            "RELEASE_TAG_COMMIT_DRIFT")
+    commit = json.loads(request_bytes(base + "commits/" + release["commit"]))
+    require(commit.get("sha") == release["commit"]
+            and commit.get("tree", {}).get("sha") == release["tree"],
+            "RELEASE_TAG_TREE_DRIFT")
+    tree = json.loads(request_bytes(base + "trees/" + release["tree"] + "?recursive=1"))
+    require(tree.get("sha") == release["tree"] and tree.get("truncated") is False,
+            "RELEASE_TREE_INCOMPLETE")
+    entries = {row["path"]: row["sha"] for row in tree["tree"]
+               if row["type"] == "blob"}
+    selected = {path: entries[path] for path, _, _ in manifest["files"]
+                if path in entries}
+    return compare_release_selection(manifest, selected)
+
+
+def release_negative_controls(manifest: dict, observed: dict[str, str]) -> int:
+    from copy import deepcopy
+    cases = []
+    bad = deepcopy(manifest)
+    bad["release_tag"]["selected_blobs"]["stripe/_util.py"] = "0" * 40
+    cases.append(("forged_release_blob", bad, observed))
+    bad = deepcopy(manifest)
+    bad["release_tag"]["expected_drift_paths"] = []
+    cases.append(("forged_source_equivalence", bad, observed))
+    cases.append(("missing_release_file", manifest,
+                  {k: v for k, v in observed.items() if k != "stripe/_webhook.py"}))
+    for label, fixture, actual in cases:
+        try:
+            compare_release_selection(fixture, actual)
+        except RuntimeError:
+            continue
+        raise RuntimeError("RELEASE_NEGATIVE_ACCEPTED " + label)
+    return len(cases)
+
 def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -> dict:
     """Run actual Pyright on exact source bytes, with unresolved imports explicit."""
     require(binary.is_file(), "EXTERNAL_PYRIGHT_MISSING")
@@ -224,6 +303,108 @@ def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -
             "callback_dispatch": "NOT_EVALUATED"}
 
 
+
+def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
+                              binary: Path, output: Path) -> dict:
+    """Git-fetch immutable public source in an isolated temp tree; never import it.
+
+    Only Git checkout and static Pyright analysis are performed. No upstream
+    install scripts, tests, imports, hooks, submodules, or API calls execute.
+    """
+    import os
+    with tempfile.TemporaryDirectory(prefix="codeqa-stripe-pinned-git-") as tmp:
+        repo = Path(tmp) / "upstream"
+        repo.mkdir()
+        env = {**os.environ, "GIT_LFS_SKIP_SMUDGE": "1",
+               "GIT_TERMINAL_PROMPT": "0"}
+        commands = [
+            ["git", "-c", "core.hooksPath=/dev/null", "init", "-q", str(repo)],
+            ["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null",
+             "-c", "submodule.recurse=false", "fetch", "--depth=1",
+             "https://github.com/stripe/stripe-python.git", manifest["commit"]],
+            ["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null",
+             "-c", "submodule.recurse=false", "checkout", "-q", "--detach", "FETCH_HEAD"],
+        ]
+        for command in commands:
+            done = subprocess.run(command, capture_output=True, text=True,
+                                  check=False, timeout=120, env=env)
+            require(done.returncode == 0,
+                    "PINNED_SDK_GIT_READ_FAILED " + done.stderr[-400:])
+        def rev(*args: str) -> str:
+            run = subprocess.run(["git", "-C", str(repo), "rev-parse", *args],
+                                 capture_output=True, text=True,
+                                 check=False, timeout=20, env=env)
+            require(run.returncode == 0, "PINNED_SDK_GIT_IDENTITY_ERROR")
+            return run.stdout.strip()
+        require(rev("HEAD") == manifest["commit"]
+                and rev("HEAD^{tree}") == manifest["tree"],
+                "PINNED_SDK_GIT_COMMIT_TREE_MISMATCH")
+        for path, raw in sources.items():
+            target = repo / path
+            require(target.is_file() and target.resolve().is_relative_to(repo.resolve())
+                    and target.read_bytes() == raw,
+                    "PINNED_SDK_CHECKOUT_SOURCE_DRIFT " + path)
+        config = {"typeCheckingMode": "strict",
+                  "include": ["examples/webhooks.py", "stripe/_ephemeral_key.py"],
+                  "extraPaths": ["."], "reportMissingImports": "error"}
+        (repo / "pyrightconfig.json").write_text(
+            json.dumps(config, sort_keys=True), encoding="utf-8")
+        done = subprocess.run(
+            [str(binary.resolve()), "--project", str(repo), "--pythonpath",
+             sys.executable, "--outputjson"],
+            cwd=ROOT, capture_output=True, text=True, check=False, timeout=180)
+        require(done.returncode in (0, 1), "FULL_SOURCE_PYRIGHT_CRASH")
+        try:
+            native = json.loads(done.stdout)
+        except ValueError as exc:
+            raise RuntimeError("FULL_SOURCE_PYRIGHT_INVALID_JSON") from exc
+        require(native.get("version") == "1.1.414"
+                and isinstance(native.get("summary"), dict)
+                and isinstance(native.get("generalDiagnostics"), list)
+                and not native.get("fatalErrorOccurred")
+                and not native.get("configParseErrorOccurred"),
+                "FULL_SOURCE_PYRIGHT_INCOMPLETE")
+        count = native["summary"].get("errorCount")
+        analyzed = native["summary"].get("filesAnalyzed")
+        require(type(count) is int and type(analyzed) is int and analyzed >= 2,
+                "FULL_SOURCE_PYRIGHT_MISSING_COVERAGE")
+        errors = [x for x in native["generalDiagnostics"]
+                  if isinstance(x, dict) and x.get("severity") == "error"]
+        require(count == len(errors) and (done.returncode == 1) == bool(count),
+                "FULL_SOURCE_PYRIGHT_EXIT_MISMATCH")
+        for diagnostic in native["generalDiagnostics"]:
+            require(isinstance(diagnostic, dict)
+                    and isinstance(diagnostic.get("file"), str),
+                    "FULL_SOURCE_PYRIGHT_MALFORMED_DIAGNOSTIC")
+            location = Path(diagnostic["file"])
+            actual = (location if location.is_absolute() else repo / location).resolve()
+            require(actual.is_relative_to(repo.resolve()),
+                    "FULL_SOURCE_PYRIGHT_FOREIGN_DIAGNOSTIC")
+        require(all((repo / p).read_bytes() == raw for p, raw in sources.items()),
+                "FULL_SOURCE_PYRIGHT_MUTATED_SELECTED_SOURCE")
+        raw = done.stdout.encode()
+        output.mkdir(parents=True, exist_ok=True)
+        (output / "public-python-sdk-full-source-pyright.json").write_bytes(raw)
+    rule_counts = {}
+    for diagnostic in errors:
+        rule = diagnostic.get("rule") or "UNCLASSIFIED"
+        rule_counts[rule] = rule_counts.get(rule, 0) + 1
+    print("PYRIGHT_STRIPE_FULL_SOURCE=EXECUTED errors=" + str(count)
+          + " filesAnalyzed=" + str(analyzed)
+          + " rules=" + json.dumps(rule_counts, sort_keys=True)
+          + " dependency_closure=NOT_EVALUATED runtime=NOT_EXECUTED")
+    return {"status": "EXECUTED_PINNED_REPOSITORY_SOURCE",
+            "diagnostic_rule_counts": rule_counts,
+            "version": "1.1.414", "commit": manifest["commit"],
+            "tree": manifest["tree"], "files_analyzed": analyzed,
+            "errors": count, "exit_code": done.returncode,
+            "native_json_sha256": hashlib.sha256(raw).hexdigest(),
+            "third_party_dependency_closure": "NOT_EVALUATED",
+            "installed_wheel_identity": "NOT_EVALUATED",
+            "override_compatibility": "NOT_EVALUATED",
+            "runtime_callback_dispatch": "NOT_EVALUATED"}
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--output", type=Path, required=True)
@@ -234,7 +415,12 @@ def main() -> None:
     attest(manifest, sources, tree)
     result = inspect(manifest, sources)
     result["negative_controls"] = negative_controls(manifest, sources, tree)
+    result["release_tag"] = attest_release_tag(manifest)
+    result["release_negative_controls"] = release_negative_controls(
+        manifest, result["release_tag"]["observed_selected_blobs"])
     result["partial_typechecker"] = run_partial_pyright(sources, args.pyright, args.output)
+    result["full_source_typechecker"] = run_full_repository_pyright(
+        manifest, sources, args.pyright, args.output)
     result["manifest_sha256"] = hashlib.sha256(MANIFEST.read_bytes()).hexdigest()
     result["source_files"] = [{"path": p, "git_blob": b, "sha256": h}
                               for p, b, h in manifest["files"]]
@@ -244,7 +430,9 @@ def main() -> None:
     print("PUBLIC_PYTHON_SDK=PASS source_attestation=10/10 "
           "negative_controls=" + str(result["negative_controls"])
           + " named_consumer=Stripe-Flask-example "
-          "pyright_external=NOT_EVALUATED callback_dispatch=NOT_EVALUATED")
+          + " release_tag_mismatch=2/10 release_negatives="
+          + str(result["release_negative_controls"])
+          + " pyright_external=NOT_EVALUATED callback_dispatch=NOT_EVALUATED")
 
 
 if __name__ == "__main__":
