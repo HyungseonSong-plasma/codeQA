@@ -95,6 +95,15 @@ class AnalysisRequestTests(unittest.TestCase):
             with self.subTest(paths=paths), self.assertRaises(AnalysisRequestError):
                 AnalysisOptions.from_mapping({"changed_paths": paths})
 
+    def test_nonportable_changed_path_aliases_rejected(self):
+        for path in ("src/name:stream.py", "src/trailing./file.py",
+                     "src/trailing /file.py"):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(AnalysisRequestError, "changed paths"):
+                    AnalysisOptions.from_mapping({"changed_paths": [path]})
+                with self.assertRaisesRegex(AnalysisRequestError, "changed paths"):
+                    AnalysisOptions(changed_paths=(path,)).validate()
+
     def test_unknown_version_rejected(self):
         with self.assertRaises(AnalysisRequestError):
             AnalysisOptions.from_mapping({"version": "2.0"})
