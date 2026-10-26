@@ -26,6 +26,24 @@ class SupportSurfaceEscalationTests(unittest.TestCase):
         with self.assertRaises(SupportSurfaceError):
             audit_support_surface(ROOT, manifest, readme=coherent_readme)
 
+    def test_adopted_naming_v05_stays_exact_field_opt_in(self):
+        self.assert_rejected_even_with_matching_readme(
+            lambda f: f["official_naming_v05_exact_field"].update(
+                mode="DEFAULT_SCOPED", authority="HEURISTIC_REVIEW"
+            )
+        )
+        self.assert_rejected_even_with_matching_readme(
+            lambda f: f["official_naming_v05_exact_field"].update(
+                scope="ALL_INTERNAL_DECLARATIONS"
+            )
+        )
+        self.assert_rejected_even_with_matching_readme(
+            lambda f: f["official_naming_v05_exact_field"].update(
+                entrypoint="codeqa.evaluation.naming:evaluate_naming",
+                source="src/codeqa/evaluation/naming.py",
+            )
+        )
+
     def test_second_default_pipeline_is_not_implicitly_authorized(self):
         self.assert_rejected_even_with_matching_readme(
             lambda f: f["mechanical_companions"].update(
