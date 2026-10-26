@@ -37,3 +37,24 @@ A reviewer must supply an approved migration plan and regression scope,
 sign off on public/SDK/DTO/SQL/Rust/C++/MOOSE boundary evidence, and approve
 the source-scope, policy and reference completeness. An approved plan is a
 separate document and does **not** authorize automated source rewriting.
+
+## Python proposal syntax preflight (bounded)
+
+For `.py` and `.pyi` source declarations, a proposed replacement name
+must pass Python's `str.isidentifier()` and not be a reserved keyword.
+Invalid suggestions such as `class`, `bad-name`, qualified names or
+control-character names fail before creating a migration review packet.
+A syntactically valid Unicode identifier is still only
+`UNVERIFIED_PROPOSAL`: confusables, external aliases, bindings,
+runtime reflection and public API compatibility require separate
+human/consumer evidence. This does not execute or authorize a rename.
+
+## Python source-token witness hardening (#94)
+
+For .py and .pyi proposals, a declaration or verified-lexical reference
+must now be an exact NAME token on the declared line of parseable Python
+source. Names that appear only in comments, string literals, or syntax-invalid
+source cannot satisfy the lexical witness. This remains a conservative
+proposal-only filter: a token is not a resolved declaration, callback, public
+API contract or independently reviewed migration approval. C++/Rust lexical
+witnesses remain parser/ABI NOT_EVALUATED here.
