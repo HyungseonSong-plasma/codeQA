@@ -107,6 +107,33 @@ class DomainInventoryTests(unittest.TestCase):
                         self.sources, self._graph(edges=(forged,)), POLICY, ROLES
                     )
 
+    def test_deferred_multi_import_has_exact_ast_witness(self) -> None:
+        self.sources["src/codeqa/core/graph.py"] = (
+            "if flag:\n    import codeqa.core.naming, codeqa.core.graph\n"
+        )
+        edge = StaticDependency(
+            "src/codeqa/core/graph.py", "src/codeqa/core/naming.py",
+            2, "import codeqa.core.naming", "conditional_or_deferred",
+        )
+        report = analyze_domain_inventory(
+            self.sources, self._graph(edges=(edge,)), POLICY, ROLES
+        )
+        self.assertEqual(report["observed_import_sites"], 1)
+        self.assertEqual(report["import_witnesses"][0]["execution"], "conditional_or_deferred")
+
+    def test_unparseable_source_cannot_attest_import_edge(self) -> None:
+        self.sources["src/codeqa/core/graph.py"] = (
+            "import codeqa.core.naming\nnot valid Python !\n"
+        )
+        edge = StaticDependency(
+            "src/codeqa/core/graph.py", "src/codeqa/core/naming.py",
+            1, "import codeqa.core.naming", "top_level",
+        )
+        with self.assertRaisesRegex(DomainInventoryError, "selected source import"):
+            analyze_domain_inventory(
+                self.sources, self._graph(edges=(edge,)), POLICY, ROLES
+            )
+
     def test_nonportable_product_source_paths_rejected(self) -> None:
         for bad in ("src/codeqa/core/unsafe\n.py",
                     "src/codeqa/core/file:stream.py",
