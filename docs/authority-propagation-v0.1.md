@@ -109,3 +109,12 @@ and deployed manifest hashes and valid evidence digests. Adversarial tests
 construct coherent receipts for forged dataclasses and require BLOCK. This is
 **local consistency only**; even valid results do not independently attest a
 runner, deployed binary, waiver approval or production merge authorization.
+
+## Malformed caller identity fail-closed behavior
+
+A caller-supplied policy fingerprint or source SHA with the wrong runtime
+type (including Boolean, number, list, mapping or null) produces an
+explicit `BLOCK` with an unpinned/mismatched reason, not an uncaught
+regular-expression type error or a scoped allow. This improves receipt
+consumer error handling; it does not independently authenticate a GitHub
+run or grant production merge/deploy authority.
