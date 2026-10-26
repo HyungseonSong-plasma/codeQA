@@ -92,3 +92,15 @@ containing ASCII controls, Windows alternate-data-stream colons or trailing
 dot/space path components. Such aliases cannot be trusted as stable
 cross-platform source identity witnesses; this check does not prove a
 Git checkout or source snapshot was independently attested.
+
+## Selected-source import-site attestation (#119)
+
+The domain inventory now parses the caller-selected Python source bytes and
+requires every supplied static dependency edge to match an actual AST import
+at its exact source line, normalized import expression and top-level versus
+deferred execution classification. Forged edge lines, fabricated import text
+and false top-level/deferred claims fail closed. This checks lexical presence
+only: target-module resolution, complete dependency coverage, actual runtime
+imports, public API compatibility and independent Git snapshot authenticity
+remain separate and NOT_EVALUATED. The source selection and exact SHA must
+still be established by the caller/CI.
