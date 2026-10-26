@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.3-source-only-acceptance",
+  "issue": 91,
+  "scope": "EXACT_50_HISTORICAL_SITES_ONE_PINNED_PYTHON_FILE",
+  "source": {
+    "repository": "HyungseonSong-plasma/codeQA",
+    "commit": "dfd94bb25d52642bb2e46766b1ebe074c2f82803",
+    "path": "src/codeqa/core/naming_glossary.py",
+    "git_blob_sha": "e5da126ead5f25c2eb3be5bb0e16d1c09a430df4",
+    "sha256": "09b89f5f492f6d449257e1c6baa4bc1ea98dedd17e93b9f13ced1c62fbcd9d2c"
+  },
+  "required_total": 50,
+  "required_unknown": 0,
+  "all_negative_controls_exclude_auto_rename": true,
+  "automatic_rename_authorized": false,
+  "semantic_naming_pass": false,
+  "successor_issue_required_for_deferred_semantics": true,
+  "deferred_domains": [
+    "official_glossary_canonical_synonym_owner_adoption",
+    "mixed_language_scope_and_semantic_false_positive_negative",
+    "public_external_sdk_dto_db_compatibility",
+    "dynamic_transitive_aliases_imports_reexports",
+    "domain_units_role_scopes_exceptions_expiry"
+  ],
+  "successor_issue": 144,
+  "successor_issue_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/144"
+}
