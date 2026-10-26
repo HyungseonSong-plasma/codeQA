@@ -219,6 +219,27 @@ class MigrationReviewTests(unittest.TestCase):
                 proposal=proposal,
             )
 
+    def test_invalid_python_grammar_does_not_attest_old_identifier(self):
+        malformed = "def OldName(: pass\n"
+        with self.assertRaisesRegex(MigrationPlanError, "old identifier absent"):
+            self.make(
+                before_sources={"src/a.py": malformed},
+                before_sha256={"src/a.py": sha256(malformed.encode()).hexdigest()},
+            )
+
+    def test_python_stub_strings_do_not_attest_candidate_name(self):
+        after = {
+            "src/a.py": "def unrelated(): return 1\n",
+            "src/types.pyi": 'Alias = "new_name"\n',
+        }
+        packet = self.make(
+            after_sources=after,
+            after_sha256={p: sha256(s.encode()).hexdigest() for p, s in after.items()},
+        )
+        self.assertIn("proposed_identifier_not_lexically_observed_in_candidate",
+                      packet.unknowns)
+        self.assertEqual(packet.status, "HUMAN_REVIEW_REQUIRED")
+
     def test_candidate_name_only_in_string_or_comment_remains_unknown(self):
         after = 'def unrelated(): return "new_name"\n# new_name\n'
         packet = self.make(
