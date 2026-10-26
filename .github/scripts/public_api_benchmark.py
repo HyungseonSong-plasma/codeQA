@@ -48,6 +48,11 @@ def fetch_pinned(manifest: dict) -> tuple[dict[str, bytes], dict[str, str]]:
             "INVALID_UPSTREAM_REPOSITORY")
     require(re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
             "INVALID_UPSTREAM_COMMIT")
+    commit_obj = json.loads(request_bytes(
+        "https://api.github.com/repos/" + repo + "/git/commits/" + commit))
+    require(commit_obj.get("sha") == commit
+            and commit_obj.get("tree", {}).get("sha") == manifest["tree"],
+            "UPSTREAM_COMMIT_TREE_MISMATCH")
     tree = json.loads(request_bytes(
         "https://api.github.com/repos/" + repo + "/git/trees/"
         + manifest["tree"] + "?recursive=1"))
