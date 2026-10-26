@@ -102,3 +102,12 @@ Consumers must pin and verify the bundle against their selected package
 release/commit; neither this validator nor the SHA256SUMS artifact independently
 establishes an external SDK, production DB or deployed source compatibility.
 Human newcomer onboarding success remains `NOT_EVALUATED`.
+
+## Resource archive control-character rejection (#125 incremental)
+
+The explicit resource-bundle unpacker now rejects ASCII control characters
+(including newline, tab, carriage return and DEL) in both ZIP member names and
+manifest registry paths. This is an additional fail-closed portability and
+input-integrity guard, not a replacement for existing path traversal,
+symlink, exact SHA-256, version or source-revision checks. No checkout-local
+fallback or production compatibility claim is introduced.
