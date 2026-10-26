@@ -21,5 +21,7 @@
     "public_external_sdk_dto_db_compatibility",
     "dynamic_transitive_aliases_imports_reexports",
     "domain_units_role_scopes_exceptions_expiry"
-  ]
+  ],
+  "successor_issue": 144,
+  "successor_issue_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/144"
 }

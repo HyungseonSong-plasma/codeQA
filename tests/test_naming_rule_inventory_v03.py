@@ -41,6 +41,9 @@ class DeterministicRuleInventoryTests(unittest.TestCase):
         self.assertEqual(c["required_unknown"], 0)
         self.assertFalse(c["automatic_rename_authorized"])
         self.assertTrue(c["successor_issue_required_for_deferred_semantics"])
+        self.assertEqual(c["successor_issue"], 144)
+        self.assertEqual(c["successor_issue_url"],
+                         "https://github.com/HyungseonSong-plasma/codeQA/issues/144")
 
     def test_all_50_legacy_sites_have_source_rule_results(self):
         rows = self.packet["rows"]

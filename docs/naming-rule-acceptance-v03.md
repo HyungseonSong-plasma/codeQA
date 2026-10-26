@@ -16,7 +16,7 @@
 - Pure AST core and independent Git-provenance pipeline agree, do not execute reviewed source.
 - Frozen Naming v0.1 and existing review records unchanged.
 - Exact PR HEAD checks all success, protected-branch merge is verified.
-- **Before #91 closes**, a separate *open* successor issue must explicitly retain the original semantic glossary, mixed-language, external API, policy-adoption and reviewer-level obligations. This transfer means **outstanding**, not satisfied.
+- **Before #91 closes**, a separate *open* successor issue must explicitly retain the original semantic glossary, mixed-language, external API, policy-adoption and reviewer-level obligations. This transfer means **outstanding**, not satisfied. The explicit open successor is [#144](https://github.com/HyungseonSong-plasma/codeQA/issues/144).
 
 Schema: `fixtures/naming-governance/codeqa-rule-acceptance-v03.json`.
 `closure_gate=PASS` refers only to this constrained source-AST rule review.
