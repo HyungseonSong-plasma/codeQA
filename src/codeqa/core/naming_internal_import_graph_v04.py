@@ -73,6 +73,59 @@ def scan_module_imports(source: bytes, *, path: str) -> dict[str, Any]:
         if isinstance(s, ast.FunctionDef) and s.name == "__getattr__":
             unresolved.append({"line": s.lineno, "reason": "DYNAMIC_MODULE_GETATTR"})
 
+    # A valid first import is not enough if later module-level statements
+    # may bind or delete the same name. This is source-only evidence.
+    symbol_bindings: list[tuple[int, str]] = []
+
+    def binds_target(node: ast.AST) -> bool:
+        if isinstance(node, ast.Name):
+            return node.id == TARGET
+        if isinstance(node, (ast.Tuple, ast.List)):
+            return any(binds_target(x) for x in node.elts)
+        return isinstance(node, ast.Starred) and binds_target(node.value)
+
+    for stmt in tree.body:
+        if isinstance(stmt, ast.ImportFrom):
+            for alias in stmt.names:
+                if (alias.asname or alias.name) == TARGET:
+                    symbol_bindings.append((stmt.lineno, "FROM"))
+        elif isinstance(stmt, ast.Import):
+            for alias in stmt.names:
+                if (alias.asname or alias.name.split(".")[0]) == TARGET:
+                    symbol_bindings.append((stmt.lineno, "MODULE_IMPORT"))
+        elif isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if stmt.name == TARGET:
+                symbol_bindings.append((stmt.lineno, "DEFINITION"))
+            if any(isinstance(n, ast.Global) and TARGET in n.names
+                   for n in ast.walk(stmt)):
+                symbol_bindings.append((stmt.lineno, "GLOBAL_UNRESOLVED"))
+        elif isinstance(stmt, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
+            if any(binds_target(x) for x in targets):
+                symbol_bindings.append((stmt.lineno, "ASSIGNMENT"))
+        elif isinstance(stmt, ast.Delete):
+            if any(binds_target(x) for x in stmt.targets):
+                symbol_bindings.append((stmt.lineno, "DELETION"))
+        elif isinstance(stmt, (ast.If, ast.For, ast.AsyncFor, ast.While,
+                               ast.With, ast.AsyncWith, ast.Try, ast.Match)):
+            if any((isinstance(n, ast.Name) and n.id == TARGET
+                    and isinstance(n.ctx, (ast.Store, ast.Del))) or
+                   (isinstance(n, ast.ExceptHandler) and n.name == TARGET)
+                   for n in ast.walk(stmt)):
+                symbol_bindings.append((stmt.lineno, "CONDITIONAL_BINDING"))
+        if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                 ast.ClassDef)):
+            if any(isinstance(n, ast.NamedExpr) and binds_target(n.target)
+                   for n in ast.walk(stmt)):
+                symbol_bindings.append((stmt.lineno, "NAMED_EXPRESSION"))
+
+    if len(symbol_bindings) > 1:
+        unresolved.append({"line": min(x[0] for x in symbol_bindings),
+                           "reason": "AMBIGUOUS_TARGET_MODULE_BINDING"})
+    elif symbol_bindings and symbol_bindings[0][1] not in ("FROM", "DEFINITION"):
+        unresolved.append({"line": symbol_bindings[0][0],
+                           "reason": "UNSUPPORTED_TARGET_MODULE_BINDING"})
+
     def visit(stmt: ast.AST, *, top_level: bool) -> None:
         nonlocal statements
         if isinstance(stmt, ast.ImportFrom):
@@ -149,6 +202,8 @@ def classify_static_import_chains(
                 "LOCAL_ROOT_SYMBOL_DEFINITION", "MODULE_SYMBOL_REBINDING",
                 "DYNAMIC_MODULE_GETATTR", "WILDCARD_IMPORT_UNRESOLVED",
                 "NESTED_TARGET_IMPORT_NOT_GLOBAL", "DYNAMIC_BINDING_OR_IMPORT",
+                "AMBIGUOUS_TARGET_MODULE_BINDING",
+                "UNSUPPORTED_TARGET_MODULE_BINDING",
             ) for x in v["unresolved"])}
     for _ in range(len(scans)):
         previous = len(reached)
