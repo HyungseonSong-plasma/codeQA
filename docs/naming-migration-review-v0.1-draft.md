@@ -86,3 +86,12 @@ avoid treating path-like aliases as independently verified repository
 identities. These labels remain **caller-supplied claims**; this draft does
 not independently fetch either Git tree, attest an external consumer, or
 approve a migration.
+
+## Python lexical witness integrity
+
+For both `.py` and `.pyi` selected sources, the review packet requires a
+complete Python AST parse before counting a matching `NAME` token. Text in
+comments/strings, malformed grammar and incomplete token streams cannot
+certify the presence of the old or proposed spelling. Even a parseable token
+is **not** declaration identity, override binding, external consumer proof
+or an approved rename.
