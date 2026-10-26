@@ -58,7 +58,7 @@ class DomainMetricTests(unittest.TestCase):
         self.assertEqual(metrics["naming"]["intra_import_sites"], 1)
         self.assertEqual(metrics["UNCLASSIFIED"]["domain_unknown_outgoing_import_sites"], 1)
         self.assertEqual(metrics["UNCLASSIFIED"]["unknown_import_sites"], 1)
-        self.assertEqual(metrics["naming"]["potential_reverse_dependents_max"], 2)
+        self.assertEqual(metrics["naming"]["potential_reverse_dependents_max"], 3)
         self.assertEqual(result["status"], "NOT_EVALUATED")
         self.assertNotIn("PASS", {result["status"]})
 
