@@ -60,16 +60,21 @@ def check_versions() -> dict[str, str]:
     return reported
 
 
-def pyright_scan(binary: Path, project: Path, *, expect_errors: bool) -> tuple[dict, bytes, int, str, str]:
+def pyright_scan(binary: Path, project: Path, source: Path, *,
+                 expect_errors: bool, required_rules: tuple[str, ...],
+                 extra_source: Path | None = None) -> tuple[dict, bytes, int, str, str]:
     config = {"typeCheckingMode": "strict",
               "reportIncompatibleMethodOverride": "error",
               "reportMissingTypeStubs": "none",
-              "include": ["contract.py"]}
+              "include": ["contract.py"] + (["public_sdk.py"] if extra_source else [])}
     project.mkdir(parents=True, exist_ok=False)
     (project / "pyrightconfig.json").write_bytes(canonical(config))
     script = project / "contract.py"
-    source = FIXTURE / ("invalid_override.py" if expect_errors else "valid_contract.py")
     shutil.copyfile(source, script)
+    if extra_source is not None:
+        need(extra_source.name == "public_sdk.py" and extra_source.parent == FIXTURE,
+             "UNTRUSTED_EXTRA_SDK_SOURCE")
+        shutil.copyfile(extra_source, project / "public_sdk.py")
     args = [str(binary.resolve()), "--project", str(project), "--pythonpath",
             sys.executable, "--outputjson"]
     started = datetime.now(timezone.utc).isoformat()
@@ -90,7 +95,9 @@ def pyright_scan(binary: Path, project: Path, *, expect_errors: bool) -> tuple[d
     if expect_errors:
         need(run.returncode == 1 and int(summary.get("errorCount", 0)) >= 1,
              "NEGATIVE_SDK_SIGNATURE_NOT_REJECTED")
-        need(CHECKED_RULE in rules, "NEGATIVE_OVERRIDE_NOT_DETECTED")
+        need(set(required_rules).issubset(rules),
+             "NEGATIVE_REQUIRED_TYPE_DIAGNOSTICS_MISSING "
+             + repr(sorted(set(required_rules) - rules)))
     else:
         need(run.returncode == 0 and not errors and int(summary.get("errorCount", -1)) == 0,
              "VALID_SDK_TYPES_REJECTED")
@@ -103,12 +110,20 @@ def pyright_scan(binary: Path, project: Path, *, expect_errors: bool) -> tuple[d
 
 
 def run_gate(binary: Path, project: Path, selected_source: Path,
-             *, negative: bool, snapshot_id: str, output: Path) -> dict:
+             *, negative: bool, snapshot_id: str, output: Path,
+             required_rules: tuple[str, ...] = (CHECKED_RULE,),
+             extra_source: Path | None = None) -> dict:
     parsed, raw, exit_code, started, finished = pyright_scan(
-        binary, project, expect_errors=negative)
+        binary, project, selected_source, expect_errors=negative,
+        required_rules=required_rules, extra_source=extra_source)
     source_bytes = selected_source.read_bytes()
     selected = "fixtures/python-sdk/" + selected_source.name
-    record_rule = CHECKED_RULE
+    source_digests = {selected: digest(source_bytes)}
+    if extra_source is not None:
+        source_digests["fixtures/python-sdk/" + extra_source.name] = digest(
+            extra_source.read_bytes())
+    selected_files = [{"path": p, "sha256": d}
+                      for p, d in sorted(source_digests.items())]
     tool_path = ROOT / "node_modules/pyright/dist/pyright.js"
     need(tool_path.is_file(), "PINNED_PYRIGHT_DIST_MISSING")
     config_bytes = (project / "pyrightconfig.json").read_bytes()
@@ -121,14 +136,19 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     }
     findings = []
     for issue in parsed["generalDiagnostics"]:
-        if issue.get("rule") != record_rule:
+        if issue.get("rule") not in required_rules:
             continue
         span = issue.get("range") or {}
         start = span.get("start") or {}
+        file_name = Path(str(issue.get("file", ""))).name
+        source_path = ("fixtures/python-sdk/" + extra_source.name
+                       if extra_source is not None and file_name == extra_source.name
+                       else selected if file_name == "contract.py" else None)
+        need(source_path in source_digests, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE")
         findings.append({
-            "kind": "TYPECHECK_DIAGNOSTIC", "rule_id": record_rule,
+            "kind": "TYPECHECK_DIAGNOSTIC", "rule_id": str(issue["rule"]),
             "severity": "ERROR" if issue.get("severity") == "error" else "WARNING",
-            "path": selected, "line": int(start.get("line", 0)) + 1,
+            "path": source_path, "line": int(start.get("line", 0)) + 1,
             "message": str(issue.get("message") or "Pyright diagnostic"),
             "native_status": str(issue.get("rule")),
         })
@@ -142,10 +162,11 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
             "started_at": started, "finished_at": finished,
         },
         "scope": {
-            "expected_files": [{"path": selected, "sha256": digest(source_bytes)}],
-            "scanned_files": [{"path": selected, "sha256": digest(source_bytes)}],
+            "expected_files": selected_files,
+            "scanned_files": selected_files,
             "skipped_files": [], "parser_errors": [],
-            "required_rules": [record_rule], "evaluated_rules": [record_rule],
+            "required_rules": list(required_rules),
+            "evaluated_rules": list(required_rules),
         },
         "raw_artifact": {
             "uri": "artifact://ci/" + selected_source.stem + ".json",
@@ -159,18 +180,18 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     trust = ToolIdentity(**tool_doc)
     admission = assess_external_evidence(
         evidence, expected_snapshot_id=snapshot_id,
-        expected_files={selected: digest(source_bytes)},
-        expected_tool=trust, expected_rules=[record_rule], raw_artifact=raw,
+        expected_files=source_digests,
+        expected_tool=trust, expected_rules=list(required_rules), raw_artifact=raw,
     )
     need(admission.status == "ADMISSIBLE", "PYRIGHT_ADMISSION_FAILED " + str(admission))
     policy_raw = {
         "schema_version": "0.1",
         "policy_id": "controlled-sdk-typecheck-" + selected_source.stem,
         "snapshot_id": snapshot_id,
-        "source_files": [{"path": selected, "sha256": digest(source_bytes)}],
+        "source_files": selected_files,
         "requirements": [{
-            "id": "sdk.override", "scope": selected,
-            "tool": tool_doc, "rule_ids": [record_rule],
+            "id": "sdk.override", "scope": "fixtures/python-sdk/**",
+            "tool": tool_doc, "rule_ids": list(required_rules),
             "predicate": "TYPE_NO_ERRORS", "exceptions": [],
         }],
     }
@@ -178,7 +199,7 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     verdict = evaluate_gate(
         policy, runs={"sdk.override": EvidenceRun(evidence, raw)},
         expected_policy_sha256=policy.fingerprint(), expected_snapshot_id=snapshot_id,
-        expected_sources={selected: digest(source_bytes)},
+        expected_sources=source_digests,
         evaluated_at=datetime.now(timezone.utc).isoformat(),
     )
     wanted = ("FAIL", "BLOCK") if negative else ("PASS", "ALLOW")
@@ -189,6 +210,7 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     (output / (selected_source.stem + "-pyright.json")).write_bytes(raw)
     return {
         "test": selected_source.name, "source_sha256": digest(source_bytes),
+        "selected_sources": selected_files, "required_rules": list(required_rules),
         "tool": tool_doc, "admission": admission.to_document(),
         "gate": verdict.to_document(), "native_diagnostic_count": len(parsed["generalDiagnostics"]),
         "actual_report_sha256": digest(raw),
@@ -455,6 +477,17 @@ def main() -> None:
             args.pyright, tmpdir / "negative",
             FIXTURE / "invalid_override.py", negative=True,
             snapshot_id=snapshot, output=args.output)
+        advanced_rules = (CHECKED_RULE, "reportAssignmentType", "reportCallIssue")
+        advanced_positive = run_gate(
+            args.pyright, tmpdir / "advanced-positive",
+            FIXTURE / "valid_advanced_contract.py", negative=False,
+            required_rules=advanced_rules, extra_source=FIXTURE / "public_sdk.py",
+            snapshot_id=snapshot, output=args.output)
+        advanced_negative = run_gate(
+            args.pyright, tmpdir / "advanced-negative",
+            FIXTURE / "invalid_advanced_contract.py", negative=True,
+            required_rules=advanced_rules, extra_source=FIXTURE / "public_sdk.py",
+            snapshot_id=snapshot, output=args.output)
     runtime = test_runtime(contract)
     runtime["sqlalchemy_extended"] = test_extended_orm(contract)
     result = {
@@ -462,7 +495,10 @@ def main() -> None:
         "contract_sha256": digest(contract_bytes),
         "installed_distribution_metadata_sha256": versions,
         "typechecker": {"version": PIN["pyright"], "positive": positive,
-                        "negative": negative},
+                        "negative": negative,
+                        "advanced_positive": advanced_positive,
+                        "advanced_negative": advanced_negative,
+                        "advanced_scope": "CONTROLLED_PINNED_PYDANTIC_TYPES_ONLY"},
         "runtime": runtime,
         "limitations": ["No actual consumer SDK public API baseline",
                         "No production DB migration verification",
