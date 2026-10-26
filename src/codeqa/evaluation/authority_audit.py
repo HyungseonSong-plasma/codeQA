@@ -58,11 +58,24 @@ def audit_authority_propagation(
         producer = "codeqa.evidence_gate"
         decision_type = "EVIDENCE_GATE_V0_1"
         scope = "PINNED_POLICY_REQUIREMENTS_ONLY"
-        gate_claims_covered = bool(decision.requirements) and all(
-            entry.status == "PASS" and entry.admission_status == "ADMISSIBLE"
-            and isinstance(entry.evidence_sha256, str)
-            and re.fullmatch(r"[0-9a-f]{64}", entry.evidence_sha256)
-            for entry in decision.requirements
+        ids = [entry.id for entry in decision.requirements]
+        gate_claims_covered = (
+            decision.schema_version == "0.1"
+            and isinstance(decision.policy_id, str) and bool(decision.policy_id)
+            and bool(ids) and len(ids) == len(set(ids))
+            and not decision.reasons
+            and all(
+                isinstance(entry.id, str) and bool(entry.id)
+                and entry.status == "PASS" and entry.admission_status == "ADMISSIBLE"
+                and isinstance(entry.scope, tuple) and bool(entry.scope)
+                and all(isinstance(path, str) and bool(path) for path in entry.scope)
+                and type(entry.observed_violations) is int and entry.observed_violations == 0
+                and type(entry.waived_violations) is int and entry.waived_violations == 0
+                and not entry.reasons
+                and isinstance(entry.evidence_sha256, str)
+                and re.fullmatch(r"[0-9a-f]{64}", entry.evidence_sha256)
+                for entry in decision.requirements
+            )
         )
         allowed = (
             decision.status == "PASS" and decision.authorization == "ALLOW"
@@ -72,7 +85,26 @@ def audit_authority_propagation(
         producer = "codeqa.formal_generated_gate"
         decision_type = "FORMAL_GENERATED_FIXTURE_V0_1"
         scope = "CONTROLLED_GENERATED_PYTHON_FIXTURE"
-        allowed = decision.status == "PASS" and decision.authorization == "ALLOW_FIXTURE_ONLY"
+        fixture_digests = (
+            decision.evidence_artifact_sha256,
+            decision.generated_manifest_sha256,
+            decision.deployed_manifest_sha256,
+        )
+        allowed = (
+            decision.version == "0.1"
+            and decision.scope == "CONTROLLED_GENERATED_PYTHON_FIXTURE"
+            and decision.status == "PASS"
+            and decision.authorization == "ALLOW_FIXTURE_ONLY"
+            and not decision.reasons
+            and all(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
+                    for value in fixture_digests)
+            and decision.generated_manifest_sha256 == decision.deployed_manifest_sha256
+            and isinstance(decision.requirement_ids, tuple)
+            and bool(decision.requirement_ids)
+            and len(set(decision.requirement_ids)) == len(decision.requirement_ids)
+            and all(isinstance(value, str) and bool(value)
+                    for value in decision.requirement_ids)
+        )
     else:
         raise TypeError("only actual typed Gate or GeneratedFixture decisions are accepted")
     digest = _sha256(decision.canonical_json().encode("utf-8"))
