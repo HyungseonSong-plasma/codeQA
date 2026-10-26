@@ -184,3 +184,32 @@ file. Missing ranges or out-of-bounds lines are rejected before constructing
 external evidence; the runner no longer substitutes line 1 for a missing
 location. This is a controlled tool-output integrity check, not independent
 file-by-file scan coverage or real production SDK/DTO/DB compatibility.
+
+## Owner-approved public benchmarks (Option A, 2026-10-26)
+
+Issue #92 owner approval selects real, pinned **public open-source**
+SDK/API/DB benchmarks; no private production SDK or database is required.
+The previous statement that an owner-provided production baseline is a
+prerequisite is superseded for **benchmark selection**, but not for
+independent compatibility acceptance.
+
+- [Public FastAPI API/DB/TypeScript consumer benchmark](public-api-benchmark-v01.md):
+  two immutable upstream source trees, 11 current + 10 historical
+  independently hashed files, selected DTO/consumer fields and migration
+  source delta. The frontend consumer is **TypeScript**, not Python.
+  Both snapshots use backend version 0.1.0 despite source changes.
+- [Real Stripe Python SDK benchmark](public-python-sdk-benchmark-v01.md):
+  independently pinned 10-file SDK and named Flask consumer source,
+  source-grounded overload/multiple inheritance/aliased decorator/re-export
+  witnesses and a **real Pyright 1.1.414 partial-source scan**.
+  Selected source commit differs from the published v16.0.0 tag on
+  important files; installed wheel equivalence is not established.
+
+CI receipts explicitly distinguish
+`PASS_ATTESTED_SNAPSHOT_PAIR_ONLY`, `STATIC_DECLARATION_MATCH`,
+`EXECUTED_PARTIAL_SOURCE_ONLY` and `NOT_EVALUATED`. The external
+Pyright partial scan reports native errors from an incomplete source
+closure, not independently verified SDK incompatibility. Full installed
+SDK/typechecker contracts, callbacks, deployed API/DB version windows,
+data-dependent PostgreSQL migrations and independent human approval
+remain open. No production code, API or DB was changed.
