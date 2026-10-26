@@ -487,6 +487,43 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
         self.assertFalse(proposal["decision_boundaries"]["auto_rename_authorized"])
         self.assertFalse(proposal["decision_boundaries"]["policy_finally_adopted"])
 
+    def test_classvar_final_and_imported_alias_annotations_are_not_field_proof(self):
+        # Opt-in AST observations must not mistake typed class state for
+        # approved instance/DTO fields or give ClassVar/Final a naming PASS.
+        from codeqa.core.naming_declaration_evidence_v03 import observe_pinned_python
+        source = (
+            b"from typing import ClassVar as CV, Final as Lock\n"
+            b"import typing as t\n"
+            b"class Example:\n"
+            b"    shared: ClassVar[int] = 1\n"
+            b"    alias_shared: CV[int] = 2\n"
+            b"    locked: Lock[str] = 'x'\n"
+            b"    qualified: t.Final[int] = 3\n"
+            b"    native_field: int = 4\n"
+            b"    def member(self, parameter: int):\n"
+            b"        local: Final[int] = 5\n"
+        )
+        r = observe_pinned_python(source, expected_sha256=sha256(source).hexdigest())
+        sites = {(d.name, d.line): d for d in r.declarations}
+        for name, line in (("shared", 4), ("alias_shared", 5),
+                           ("locked", 6), ("qualified", 7)):
+            with self.subTest(name=name):
+                actual = sites[name, line]
+                self.assertEqual(actual.kind, "class_annotation_unresolved")
+                self.assertFalse(actual.eligible_kind)
+                self.assertEqual(r.classify_candidate({
+                    "name": name, "kind": "declared_field", "line": line,
+                    "owner": "Example",
+                }), "NOT_EVALUATED")
+        self.assertEqual(sites["native_field", 8].kind, "declared_field")
+        self.assertTrue(sites["native_field", 8].eligible_kind)
+        self.assertEqual(sites["local", 10].kind, "local_binding")
+        self.assertFalse(sites["local", 10].eligible_kind)
+        self.assertEqual(sites["parameter", 9].kind, "parameter")
+        self.assertTrue(sites["parameter", 9].eligible_kind)
+        self.assertFalse(r.semantic_proven)
+        self.assertTrue(r.human_review_required)
+
     def test_owner_policy_is_proposal_only_and_opt_in(self):
         p = self.proposal
         self.assertEqual(p["review_status"], "PENDING_FINAL_ADJUDICATION")
