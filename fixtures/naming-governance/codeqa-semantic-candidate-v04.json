@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.4-candidate",
+  "policy_id": "codeqa_naming_semantic_v04_candidate",
+  "adoption_status": "NOT_ADOPTED",
+  "terms": [
+    {
+      "canonical": "time_step",
+      "aliases": [
+        "timestep"
+      ],
+      "allowed_roles": [
+        "runtime"
+      ],
+      "meaning_status": "PENDING_DOMAIN_EVIDENCE"
+    },
+    {
+      "canonical": "node_id",
+      "aliases": [
+        "nodeid"
+      ],
+      "allowed_roles": [
+        "data"
+      ],
+      "meaning_status": "PENDING_DOMAIN_EVIDENCE"
+    }
+  ],
+  "scopes": [],
+  "excluded_inferences": [
+    "timestamp",
+    "time_stamp",
+    "dt",
+    "step",
+    "node",
+    "id",
+    "inode",
+    "vnode"
+  ]
+}

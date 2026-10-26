@@ -18,6 +18,16 @@ STATUSES = {"SUPPORTED_SCOPED", "PARTIAL_FIXTURE", "FIXTURE_ONLY", "NOT_EVALUATE
 CELL_KEYS = {"layer", "status", "source", "entrypoint", "workflow", "limitation"}
 # The Python v0.1 scopes are syntax witnesses; changing prose cannot
 # silently turn unresolved runtime calls into independently attested dispatch.
+# Python opt-in Naming is a distinct product layer from the officially adopted
+# *single declaration* v0.5 profile. Neither is an all-source semantic PASS.
+PYTHON_NAMING_BOUNDARY = {
+    "status": "PARTIAL_FIXTURE",
+    "source": "src/codeqa/pipeline/naming_product.py",
+    "entrypoint": "codeqa.pipeline.naming_product:analyze_python_naming_opt_in",
+    "workflow": ".github/workflows/layout.yml",
+    "limitation": "opt-in safe Python declaration spelling only; independent one-field Naming v0.5; no semantic SDK proof",
+}
+
 PYTHON_SCOPE_LIMITS = {
     "parser": "caller-supplied Python AST syntax only",
     "ccg": "CCG v0.1 source facts, unresolved runtime calls",
@@ -76,6 +86,9 @@ def validate_language_matrix(root: Path, manifest: Mapping[str, Any]) -> None:
             if lang == "Python" and layer in PYTHON_SCOPE_LIMITS:
                 if status != "SUPPORTED_SCOPED" or cell["limitation"] != PYTHON_SCOPE_LIMITS[layer]:
                     raise LanguageMatrixError("Python syntax-only support boundary changed")
+            if lang == "Python" and layer == "naming":
+                if any(cell.get(k) != v for k, v in PYTHON_NAMING_BOUNDARY.items()):
+                    raise LanguageMatrixError("Python Naming opt-in v0.5 scope drift")
             if layer == "production_abi" and status != "NOT_EVALUATED":
                 raise LanguageMatrixError("production SDK/ABI compatibility not attested")
             if lang != "Python" and layer == "mechanical_p1p3" and status != "NOT_EVALUATED":

@@ -51,3 +51,20 @@ trailing dot/space source/workflow paths before looking up claimed evidence.
 A portable path plus a present source file still does not attest executed
 matching-SHA CI, real non-Python Mechanical parity, compiler ABI or DSL
 compatibility. Those claims remain limited by each cell's explicit status.
+
+## Current Python Naming scope integration — 2026-10-26
+
+This version's source baseline is the then-current `main@ce147bd5348294823664f13ab539aabe6e24d827`. The
+Python `naming` row points at the actual explicit opt-in product wrapper
+`codeqa.pipeline.naming_product:analyze_python_naming_opt_in`, not a default
+Mechanical/P1/P3 entrypoint. The official separately registered Naming v0.5
+policy is restricted to `ControlFlowObservation.node_id` at one pinned field;
+this row does **not** grant v0.5 across other Python names. The declared
+`PARTIAL_FIXTURE` status is intentional. Negative controls prevent expanding
+this to `SUPPORTED_SCOPED`, changing the wrapper path, or claiming complete
+SDK/runtime semantic conformance. #147 is archived (closed / not planned).
+
+**Execution note:** Source files and workflow paths are checked here. The
+manifest itself explicitly cannot attest a successful GitHub workflow run.
+Exact PR head and associated actual CI results must be read separately before
+merging, and the source baseline remains a historic input snapshot afterward.

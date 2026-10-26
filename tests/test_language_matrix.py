@@ -74,6 +74,24 @@ class LanguageMatrixTests(unittest.TestCase):
             limitation="complete P1-P8 static and semantic certification"
         ))
 
+    def test_python_naming_uses_real_opt_in_without_global_v05_promotion(self):
+        cell = self._cell(self.manifest, "Python", "naming")
+        self.assertEqual(cell["status"], "PARTIAL_FIXTURE")
+        self.assertEqual(cell["entrypoint"],
+                         "codeqa.pipeline.naming_product:analyze_python_naming_opt_in")
+        self.assertIn("one-field Naming v0.5", cell["limitation"])
+        self.assertEqual(self.manifest["baseline_source_sha"],
+                         "ce147bd5348294823664f13ab539aabe6e24d827")
+
+    def test_python_naming_cannot_be_silently_promoted(self):
+        self._reject(lambda d: self._cell(d, "Python", "naming").update(
+            status="SUPPORTED_SCOPED"))
+        self._reject(lambda d: self._cell(d, "Python", "naming").update(
+            source="src/codeqa/evaluation/naming.py",
+            entrypoint="codeqa.evaluation.naming:evaluate_naming"))
+        self._reject(lambda d: self._cell(d, "Python", "naming").update(
+            limitation="all Python names and aliases semantically verified"))
+
     def test_no_unsupported_quality_pass_enum(self):
         self._reject(lambda d: self._cell(d, "Python", "ccg").update(status="PASS"))
 

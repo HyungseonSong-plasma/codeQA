@@ -1,0 +1,523 @@
+{
+  "schema_version": "0.3-source-ast-review-proposal",
+  "review_status": "PENDING_FINAL_ADJUDICATION",
+  "approval_authority": "PROJECT_OWNER_ONLY",
+  "owner_policy_principles_approved_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6413057026",
+  "independent_ai_review": {
+    "model": "Grok 4.5 (xAI)",
+    "date": "2026-10-26",
+    "report_sha256": "475b7079d377b90734b779375787a0071fc6c4155ba5035c0b468299b7defdcb",
+    "human_signature": false
+  },
+  "source": {
+    "repository": "HyungseonSong-plasma/codeQA",
+    "commit": "dfd94bb25d52642bb2e46766b1ebe074c2f82803",
+    "path": "src/codeqa/core/naming_glossary.py",
+    "git_blob_sha": "e5da126ead5f25c2eb3be5bb0e16d1c09a430df4",
+    "sha256": "09b89f5f492f6d449257e1c6baa4bc1ea98dedd17e93b9f13ced1c62fbcd9d2c",
+    "commit_blob_attestation": "GIT_READER_IN_TEST_ONLY"
+  },
+  "scope": "ONE_PINNED_FILE_PARTIAL_AST_CANDIDATE_OBSERVATIONS_NOT_FULL_REPOSITORY",
+  "candidate_count": 26,
+  "original_candidates": [
+    {
+      "index": 1,
+      "name": "annotations",
+      "kind": "import_binding",
+      "line": 2,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 2,
+      "name": "Mapping",
+      "kind": "import_binding",
+      "line": 4,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 3,
+      "name": "asdict",
+      "kind": "import_binding",
+      "line": 5,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 4,
+      "name": "dataclass",
+      "kind": "import_binding",
+      "line": 5,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 5,
+      "name": "sha256",
+      "kind": "import_binding",
+      "line": 6,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 6,
+      "name": "json",
+      "kind": "import_binding",
+      "line": 7,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 7,
+      "name": "re",
+      "kind": "import_binding",
+      "line": 8,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 8,
+      "name": "Any",
+      "kind": "import_binding",
+      "line": 9,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 9,
+      "name": "NamingGlossaryError",
+      "kind": "class",
+      "line": 12,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 10,
+      "name": "TOKEN",
+      "kind": "module_binding",
+      "line": 16,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 11,
+      "name": "tokenize_identifier",
+      "kind": "function",
+      "line": 19,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 12,
+      "name": "tokens",
+      "kind": "local_binding",
+      "line": 22,
+      "owner": "tokenize_identifier",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 13,
+      "name": "dataclass(frozen=True,slots=True)",
+      "kind": "decorator",
+      "line": 32,
+      "owner": "GlossaryTerm",
+      "ast_observation": "SYNTAX_ONLY",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 14,
+      "name": "GlossaryTerm",
+      "kind": "class",
+      "line": 33,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 15,
+      "name": "canonical",
+      "kind": "declared_field",
+      "line": 34,
+      "owner": "GlossaryTerm",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 16,
+      "name": "aliases",
+      "kind": "declared_field",
+      "line": 35,
+      "owner": "GlossaryTerm",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 17,
+      "name": "kinds",
+      "kind": "declared_field",
+      "line": 36,
+      "owner": "GlossaryTerm",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 18,
+      "name": "dataclass(frozen=True,slots=True)",
+      "kind": "decorator",
+      "line": 39,
+      "owner": "NamingGlossaryProfile",
+      "ast_observation": "SYNTAX_ONLY",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 19,
+      "name": "NamingGlossaryProfile",
+      "kind": "class",
+      "line": 40,
+      "owner": "",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 20,
+      "name": "schema_version",
+      "kind": "declared_field",
+      "line": 41,
+      "owner": "NamingGlossaryProfile",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 21,
+      "name": "profile_id",
+      "kind": "declared_field",
+      "line": 42,
+      "owner": "NamingGlossaryProfile",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 22,
+      "name": "include_prefixes",
+      "kind": "declared_field",
+      "line": 43,
+      "owner": "NamingGlossaryProfile",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 23,
+      "name": "terms",
+      "kind": "declared_field",
+      "line": 44,
+      "owner": "NamingGlossaryProfile",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 24,
+      "name": "classmethod",
+      "kind": "decorator",
+      "line": 46,
+      "owner": "from_mapping",
+      "ast_observation": "SYNTAX_ONLY",
+      "eligible_kind_only": false,
+      "human_adjudication": null
+    },
+    {
+      "index": 25,
+      "name": "from_mapping",
+      "kind": "method",
+      "line": 47,
+      "owner": "NamingGlossaryProfile",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    },
+    {
+      "index": 26,
+      "name": "fingerprint",
+      "kind": "method",
+      "line": 100,
+      "owner": "NamingGlossaryProfile",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "human_adjudication": null
+    }
+  ],
+  "omitted_observation_candidates": [
+    {
+      "name": "name",
+      "kind": "parameter",
+      "line": 19,
+      "owner": "tokenize_identifier",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "cls",
+      "kind": "parameter",
+      "line": 47,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "value",
+      "kind": "parameter",
+      "line": 47,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "self",
+      "kind": "parameter",
+      "line": 100,
+      "owner": "NamingGlossaryProfile.fingerprint",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": true,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "prefixes",
+      "kind": "local_binding",
+      "line": 54,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "values",
+      "kind": "local_binding",
+      "line": 61,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "terms",
+      "kind": "local_binding",
+      "line": 64,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "ownership",
+      "kind": "local_binding",
+      "line": 65,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "allowed",
+      "kind": "local_binding",
+      "line": 66,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "keys",
+      "kind": "local_binding",
+      "line": 94,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "value",
+      "kind": "local_binding",
+      "line": 101,
+      "owner": "NamingGlossaryProfile.fingerprint",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "segment",
+      "kind": "loop_binding",
+      "line": 23,
+      "owner": "tokenize_identifier",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "matched",
+      "kind": "local_binding",
+      "line": 25,
+      "owner": "tokenize_identifier",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "item",
+      "kind": "loop_binding",
+      "line": 67,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "phrase",
+      "kind": "loop_binding",
+      "line": 82,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "k",
+      "kind": "loop_binding",
+      "line": 89,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    },
+    {
+      "name": "key",
+      "kind": "local_binding",
+      "line": 90,
+      "owner": "NamingGlossaryProfile.from_mapping",
+      "ast_observation": "AST_OBSERVED",
+      "eligible_kind_only": false,
+      "extractor_false_negative": "NOT_ESTABLISHED_WITHOUT_DECLARED_COVERAGE_DENOMINATOR",
+      "human_adjudication": null
+    }
+  ],
+  "negative_control_candidates": [
+    {
+      "name": "NamingGlossaryError",
+      "kind": "class",
+      "line": 12,
+      "reason": "External ValueError inheritance is not proof of a safe API rename",
+      "ai_review": "PROPOSED_VALID_NEGATIVE_FOR_AUTO_RENAME_ONLY",
+      "human_review_outcome": null
+    },
+    {
+      "name": "TOKEN",
+      "kind": "module_constant",
+      "line": 16,
+      "reason": "Compiled regex constant is not a declared domain synonym",
+      "ai_review": "PROPOSED_VALID_NEGATIVE_FOR_AUTO_RENAME_ONLY",
+      "human_review_outcome": null
+    },
+    {
+      "name": "tokenize_identifier",
+      "kind": "function",
+      "line": 19,
+      "reason": "Lexical helper does not establish a domain role",
+      "ai_review": "PROPOSED_VALID_NEGATIVE_FOR_AUTO_RENAME_ONLY",
+      "human_review_outcome": null
+    },
+    {
+      "name": "GlossaryTerm",
+      "kind": "class",
+      "line": 33,
+      "reason": "Public dataclass fields may be consumed externally",
+      "ai_review": "PROPOSED_VALID_NEGATIVE_FOR_AUTO_RENAME_ONLY",
+      "human_review_outcome": null
+    },
+    {
+      "name": "NamingGlossaryProfile",
+      "kind": "class",
+      "line": 40,
+      "reason": "Profile API compatibility is unverified",
+      "ai_review": "PROPOSED_VALID_NEGATIVE_FOR_AUTO_RENAME_ONLY",
+      "human_review_outcome": null
+    },
+    {
+      "name": "from_mapping",
+      "kind": "method",
+      "line": 47,
+      "reason": "Method homonym is not a cross-module alias",
+      "ai_review": "PROPOSED_VALID_NEGATIVE_FOR_AUTO_RENAME_ONLY",
+      "human_review_outcome": null
+    },
+    {
+      "name": "fingerprint",
+      "kind": "method",
+      "line": 100,
+      "reason": "Public method external binding remains unknown",
+      "ai_review": "PROPOSED_VALID_NEGATIVE_FOR_AUTO_RENAME_ONLY",
+      "human_review_outcome": null
+    }
+  ],
+  "decision_boundaries": {
+    "declaration_ast_observed_is_human_accept": false,
+    "decorator_syntax_is_identifier": false,
+    "external_consumers_checked": false,
+    "auto_rename_authorized": false,
+    "policy_finally_adopted": false,
+    "pr_merge_authorized": false,
+    "issue_close_authorized": false
+  }
+}

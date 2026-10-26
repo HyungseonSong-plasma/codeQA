@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "baseline_source_sha": "f7859c7f742ba55025bf1633ef7438d18e8a9416",
+  "baseline_source_sha": "ce147bd5348294823664f13ab539aabe6e24d827",
   "evidence_level": "SOURCE_AND_WORKFLOW_DECLARATION_ONLY_NO_IMPLICIT_CI_PASS",
   "languages": [
     {
@@ -33,10 +33,10 @@
         {
           "layer": "naming",
           "status": "PARTIAL_FIXTURE",
-          "source": "src/codeqa/evaluation/naming.py",
-          "entrypoint": "codeqa.evaluation.naming:evaluate_naming",
-          "workflow": ".github/workflows/naming-python-conformance.yml",
-          "limitation": "opt-in safe declaration spelling; human glossary and external SDK unverified"
+          "source": "src/codeqa/pipeline/naming_product.py",
+          "entrypoint": "codeqa.pipeline.naming_product:analyze_python_naming_opt_in",
+          "workflow": ".github/workflows/layout.yml",
+          "limitation": "opt-in safe Python declaration spelling only; independent one-field Naming v0.5; no semantic SDK proof"
         },
         {
           "layer": "formal_gate",
