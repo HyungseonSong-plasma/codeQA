@@ -63,3 +63,15 @@ candidates**. A removed candidate produces
 API break or a compatibility PASS. Candidate absence or incomplete source
 coverage remains `NOT_EVALUATED`; dynamic `__getattr__`, reflection, re-exports
 through other modules and actual downstream imports need independent review.
+
+## Static metric-to-witness integrity (#119 incremental)
+
+The before/after comparator now rejects an inventory whose claimed total,
+intra-domain or cross-domain import-site counts disagree with its actual
+`import_witnesses` array. Each witness must refer to selected source paths,
+a positive source line and an explicit `INTRA_DOMAIN`, `CROSS_DOMAIN` or
+`DOMAIN_UNKNOWN` classification. Missing witness coverage is an error,
+not a zero-import or quality-improvement claim. Negative tests cover forged
+counts, absent witnesses and foreign-source edges. This validates **internal
+static evidence consistency only**; it cannot authenticate the GitHub
+snapshot, prove semantic cohesion or measure human review burden.
