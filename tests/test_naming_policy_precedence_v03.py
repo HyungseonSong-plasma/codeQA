@@ -332,6 +332,44 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
         self.assertTrue(next(d for d in self.review.declarations
             if d.name == "terms" and d.line == 44).eligible_kind)
 
+    def test_all_17_grok_omission_candidates_are_scope_specific_ast_sites(self):
+        # AI candidate omissions are AST observations, not algorithmic FN
+        # unless the extractor's declared coverage includes their kinds.
+        sites = {(d.name, d.kind, d.line, d.owner): d
+                 for d in self.review.declarations}
+        owner = "NamingGlossaryProfile.from_mapping"
+        expected = [
+            ("name", "parameter", 19, "tokenize_identifier"),
+            ("cls", "parameter", 47, owner),
+            ("value", "parameter", 47, owner),
+            ("self", "parameter", 100, "NamingGlossaryProfile.fingerprint"),
+            ("prefixes", "local_binding", 54, owner),
+            ("values", "local_binding", 61, owner),
+            ("terms", "local_binding", 64, owner),
+            ("ownership", "local_binding", 65, owner),
+            ("allowed", "local_binding", 66, owner),
+            ("keys", "local_binding", 94, owner),
+            ("value", "local_binding", 101, "NamingGlossaryProfile.fingerprint"),
+            ("segment", "loop_binding", 23, "tokenize_identifier"),
+            ("matched", "local_binding", 25, "tokenize_identifier"),
+            ("item", "loop_binding", 67, owner),
+            ("phrase", "loop_binding", 82, owner),
+            ("k", "loop_binding", 89, owner),
+            ("key", "local_binding", 90, owner),
+        ]
+        self.assertEqual(len(expected), 17)
+        for key in expected:
+            with self.subTest(site=key):
+                self.assertIn(key, sites)
+                if key[1] in {"local_binding", "loop_binding"}:
+                    self.assertFalse(sites[key].eligible_kind)
+        future = next(d for d in self.review.declarations
+                      if d.name == "annotations" and d.line == 2)
+        self.assertEqual(future.kind, "import_binding")
+        self.assertFalse(future.eligible_kind)
+        self.assertFalse(next(d for d in self.review.declarations
+            if d.name == "TOKEN" and d.line == 16).eligible_kind)
+
     def test_no_lexical_comment_string_attribute_or_decorator_promotion(self):
         from codeqa.core.naming_declaration_evidence_v03 import observe_pinned_python
         source = b'# phantom\nmessage = "phantom"\nclass C:\n    @factory(enabled=True)\n    def f(self):\n        self.phantom = 1\n'
