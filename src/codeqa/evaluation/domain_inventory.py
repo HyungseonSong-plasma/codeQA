@@ -276,6 +276,33 @@ def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, An
         return result
 
     original, current = source_hashes(before), source_hashes(after)
+
+    def verify_import_counts(report: Mapping[str, Any], source_paths: set[str]) -> None:
+        witnesses = report.get("import_witnesses")
+        if not isinstance(witnesses, list):
+            raise DomainInventoryError("missing source-backed import witnesses")
+        counts = {"observed_import_sites": len(witnesses),
+                  "classified_intra_import_sites": 0,
+                  "classified_cross_import_sites": 0}
+        for entry in witnesses:
+            if (not isinstance(entry, dict)
+                    or entry.get("source") not in source_paths
+                    or entry.get("target") not in source_paths
+                    or type(entry.get("line")) is not int or entry["line"] < 1
+                    or entry.get("classification") not in {
+                        "INTRA_DOMAIN", "CROSS_DOMAIN", "DOMAIN_UNKNOWN"
+                    }):
+                raise DomainInventoryError("invalid source-backed import witness")
+            if entry["classification"] == "INTRA_DOMAIN":
+                counts["classified_intra_import_sites"] += 1
+            elif entry["classification"] == "CROSS_DOMAIN":
+                counts["classified_cross_import_sites"] += 1
+        for key, count in counts.items():
+            if type(report.get(key)) is not int or report[key] != count:
+                raise DomainInventoryError("metric contradicts import witnesses: " + key)
+
+    verify_import_counts(before, set(original))
+    verify_import_counts(after, set(current))
     numbers = {}
     for field in ("observed_import_sites", "classified_intra_import_sites",
                   "classified_cross_import_sites"):
