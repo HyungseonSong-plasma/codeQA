@@ -93,6 +93,30 @@ def _exports(path: str, text: str) -> list[dict[str, Any]]:
     return found
 
 
+def _observed_import_sites(path: str, source: str) -> set[tuple[int, str, str]]:
+    """Bound an edge to a real selected AST import and execution location.
+
+    This does NOT independently resolve the imported module to a target path;
+    module resolution, dynamic imports and completeness remain separate evidence.
+    """
+    try:
+        tree = ast.parse(source, filename=path)
+    except SyntaxError:
+        return set()
+    direct = {id(node) for node in tree.body}
+    sites: set[tuple[int, str, str]] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            expressions = [f"import {alias.name}" for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            expressions = [ast.unparse(node)]
+        else:
+            continue
+        execution = "top_level" if id(node) in direct else "conditional_or_deferred"
+        sites.update((node.lineno, expression, execution) for expression in expressions)
+    return sites
+
+
 def analyze_domain_inventory(
     sources: Mapping[str, str],
     dependencies: DependencyGraph,
@@ -130,11 +154,19 @@ def analyze_domain_inventory(
             "lines": len(lines),
             "parsed": path in dependencies.analyzed_paths,
         })
+    import_sites = {
+        path: _observed_import_sites(path, sources[path])
+        for path in dependencies.analyzed_paths
+    }
     edges = []
     intra = cross = 0
     for edge in dependencies.edges:
         if edge.source_path not in classified or edge.target_path not in classified:
             raise DomainInventoryError("dependency edge escapes the supplied source set")
+        if (edge.source_path not in import_sites
+                or (edge.line, edge.expression, edge.execution)
+                not in import_sites[edge.source_path]):
+            raise DomainInventoryError("dependency edge lacks selected source import witness")
         left, right = classified[edge.source_path], classified[edge.target_path]
         if left == right and left not in ("UNCLASSIFIED", "AMBIGUOUS"):
             intra += 1
