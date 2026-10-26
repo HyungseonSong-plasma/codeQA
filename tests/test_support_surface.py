@@ -83,7 +83,9 @@ class SupportSurfaceTests(unittest.TestCase):
                 next(f for f in data["features"] if f["id"] == "python_mechanical")[
                     "evidence"
                 ].append(path)
-                with self.assertRaisesRegex(SupportSurfaceError, "unsafe or empty support path"):
+                expected = ("invalid support field" if "\r" in path
+                            else "unsafe or empty support path")
+                with self.assertRaisesRegex(SupportSurfaceError, expected):
                     audit_support_surface(ROOT, data, readme=self.readme)
 
     def test_control_byte_readme_cells_are_not_supported(self) -> None:
