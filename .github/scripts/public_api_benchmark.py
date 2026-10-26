@@ -418,6 +418,7 @@ def main() -> None:
     history_report["negative_controls"] = history_negative_controls(
         history, older_sources, sources, older_tree)
     history_report["manifest_sha256"] = hashlib.sha256(history_path.read_bytes()).hexdigest()
+    report["historical_pair"] = history_report
     report["source_files"] = [{"path": path, "git_blob": blob, "sha256": digest}
                               for path, blob, digest in manifest["files"]]
     report["negative_controls"] = negative_controls(manifest, sources, tree)
