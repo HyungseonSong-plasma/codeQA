@@ -61,3 +61,24 @@ equivalence to the published PyPI `stripe==16.0.0` wheel. A future
 typechecker run against an installed wheel must independently bind its
 bytes to an approved release-tag/source snapshot, or report
 `UNRESOLVED` rather than transferring this source-only PASS.
+
+## Partial real Pyright execution (separate from SDK compatibility)
+
+The same CI invokes actual pinned **Pyright 1.1.414** on byte-identical
+copies of the selected real `stripe/_ephemeral_key.py` source and
+`examples/webhooks.py` consumer, with the other eight selected sources
+copied alongside. The exact selected source set and all copied bytes
+are checked before accepting native Pyright JSON. Tool crashes,
+malformed reports, mismatched exit/error counts, foreign diagnostic
+paths and incomplete source scan counts fail CI. The native report
+`public-python-sdk-pyright-native.json` and digest are uploaded.
+
+**Classification: `EXECUTED_PARTIAL_SOURCE_ONLY`.** This is deliberately
+an incomplete package tree without full Stripe dependencies or Flask.
+Native missing-import/type diagnostics are recorded, **not** interpreted
+as actual API incompatibility. Zero diagnostics would likewise not
+establish full SDK compatibility. Override/Protocol conformance,
+metaclass behavior, callback dispatch, complete dependency closure and
+installed wheel equivalence remain `NOT_EVALUATED`. This does not
+replace the independently pinned installed SDK and real consumer
+conformance still required for issue closure.
