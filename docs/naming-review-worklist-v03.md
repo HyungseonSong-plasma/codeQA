@@ -25,3 +25,18 @@ python -m unittest discover -s tests -p 'test_naming_policy_precedence_v03.py' -
 ```
 
 The dedicated `naming-policy-precedence-v03.yml` workflow runs both on changed source/test/worksheet paths. CI success proves structural regression only. The owner must separately review and approve final inventory, negative outcomes and versioned glossary. Until then, this issue remains OPEN.
+
+## Stage 2 — entire pinned source tree and syntactic denominator
+
+`codeqa.core.naming_snapshot_coverage_v03.scan_pinned_git(root, revision=sha40)` enumerates **all Git-tracked Python files under `src/codeqa/` at the exact commit**, reads immutable file bytes through `GitReader`, checks each Git tree blob's independently recomputed Git SHA-1 identity, records each file SHA-256, and refuses missing/unparseable/nonregular/nonportable Python entries. It never uses the current mutable worktree as the source inventory.
+
+The module independently traverses Python AST declarations for `function`, `method`, and `parameter` nodes and compares their exact path/line/name/owner/kind multiset against the existing v0.3 declaration observer. This gives an explicit **structural declaration-site denominator** for those three syntax classes, including exact missing/unexpected sites. It is not a denominator for all runtime bindings or eligible Naming rename targets. In particular, class annotations and instance/DTO fields require ownership review, so they are **excluded from this equality denominator**. Reported `uncertainty_categories` count selected AST signs of wildcard/relative imports, dynamic calls, global/nonlocal statements, Unicode/dunder names, fields and import binding without pretending complete detection.
+
+The full-source scan is run in the dedicated workflow using the exact PR raw head SHA (push uses exact commit SHA). Native logs emit the actual selected file and structural site counts. Syntactic match does **not** equal semantic true positive, true negative, false positive, or false negative; all such rates, cross-package reexports, public API/DB compatibility and approved rename safety remain `NOT_EVALUATED` until independent ground truth and an authenticated reviewer are supplied.
+
+```sh
+CODEQA_NAMING_PINNED_REV="$(git rev-parse HEAD)" \
+  python -m unittest discover -s tests -p 'test_naming_snapshot_coverage_v03.py' -v
+```
+
+The new tests reject forged/missing path inventories, changed SHA-256, malformed Python, unsafe paths, semantic PASS claims and verify multi-file identical-name disambiguation. All source reads are local and non-executing. New source census does not alter legacy QA output or the opt-in policy selector.
