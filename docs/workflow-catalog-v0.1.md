@@ -1,7 +1,7 @@
 # Workflow governance catalog v0.1 (#124)
 
-The [machine-readable catalog](workflow-catalog-v0.1.json) inventories **21
-tracked workflows** at codeQA main `f7859c7f742ba55025bf1633ef7438d18e8a9416`.
+The [machine-readable catalog](workflow-catalog-v0.1.json) inventories **23
+tracked workflows** on this Draft integration tree, based on codeQA main `f7859c7f742ba55025bf1633ef7438d18e8a9416`.
 The controller independently read GitHub repository ruleset **25360323**,
 `codeQA-main-protection`, on **2026-10-25**. It was active on the default
 branch and required exactly the job check `layout` (integration 15368), with
@@ -49,7 +49,7 @@ workflow setting mutation is authorized by this document.
 ## Tracked workflow source provenance
 
 A companion [Git-blob manifest](workflow-provenance-v0.1.json)
-records exact tracked SHA-1 Git blob identities for all 21 baseline workflows
+records exact tracked SHA-1 Git blob identities for all 23 integration-tree workflows
 at `f7859c7f742ba55025bf1633ef7438d18e8a9416`.
 `codeqa.governance.workflow_provenance` independently recomputes each blob
 identity from checked-out YAML and rejects changed, deleted, invented or
@@ -65,3 +65,19 @@ If PR #128's Self Audit upload change is approved, **both** the
 `artifact_upload_count` field in the primary catalog and the matching
 `blob_sha` in this provenance manifest must be updated within the same
 reviewed integration change. The drift tests intentionally fail otherwise.
+
+## Concurrent workflow changes awaiting merge reconciliation (2026-10-26)
+
+This Draft integration tree classifies 23 workflows, including the new Rust
+parser and Naming precedence jobs. Its exact Git blob provenance is valid
+**only for this tree**. Separate Draft PR #140 changes
+`.github/workflows/python-package.yml` for installed-wheel Pyright, and
+Draft PR #141 changes `.github/workflows/pinned-dafny-formal.yml` for a
+read-only GitHub run/source relation check. Those two workflow blobs differ
+from the hashes currently recorded here. Green independent PR checks do not
+make the three source trees mutually compatible or merge-ready.
+
+Reviewers must select an explicit integration order, incorporate the final
+workflow bytes, update both manifests in the same reviewed change, and run
+Layout and the relevant conformance jobs against the resulting combined tree.
+No self-approval, ruleset change or automatic merge follows from this note.
