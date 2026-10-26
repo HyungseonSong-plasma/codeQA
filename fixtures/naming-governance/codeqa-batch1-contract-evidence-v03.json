@@ -79,8 +79,38 @@
   ],
   "source_reference_classification": "PINNED_AST_SYNTAX_CANDIDATES_NOT_RESOLVED_BINDING_GRAPH",
   "runtime_contract_classification": "CURRENT_IMPLEMENTATION_BEHAVIOR_ONLY",
-  "external_consumer_coverage": "NOT_EVALUATED",
+  "external_consumer_coverage": "OUT_OF_SCOPE",
   "human_policy_adoption": "NOT_ADOPTED",
   "automatic_rename_authorized": false,
-  "issue_close_authorized": false
+  "issue_close_authorized": false,
+  "review_scope": {
+    "decision_axis": "PINNED_SOURCE_AST_OBSERVATION_ONLY",
+    "authorized_limited_review": "SOURCE_DECLARATION_EXISTENCE_KIND_LINE_OWNER",
+    "excluded_domains": [
+      {
+        "domain": "EXTERNAL_CONSUMER_COMPATIBILITY",
+        "status": "OUT_OF_SCOPE",
+        "not_proven": "external consumers absent or backward compatible"
+      },
+      {
+        "domain": "DYNAMIC_AND_TRANSITIVE_BINDING_RESOLUTION",
+        "status": "OUT_OF_SCOPE",
+        "not_proven": "all runtime references and aliases have been resolved"
+      },
+      {
+        "domain": "API_RENAME_OR_CHANGE_IMPACT",
+        "status": "OUT_OF_SCOPE",
+        "not_proven": "renaming preserves SDK ABI DTO DB serialized forms or fingerprints"
+      }
+    ],
+    "policy_applicability": "NOT_EVALUATED",
+    "semantic_equivalence": "NOT_EVALUATED",
+    "external_impact_safety": "NOT_EVALUATED",
+    "human_re_adjudication_pending": true,
+    "scope_does_not_satisfy_uncovered_issue_acceptance": true,
+    "out_of_scope_must_not_be_interpreted_as_pass": true
+  },
+  "dynamic_reference_coverage": "OUT_OF_SCOPE",
+  "api_change_impact_coverage": "OUT_OF_SCOPE",
+  "human_decision_source": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106"
 }
