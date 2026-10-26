@@ -1,10 +1,10 @@
 {
   "schema_version": "0.1",
-  "source_main_sha": "f7859c7f742ba55025bf1633ef7438d18e8a9416",
+  "source_main_sha": "82e1678b6fb6dd784456770f38f45fa538f04245",
   "ruleset": {
     "id": 25360323,
     "name": "codeQA-main-protection",
-    "observed_date": "2026-10-25",
+    "observed_date": "2026-10-26",
     "required_check_context": "layout",
     "readback": "GITHUB_RULESET_READBACK_VERIFIED_AT_OBSERVED_DATE_NOT_LIVE_CI_PROOF"
   },
@@ -116,6 +116,21 @@
     },
     {
       "path": ".github/workflows/naming-glossary.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-policy-precedence-v03.yml",
       "category": "conformance",
       "owner": "codeQA source/conformance",
       "trigger_events": [
@@ -302,7 +317,7 @@
       ],
       "required_check": null,
       "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
-      "artifact_upload_count": 1,
+      "artifact_upload_count": 2,
       "artifact_authority": "INFORMATIONAL_ONLY",
       "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
     },

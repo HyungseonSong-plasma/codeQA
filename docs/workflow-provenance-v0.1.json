@@ -1,6 +1,6 @@
 {
   "version": "0.1",
-  "source_main_sha": "f7859c7f742ba55025bf1633ef7438d18e8a9416",
+  "source_main_sha": "82e1678b6fb6dd784456770f38f45fa538f04245",
   "meaning": "GIT_BLOB_IDENTITY_NOT_CHECK_RUN_VERIFICATION",
   "retirement_policy": "HUMAN_REVIEW_REQUIRED_PRESERVE_PINNED_EVIDENCE",
   "workflows": [
@@ -37,6 +37,10 @@
       "blob_sha": "b0476e870442d384ee3055f1483adab339cbc788"
     },
     {
+      "path": ".github/workflows/naming-policy-precedence-v03.yml",
+      "blob_sha": "634e9fd334af24ec426174b71da07d483d994398"
+    },
+    {
       "path": ".github/workflows/naming-python-conformance.yml",
       "blob_sha": "3249433af8fd5fcc477ba77efa35f7b44242f6cb"
     },
@@ -50,7 +54,7 @@
     },
     {
       "path": ".github/workflows/pinned-dafny-formal.yml",
-      "blob_sha": "2e9208327121dd23b728cb43dad526b585a2bb62"
+      "blob_sha": "3db98854d8655a39c902ac5b826785406a488c60"
     },
     {
       "path": ".github/workflows/pinned-python-sdk.yml",
@@ -58,7 +62,7 @@
     },
     {
       "path": ".github/workflows/python-package.yml",
-      "blob_sha": "83ffb533675c50967117c76ffaa6fca6a3f2a106"
+      "blob_sha": "241fde5d13a5dacde8926997a91c8e7d65797360"
     },
     {
       "path": ".github/workflows/rust-ccg-conformance.yml",
@@ -70,7 +74,7 @@
     },
     {
       "path": ".github/workflows/samuel-branch-delete.yml",
-      "blob_sha": "02d02538223dd581b56a222296739454ea2b7b52"
+      "blob_sha": "6416fa321367401faab50236c763ccec557beb11"
     },
     {
       "path": ".github/workflows/samuel-codeqa-issue-execute.yml",
@@ -82,7 +86,7 @@
     },
     {
       "path": ".github/workflows/self-audit.yml",
-      "blob_sha": "0d8e8aa14dce1e9b020794dde58a5ea24c92329a"
+      "blob_sha": "dd9c27b60c6ead51cf6c098f9f1338bca78a4275"
     },
     {
       "path": ".github/workflows/semgrep-gate.yml",
