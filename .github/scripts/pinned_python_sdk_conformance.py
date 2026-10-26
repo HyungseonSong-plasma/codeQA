@@ -566,6 +566,19 @@ def main() -> None:
                         "No automatic import or execution of untrusted third-party code",
                         "Only fixed synthetic SDK/ORM models were runtime executed"],
     }
+    # Public benchmark reads only independently pinned source bytes. It NEVER
+    # imports the upstream app or executes its migrations/install scripts.
+    public_run = subprocess.run(
+        [sys.executable, str(ROOT / ".github/scripts/public_api_benchmark.py"),
+         "--output", str(args.output)],
+        cwd=ROOT, capture_output=True, text=True, check=False, timeout=240)
+    print(public_run.stdout, end="")
+    need(public_run.returncode == 0, "PUBLIC_BENCHMARK_FAILED "
+         + (public_run.stderr + public_run.stdout)[-3000:])
+    result["public_benchmark"] = json.loads(
+        (args.output / "public-api-benchmark.json").read_text(encoding="utf-8"))
+    result["limitations"].append(
+        "Pinned FastAPI TypeScript consumer source is not a Python SDK or a deployed API/DB")
     (args.output / "sdk-conformance.json").write_bytes(
         json.dumps(result, indent=2, sort_keys=True).encode() + b"\n")
     print("PINNED_PYTHON_SDK=PASS pyright=" + PIN["pyright"]
