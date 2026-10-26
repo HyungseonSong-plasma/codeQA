@@ -75,6 +75,25 @@ class SupportSurfaceTests(unittest.TestCase):
     def test_unsafe_or_escaped_evidence_path_rejected(self) -> None:
         self._rejected(lambda d: next(f for f in d["features"] if f["id"] == "python_mechanical")["evidence"].append("../../outside"))
 
+    def test_nonportable_support_evidence_path_rejected(self) -> None:
+        for path in ("README.md\r", "docs/file:stream.json",
+                     "docs/trailing./report.json"):
+            with self.subTest(path=repr(path)):
+                data = deepcopy(self.manifest)
+                next(f for f in data["features"] if f["id"] == "python_mechanical")[
+                    "evidence"
+                ].append(path)
+                with self.assertRaisesRegex(SupportSurfaceError, "unsafe or empty support path"):
+                    audit_support_surface(ROOT, data, readme=self.readme)
+
+    def test_control_byte_readme_cells_are_not_supported(self) -> None:
+        data = deepcopy(self.manifest)
+        next(f for f in data["features"] if f["id"] == "python_mechanical")[
+            "languages"
+        ][0] = "Python\rCERTIFIED"
+        with self.assertRaisesRegex(SupportSurfaceError, "unsafe README table cell"):
+            render_support_table(data)
+
     def test_unknown_status_cannot_be_admitted(self) -> None:
         self._rejected(lambda d: next(f for f in d["features"] if f["id"] == "python_mechanical").update(mode="CERTIFIED"))
 
