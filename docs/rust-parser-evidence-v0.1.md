@@ -18,7 +18,14 @@ The parser records trait, struct, enum, module, function and method spelling
 from tree-sitter nodes, retaining raw identifier spelling. Source parse errors,
 unreviewed parser versions, stale digests and unpinned revisions fail closed.
 Unknowns explicitly cover trait impl resolution, macros, reexports, attributes,
-compiler/ABI and runtime dispatch. The workflow asserts seven tests actually
+compiler/ABI and runtime dispatch.
+
+The parser now requires a syntactically scoped `owner/repo` identifier, a
+relative traversal-free `.rs` path, a full 40-hex source revision and exact
+SHA-256 bytes; it rejects sources over 1,000,000 bytes before parsing. These
+are **input-integrity guards**, not independent verification that the supplied
+repository, revision or path actually exists. The dedicated workflow still
+performs that external checkout and byte comparison. The workflow asserts seven tests actually
 execute without skip and uploads `rust-parser-evidence.json`.
 
 ## Authority and limitations
