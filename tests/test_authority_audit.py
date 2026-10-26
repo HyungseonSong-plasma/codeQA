@@ -176,6 +176,27 @@ class AuthorityPropagationTests(unittest.TestCase):
         )
         self.assertEqual(result.consumer_authorization, "BLOCK")
 
+    def test_malformed_expected_policy_or_source_identity_blocks_not_crashes(self) -> None:
+        receipt = self.receipt(self.gate, "codeqa.evidence_gate")
+        for bad in (None, 42, True, {}, []):
+            with self.subTest(field="policy", bad=bad):
+                result = audit_authority_propagation(
+                    self.gate, expected_snapshot_id=SNAPSHOT,
+                    expected_policy_fingerprint=bad,
+                    expected_source_sha=SOURCE, receipt=receipt,
+                )
+                self.assertEqual(result.consumer_authorization, "BLOCK")
+                self.assertIn("POLICY_MISMATCH_OR_UNPINNED", result.reasons)
+            with self.subTest(field="source", bad=bad):
+                result = audit_authority_propagation(
+                    self.gate, expected_snapshot_id=SNAPSHOT,
+                    expected_policy_fingerprint=POLICY,
+                    expected_source_sha=bad, receipt=receipt,
+                )
+                self.assertEqual(result.consumer_authorization, "BLOCK")
+                self.assertIn("SOURCE_SHA_UNPINNED", result.reasons)
+                self.assertIsNone(result.source_sha)
+
     def test_missing_remote_run_reference_blocks(self) -> None:
         receipt = self.receipt(self.gate, "codeqa.evidence_gate")
         receipt["ci_run_url"] = "https://example.com/pretend"
