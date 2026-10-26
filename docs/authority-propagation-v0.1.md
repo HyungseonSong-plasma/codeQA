@@ -118,3 +118,14 @@ explicit `BLOCK` with an unpinned/mismatched reason, not an uncaught
 regular-expression type error or a scoped allow. This improves receipt
 consumer error handling; it does not independently authenticate a GitHub
 run or grant production merge/deploy authority.
+
+## Selected-path authority receipt guard (2026-10-26)
+
+A self-consistent, typed Gate PASS receipt must not carry traversal, absolute,
+backslash, alternate-data-stream or duplicate source paths in a requirement's
+selected file scope. The downstream audit now enforces the existing Gate
+policy's conservative exact-file path grammar and unique selected paths
+before permitting even `SCOPED_GATE_ALLOW`. Two adversarial tests cover
+forged-but-self-consistent decision digests. This is local consistency only:
+selected-source completeness, remote runner authenticity, policy review and
+production merge/deployment authority remain NOT_EVALUATED/BLOCK.
