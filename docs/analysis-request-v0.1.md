@@ -63,3 +63,11 @@ caller policies an identical recorded fingerprint. Cyclic or non-JSON policy
 values also fail closed. This protects **internal fingerprint consistency**;
 caller-supplied policy hashes remain unsigned and do not establish independent
 source, API or schema authority.
+
+## Changed-path portability
+
+Both mapping-created and directly constructed options reject absolute,
+traversing, control-character, Windows alternate-data-stream and trailing
+dot/space path components before analysis. This prevents ambiguous selected
+source identities across filesystems; it does not independently attest the
+Git snapshot or authorize a Naming, Formal or external Gate companion.
