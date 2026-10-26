@@ -71,8 +71,10 @@ def _reject(message: str) -> None:
 
 def _path(root: Path, value: str) -> Path:
     if (not isinstance(value, str) or not value or value.startswith("/")
-            or "\\" in value or "\x00" in value
-            or any(x in ("", ".", "..") for x in value.split("/"))
+            or "\\" in value or ":" in value
+            or any(ord(char) < 32 or ord(char) == 127 for char in value)
+            or any(x in ("", ".", "..") or x.endswith((".", " "))
+                   for x in value.split("/"))
             or (len(value) > 1 and value[1] == ":")):
         _reject("unsafe or empty support path")
     base = root.resolve()
@@ -93,7 +95,9 @@ def render_support_table(manifest: Mapping[str, Any]) -> str:
             feature["id"], feature["mode"], ", ".join(feature["languages"]),
             feature["authority"], feature["scope"],
         )
-        if any(not isinstance(x, str) or not x or "|" in x or "\n" in x for x in values):
+        if any(not isinstance(x, str) or not x or "|" in x
+               or any(ord(char) < 32 or ord(char) == 127 for char in x)
+               for x in values):
             _reject("unsafe README table cell")
         rows.append("| " + " | ".join(values) + " |")
     return "\n".join(rows)
@@ -142,7 +146,9 @@ def audit_support_surface(
             values = feature[field]
             if not isinstance(values, list) or (field in ("languages", "evidence", "limitations") and not values):
                 _reject("missing support field: " + fid + "." + field)
-            if any(not isinstance(v, str) or not v or "|" in v or "\n" in v for v in values):
+            if any(not isinstance(v, str) or not v or "|" in v
+                   or any(ord(char) < 32 or ord(char) == 127 for char in v)
+                   for v in values):
                 _reject("invalid support field: " + fid + "." + field)
             if len(set(values)) != len(values):
                 _reject("duplicate support field: " + fid + "." + field)
