@@ -117,6 +117,42 @@ class RenameImpactTests(unittest.TestCase):
         self.assertEqual(report.verdict, "UNVERIFIED_PROPOSAL")
         self.assertEqual(report.migration_plan, "HUMAN_REVIEW_REQUIRED")
 
+    def test_python_comment_or_string_is_not_a_declaration_witness(self):
+        for text in ('# OldName\ndef real(): pass\n',
+                     'label = "OldName"\n'):
+            with self.subTest(text=text):
+                sources = {"src/sample.py": text}
+                witness = self.make_symbol(
+                    line=1, source_sha256=sha256(text.encode()).hexdigest())
+                with self.assertRaisesRegex(RenameImpactError, "declaration lexical"):
+                    self.assess(sources=sources, symbol=witness)
+
+    def test_python_comment_or_string_is_not_a_reference_witness(self):
+        for suffix in ('# OldName\n', 'label = "OldName"\n'):
+            with self.subTest(suffix=suffix):
+                text = SOURCE + suffix
+                digest = sha256(text.encode()).hexdigest()
+                symbol = self.make_symbol(source_sha256=digest)
+                ref = ReferenceWitness(
+                    "src/sample.py", 4, digest, "verified_lexical", "OldName")
+                with self.assertRaisesRegex(RenameImpactError, "reference lexical token"):
+                    self.assess(sources={"src/sample.py": text},
+                                symbol=symbol, references=(ref,))
+
+    def test_syntax_invalid_python_cannot_certify_lexical_declaration(self):
+        text = "def OldName(:\n    pass\n"
+        witness = self.make_symbol(source_sha256=sha256(text.encode()).hexdigest())
+        with self.assertRaisesRegex(RenameImpactError, "declaration lexical"):
+            self.assess(sources={"src/sample.py": text}, symbol=witness)
+
+    def test_parseable_stub_python_name_remains_proposal_only(self):
+        text = "def OldName() -> None: ...\n"
+        witness = self.make_symbol(
+            path="src/sample.pyi", source_sha256=sha256(text.encode()).hexdigest())
+        result = self.assess(sources={"src/sample.pyi": text}, symbol=witness)
+        self.assertEqual(result.verdict, "UNVERIFIED_PROPOSAL")
+        self.assertEqual(result.migration_plan, "HUMAN_REVIEW_REQUIRED")
+
     def test_invalid_policy_and_identity_rejected(self):
         with self.assertRaises(RenameImpactError):
             self.assess(policy_id="../not-pinned")
