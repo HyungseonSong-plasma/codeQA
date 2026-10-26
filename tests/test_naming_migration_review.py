@@ -188,6 +188,28 @@ class MigrationReviewTests(unittest.TestCase):
                 proposal=replace(proposal, old_name="GhostName"),
             )
 
+    def test_incomplete_python_token_stream_cannot_certify_old_name(self):
+        malformed = SOURCE1 + "'''unterminated"
+        old = {"src/a.py": malformed}
+        # The proposal remains from a distinct, valid source; a revision
+        # string alone cannot authenticate its source-manifest binding.
+        valid = {"src/a.py": SOURCE1}
+        proposal = assess_rename_impact(
+            revision=BEFORE, sources=valid,
+            symbol=SymbolWitness(
+                "src/a.py", "OldName", "function", 1,
+                sha256(SOURCE1.encode()).hexdigest(), "internal", True,
+            ),
+            proposed_name="new_name", references=(),
+            source_selection_complete=True, policy_id="repo-naming-v0.2",
+        )
+        with self.assertRaisesRegex(MigrationPlanError, "old identifier absent"):
+            self.make(
+                before_sources=old,
+                before_sha256={"src/a.py": sha256(malformed.encode()).hexdigest()},
+                proposal=proposal,
+            )
+
     def test_candidate_name_only_in_string_or_comment_remains_unknown(self):
         after = 'def unrelated(): return "new_name"\n# new_name\n'
         packet = self.make(
