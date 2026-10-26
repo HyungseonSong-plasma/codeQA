@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import date
 from hashlib import sha256
 import json
@@ -82,6 +82,8 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
             "physics-functions", "exception-reviewed",
         ))
         self.assertEqual(r.source_sha256, sha256(SOURCE.encode()).hexdigest())
+        self.assertEqual(r.observation, "LEXICAL_ONLY")
+        self.assertEqual(asdict(r)["observation"], "LEXICAL_ONLY")
         self.assertTrue(r.human_review_required)
         self.assertFalse(r.semantic_proven)
 
@@ -259,6 +261,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
                 r = p.resolve(**args(p, symbol=name))
                 self.assertEqual(r.status, "NOT_EVALUATED")
                 self.assertEqual(r.reason, "symbol not lexically observed in selected source")
+                self.assertEqual(r.observation, "NOT_OBSERVED")
                 self.assertTrue(r.human_review_required)
                 self.assertFalse(r.semantic_proven)
 
@@ -271,8 +274,26 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
             expected_source_sha256=sha256(source.encode()).hexdigest(),
         ))
         self.assertEqual(r.status, "CHECK_CANDIDATE")
+        self.assertEqual(r.observation, "LEXICAL_ONLY")
         self.assertFalse(r.semantic_proven)
         self.assertTrue(r.human_review_required)
+
+    def test_string_only_and_missing_scope_remain_lexical_only(self):
+        p = NamingPrecedencePolicy.from_mapping(sample())
+        source = 'note = "comment_only"\\n'
+        r = p.resolve(**args(
+            p, symbol="comment_only", sources={"src/codeqa/physics/electron.py": source},
+            expected_source_sha256=sha256(source.encode()).hexdigest(),
+        ))
+        self.assertEqual(r.status, "CHECK_CANDIDATE")
+        self.assertEqual(asdict(r)["observation"], "LEXICAL_ONLY")
+        self.assertFalse(r.semantic_proven)
+        # A lexical hit outside the explicitly allowed symbol kind is not a
+        # policy selection, but the token is still only a lexical observation.
+        no_scope = p.resolve(**args(p, symbol_kind="parameter"))
+        self.assertEqual(no_scope.status, "NOT_EVALUATED")
+        self.assertEqual(no_scope.observation, "LEXICAL_ONLY")
+        self.assertTrue(no_scope.human_review_required)
 
     def test_lexical_only_not_policy_gate_or_source_mutation(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
