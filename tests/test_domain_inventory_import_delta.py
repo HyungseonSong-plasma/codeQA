@@ -10,7 +10,7 @@ def record(sha, exported):
         "interpretation": "STATIC_SOURCE_WITNESSES_NOT_RUNTIME_COHESION_OR_COMPATIBILITY_PROOF",
         "status": "NOT_EVALUATED", "inventory": [],
         "observed_import_sites": 0, "classified_intra_import_sites": 0,
-        "classified_cross_import_sites": 0,
+        "classified_cross_import_sites": 0, "import_witnesses": [],
         "init_import_candidates": exported,
     }
 
