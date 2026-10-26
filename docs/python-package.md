@@ -152,3 +152,12 @@ non-standard `NaN`/`Infinity` constants and floating-point exponent overflow
 first two but could accept overflow; the standalone registry accepted all
 three. These are deterministic parse-integrity checks, not schema validation,
 cryptographic authenticity or an independently verified consumer release.
+
+## Standalone resource-path portability (#125)
+
+Direct `ResourceRegistry` consumers now receive a bounded
+`ResourceResolutionError` for control-byte paths (including NUL), Windows
+alternate-data-stream/device names, trailing dot/space and non-NFC Unicode
+components. This aligns the explicit local registry's path acceptance with
+verified-bundle portability checks; it does not introduce automatic resource
+discovery or a claim that a mutable local filesystem is authenticated.
