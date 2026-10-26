@@ -65,6 +65,7 @@ def parse_cpp_syntax(
                 r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.(?:C|cc|cpp|h|hpp)",
                 source_path,
             )
+            or any(part in (".", "..") for part in source_path.split("/"))
             or not isinstance(expected_source_sha256, str)
             or not re.fullmatch(r"[0-9a-f]{64}", expected_source_sha256)
             or type(require_complete_parse) is not bool):
