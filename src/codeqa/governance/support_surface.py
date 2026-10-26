@@ -58,7 +58,7 @@ EXCLUSIVE_MODES = {
 EXCLUSIVE_AUTHORITIES = {"SCOPED_GATE": {"external_evidence_gate"}}
 PROTECTED_SOURCE_IDENTITIES = {
     "python_mechanical": (("Python",), "codeqa.pipeline.python:analyze_python"),
-    "python_naming_safe": (("Python",), "codeqa.evaluation.naming:evaluate_naming"),
+    "python_naming_safe": (("Python",), "codeqa.pipeline.naming_product:analyze_python_naming_opt_in"),
     "naming_companions": (("Python",), "codeqa.evaluation.naming:evaluate_naming"),
     "official_naming_v05_exact_field": (("Python",), "codeqa.pipeline.naming_official_policy_v05:evaluate_pinned_official_naming_v05"),
     "external_evidence_gate": (("language-neutral",), "codeqa.evaluation.evidence_gate:evaluate_gate"),

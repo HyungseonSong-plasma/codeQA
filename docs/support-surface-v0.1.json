@@ -119,10 +119,10 @@
       ],
       "authority": "SCOPED_REVIEW",
       "scope": "PYTHON_DECLARATION_SPELLING_ONLY",
-      "source": "src/codeqa/evaluation/naming.py",
-      "entrypoint": "codeqa.evaluation.naming:evaluate_naming",
+      "source": "src/codeqa/pipeline/naming_product.py",
+      "entrypoint": "codeqa.pipeline.naming_product:analyze_python_naming_opt_in",
       "evidence": [
-        "README.md"
+        "docs/naming-product-boundary-v0.1.md"
       ],
       "resources": [
         "python_naming_safe_profile",
@@ -130,8 +130,9 @@
       ],
       "principles": [],
       "limitations": [
-        "not interface or semantic correctness",
-        "not default Mechanical"
+        "safe Python AST declaration spelling evidence only",
+        "opt-in; not a default Mechanical or Public QA Result path",
+        "official Naming v0.5 is a separate single-declaration opt-in; no external API proof"
       ]
     },
     {
