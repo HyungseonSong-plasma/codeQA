@@ -124,7 +124,9 @@ def assess_rename_impact(
     proposed_name: str, references: tuple[ReferenceWitness, ...],
     source_selection_complete: bool, policy_id: str,
 ) -> RenameImpactReport:
-    if not isinstance(revision, str) or not _REV.fullmatch(revision):
+    if (not isinstance(revision, str) or not _REV.fullmatch(revision)
+            or any(part in (".", "..")
+                   for part in revision[4:].split("@", 1)[0].split("/"))):
         raise RenameImpactError("exact immutable Git revision required")
     if not isinstance(policy_id, str) or not _POLICY.fullmatch(policy_id):
         raise RenameImpactError("versioned policy identity required")
@@ -140,6 +142,10 @@ def assess_rename_impact(
         raise RenameImpactError("invalid declaration identity")
     if not isinstance(proposed_name, str) or not proposed_name or proposed_name == symbol.name:
         raise RenameImpactError("proposal must change an identifier")
+    if symbol.path.endswith((".py", ".pyi")) and (
+        not symbol.name.isidentifier() or keyword.iskeyword(symbol.name)
+    ):
+        raise RenameImpactError("invalid Python source identifier")
     # Python source migration suggestions must at least be syntactically
     # expressible as identifiers; this is not a binding or public API proof.
     if symbol.path.endswith((".py", ".pyi")) and (
