@@ -19,6 +19,39 @@ exact-SHA-guarded change to
 The connector's missing delete operation is not evidence that Samuel deletion is
 unavailable.
 
+## Supported surface (source-backed v0.1 inventory)
+
+The table below is validated against the [versioned support manifest](docs/support-surface-v0.1.json),
+registered resource IDs, current Python entrypoint symbols and package metadata by
+`tests/test_support_surface.py` in the existing Layout CI. It records **source witnesses only**;
+CI success, human usability, actual SDK/DB compatibility and full P1–P8 correctness
+are **not** implied. `DEFAULT_SCOPED` means default **within the Python Mechanical
+pipeline when invoked**, not automatic execution or certification. `OPT_IN`
+features are independent and do not silently alter the Mechanical verdict.
+
+<!-- support-surface:v0.1:start -->
+| Feature | Mode | Language | Authority | Evidence scope |
+| --- | --- | --- | --- | --- |
+| repository_layout | OPT_IN | language-neutral | SCOPED_REVIEW | TRACKED_ROOT_LAYOUT_ONLY |
+| adapter_capability | CONTRACT_ONLY | language-neutral, Python | CONTRACT_ONLY | DECLARED_SYNTAX_CAPABILITY_ONLY |
+| python_mechanical | DEFAULT_SCOPED | Python | HEURISTIC_REVIEW | PYTHON_AST_INPUT_ONLY |
+| mechanical_companions | OPT_IN | Python | SCOPED_REVIEW | SELECTED_STATIC_METRICS_ONLY |
+| python_naming_safe | OPT_IN | Python | SCOPED_REVIEW | PYTHON_DECLARATION_SPELLING_ONLY |
+| naming_companions | OPT_IN | Python | SCOPED_REVIEW | EXPERIMENTAL_DECLARATION_WITNESSES |
+| official_naming_v05_exact_field | OPT_IN | Python | SCOPED_REVIEW | EXACT_FIELD_LEXICAL_ONLY |
+| qa_result_contract | CONTRACT_ONLY | language-neutral, Python | CONTRACT_ONLY | SCOPED_MECHANICAL_EXCHANGE_ONLY |
+| external_evidence_gate | OPT_IN | language-neutral | SCOPED_GATE | PINNED_ADMITTED_EXTERNAL_EVIDENCE_ONLY |
+| formal_generated_fixture | FIXTURE_ONLY | Dafny, Python | FIXTURE_ONLY | CONTROLLED_GENERATED_PYTHON_FIXTURE |
+| semantic_companions | OPT_IN | Python | SCOPED_REVIEW | DECLARED_ARCHITECTURE_SYNTAX_ONLY |
+| mechanical_p2_p4_p8 | NOT_IMPLEMENTED | language-neutral | NONE | P2_P4_P5_P6_P7_P8_UNSUPPORTED |
+| non_python_mechanical | NOT_IMPLEMENTED | Rust, C++, MOOSE | NONE | END_TO_END_MECHANICAL_NOT_VERIFIED |
+<!-- support-surface:v0.1:end -->
+
+An opt-in Gate's scoped `ALLOW` is not a general production authorization;
+Formal `ALLOW_FIXTURE_ONLY` is never a production merge or semantic-preservation
+approval. Language-neutral CCG schemas are not full Rust/C++/MOOSE analyzers.
+The official Naming v0.5 opt-in policy applies to **one pinned Python field only**; the broader v0.3/v0.4 semantic candidate glossary remains unadopted. Human newcomer comprehension remains `NOT_EVALUATED` pending independent study.
+
 ## Repository status
 
 Foundation bootstrap. The canonical engineering principles, CCG v0.1 and Python adapter
