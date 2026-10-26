@@ -272,12 +272,18 @@ def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, An
                     or not re.fullmatch(r"[0-9a-f]{64}", item["sha256"])
                     or item["path"] in result):
                 raise DomainInventoryError("invalid or duplicate source hash")
+            domain = item.get("domain")
+            if (not isinstance(domain, str)
+                    or (domain not in {"UNCLASSIFIED", "AMBIGUOUS"}
+                        and not re.fullmatch(r"[a-z_]+", domain))):
+                raise DomainInventoryError("missing or invalid source domain classification")
             result[item["path"]] = item["sha256"]
         return result
 
     original, current = source_hashes(before), source_hashes(after)
 
     def verify_import_counts(report: Mapping[str, Any], source_paths: set[str]) -> None:
+        domains = {item["path"]: item["domain"] for item in report["inventory"]}
         witnesses = report.get("import_witnesses")
         if not isinstance(witnesses, list):
             raise DomainInventoryError("missing source-backed import witnesses")
@@ -293,6 +299,19 @@ def compare_domain_inventories(before: Mapping[str, Any], after: Mapping[str, An
                         "INTRA_DOMAIN", "CROSS_DOMAIN", "DOMAIN_UNKNOWN"
                     }):
                 raise DomainInventoryError("invalid source-backed import witness")
+            source_domain = domains[entry["source"]]
+            target_domain = domains[entry["target"]]
+            expected_classification = (
+                "DOMAIN_UNKNOWN"
+                if source_domain in {"UNCLASSIFIED", "AMBIGUOUS"}
+                or target_domain in {"UNCLASSIFIED", "AMBIGUOUS"}
+                else "INTRA_DOMAIN" if source_domain == target_domain
+                else "CROSS_DOMAIN"
+            )
+            if (entry.get("source_domain") != source_domain
+                    or entry.get("target_domain") != target_domain
+                    or entry["classification"] != expected_classification):
+                raise DomainInventoryError("import witness contradicts source domain classification")
             if entry["classification"] == "INTRA_DOMAIN":
                 counts["classified_intra_import_sites"] += 1
             elif entry["classification"] == "CROSS_DOMAIN":
