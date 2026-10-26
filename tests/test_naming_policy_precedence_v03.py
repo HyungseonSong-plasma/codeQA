@@ -441,7 +441,7 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
         # GitReader.read_file(commit, path) binds the bytes to the pinned
         # local Git object; independently recompute both hash identities.
         raw = self.source
-        blob = b"blob " + str(len(raw)).encode("ascii") + b"\\0" + raw
+        blob = b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw
         self.assertEqual(sha1(blob).hexdigest(),
                          self.fixture["source_git_blob_sha"])
         self.assertEqual(sha256(raw).hexdigest(),
