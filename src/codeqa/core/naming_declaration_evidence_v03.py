@@ -87,6 +87,8 @@ class _Collector(ast.NodeVisitor):
         self.scope: list[tuple[str, str]] = []
         self.declarations: list[DeclarationObservation] = []
         self.decorators: list[DecoratorObservation] = []
+        # AST annotation spellings only; never attest runtime semantics.
+        self._nonfield_annotation_names = {"ClassVar", "Final"}
 
     def owner(self) -> str:
         return ".".join(name for name, _ in self.scope)
@@ -138,6 +140,22 @@ class _Collector(ast.NodeVisitor):
         for alias in node.names:
             if alias.name != "*":
                 self.record(alias.asname or alias.name, "import_binding", node)
+                if (not self.scope and node.level == 0
+                        and node.module in {"typing", "typing_extensions"}
+                        and alias.name in {"ClassVar", "Final"}):
+                    self._nonfield_annotation_names.add(alias.asname or alias.name)
+
+    def _unresolved_class_annotation(self, annotation: ast.AST) -> bool:
+        """ClassVar/Final syntax is not a proved instance/dataclass field.
+
+        Final may denote instance state, not necessarily a class constant.
+        Unresolved qualified spellings are conservatively excluded rather
+        than assuming import/runtime identity or granting Naming eligibility.
+        """
+        base = annotation.value if isinstance(annotation, ast.Subscript) else annotation
+        if isinstance(base, ast.Name):
+            return base.id in self._nonfield_annotation_names
+        return isinstance(base, ast.Attribute) and base.attr in {"ClassVar", "Final"}
 
     @staticmethod
     def _names(target: ast.AST) -> list[str]:
@@ -164,8 +182,11 @@ class _Collector(ast.NodeVisitor):
         self.visit(node.value)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        kind = self._binding_kind(annotated=True)
+        if kind == "declared_field" and self._unresolved_class_annotation(node.annotation):
+            kind = "class_annotation_unresolved"
         for name in self._names(node.target):
-            self.record(name, self._binding_kind(annotated=True), node)
+            self.record(name, kind, node)
         if node.value is not None:
             self.visit(node.value)
 
