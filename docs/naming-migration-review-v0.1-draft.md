@@ -37,3 +37,23 @@ smaller than the packet's before-source set. Non-Boolean completeness flags
 are rejected. These are **unresolved obligations**, not grounds for a safe
 rename or a policy PASS; an independently verified source-bound proposal and
 human-approved compatibility plan remain required before #94 closure.
+
+## Recomputed lexical negative controls (2026-10-26)
+
+The packet now checks that the proposal's **old spelling actually occurs**
+as a lexical token in the independently supplied, digest-verified baseline
+source selection; a forged old name fails even if the proposal revision
+string matches. It flags an unchanged-byte file move, a proposed name
+not observed in the candidate bytes, and an old name still observed after
+the candidate change. These observations can match comments/strings and
+do **not** establish AST symbol identity, lexical reference completeness,
+alias compatibility, verified policy fingerprint or a safe rename. Every
+packet therefore still carries `lexical_presence_not_source_binding_proof`,
+`proposal_source_manifest_binding_not_evaluated`, and
+`proposal_policy_fingerprint_not_attested`, with
+`HUMAN_REVIEW_REQUIRED` and no source mutation.
+
+These controls do not replace #94's full immutable-revision comparator,
+external SDK/public DTO/DB/ABI evidence or independently reviewed staged
+migration/rollback approval. A passing fixture must never authorize a
+production rename.
