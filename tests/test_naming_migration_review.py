@@ -170,7 +170,7 @@ class MigrationReviewTests(unittest.TestCase):
         self.assertIn("lexical_presence_not_source_binding_proof", packet.unknowns)
 
     def test_comment_and_string_only_old_identifier_is_rejected(self):
-        source = SOURCE1 + '# GhostName\\nlabel = "GhostName"\\n'
+        source = SOURCE1 + '# GhostName\nlabel = "GhostName"\n'
         old = {"src/a.py": source}
         proposal = assess_rename_impact(
             revision=BEFORE, sources=old,
@@ -189,7 +189,7 @@ class MigrationReviewTests(unittest.TestCase):
             )
 
     def test_candidate_name_only_in_string_or_comment_remains_unknown(self):
-        after = 'def unrelated(): return "new_name"\\n# new_name\\n'
+        after = 'def unrelated(): return "new_name"\n# new_name\n'
         packet = self.make(
             after_sources={"src/a.py": after},
             after_sha256={"src/a.py": sha256(after.encode()).hexdigest()},
@@ -199,7 +199,7 @@ class MigrationReviewTests(unittest.TestCase):
         self.assertEqual(packet.status, "HUMAN_REVIEW_REQUIRED")
 
     def test_reference_name_token_is_not_mistaken_for_semantic_binding(self):
-        after = "alias = new_name\\n"
+        after = "alias = new_name\n"
         packet = self.make(
             after_sources={"src/a.py": after},
             after_sha256={"src/a.py": sha256(after.encode()).hexdigest()},
@@ -209,8 +209,8 @@ class MigrationReviewTests(unittest.TestCase):
         self.assertIn("lexical_presence_not_source_binding_proof", packet.unknowns)
 
     def test_non_python_source_is_explicitly_lexical_only(self):
-        before = {"src/a.py": SOURCE1, "src/native.cpp": "void OldName();\\n"}
-        after = {"src/a.py": SOURCE2, "src/native.cpp": "void new_name();\\n"}
+        before = {"src/a.py": SOURCE1, "src/native.cpp": "void OldName();\n"}
+        after = {"src/a.py": SOURCE2, "src/native.cpp": "void new_name();\n"}
         packet = self.make(
             before_sources=before, after_sources=after,
             before_sha256={p: sha256(v.encode()).hexdigest() for p, v in before.items()},
