@@ -117,9 +117,17 @@ def _required_layout_executable(text: str) -> bool:
             return False
 
     checkout = steps.get("Checkout exact revision and policy baseline")
-    if (checkout is None or
-            not re.search(r"(?m)^        uses: actions/checkout@v4[ \t]*$", checkout)
-            or re.search(r"(?m)^        (?:if|working-directory):", checkout)):
+    if checkout is None or re.search(r"(?m)^        (?:if|working-directory):", checkout):
+        return False
+    # A second YAML uses key can override the trusted checkout action.
+    # A checkout ref or repository override could test different bytes
+    # while still reporting the required layout context as successful.
+    checkout_uses = re.findall(r"(?m)^        uses: ([^\n]*)$", checkout)
+    checkout_options = re.findall(
+        r"(?m)^          ([A-Za-z0-9_-]+):[ \t]*([^\n]*)$", checkout
+    )
+    if (checkout_uses != ["actions/checkout@v4"]
+            or checkout_options != [("fetch-depth", "0")]):
         return False
 
     frozen = steps.get("Compare frozen policy to trusted base commit")
