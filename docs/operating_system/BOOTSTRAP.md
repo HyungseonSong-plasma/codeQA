@@ -19,24 +19,24 @@
    `problem-oriented-response`). Cross-check `GITHUB_BRANCH_DELETE` ->
    `repository-mutation` and registry provider order. Do not infer capability
    absence from connector visibility.
-9. **Always** load `skills/problem-oriented-response/README.md` and its
+5. **Always** load `skills/problem-oriented-response/README.md` and its
    `skills/problem-oriented-response/contract.json` at the exact central pin.
    Match both blob SHAs against `central_skills.json`; require
    `contract_id=samuel.problem-first-response.v1`, `mode=problem_first`,
    `detail_policy=on_request`, and `human_review_requires_question=true`.
    Missing or inconsistent response contracts mean `BLOCKED_RESPONSE_CONTRACT`;
    do not report initialization success.
-5. **Always** verify/read the central `repository-mutation` contract and
+6. **Always** verify/read the central `repository-mutation` contract and
    inspect local `.github/workflows/samuel-branch-delete.yml`,
    `.github/requests/branch-delete-request.json` and their pinned Action
    binding. This eagerly primes the `GITHUB_BRANCH_DELETE` route; no
    deletion, dispatch, or mutation is performed by initialization.
-6. Restore local codeQA authority from `README.md`,
+7. Restore local codeQA authority from `README.md`,
    `docs/codeqa-package-architecture.md` and
    `docs/repository-structure.md`. Refresh active Issues/PRs, branch,
    CI and current work state. Select immediate work gate and load other
    Samuel skills only if triggered.
-7. Report the exact pin, loaded sources, state, first gate and:
+8. Report the exact pin, loaded sources, state, first gate and:
    ```text
    response_contract=samuel.problem-first-response.v1
    response_mode=problem_first
@@ -45,7 +45,7 @@
    GITHUB_BRANCH_DELETE_ROUTE=READY|BLOCKED
    GITHUB_MUTATION_PREFLIGHT=TRIGGER_REQUIRED
    ```
-8. Stop **read-only**. A successful init is neither permission nor an
+9. Stop **read-only**. A successful init is neither permission nor an
    automatic request to delete branches.
 
 ## Fail-closed contract
