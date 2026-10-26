@@ -96,3 +96,16 @@ cross-repository URL from being presented as a source-local receipt; it is
 still **not** an authenticated GitHub run check. Independent read-only remote
 attestation remains a separate downstream step. The production merge flag
 remains `false` regardless of receipt content or fixture verification.
+
+## Forged typed-decision consistency guard (#121)
+
+A caller can instantiate a Python dataclass with internally contradictory
+fields; type identity and a self-consistent receipt hash do not prove the
+original Gate evaluator ran. The consumer now rejects Gate PASS with duplicate
+or empty requirements, empty selected scope, recorded violations/waivers,
+missing admitted evidence or contradictory reasons. A fixture PASS must carry
+the exact controlled scope/version, nonempty obligations, matching generated
+and deployed manifest hashes and valid evidence digests. Adversarial tests
+construct coherent receipts for forged dataclasses and require BLOCK. This is
+**local consistency only**; even valid results do not independently attest a
+runner, deployed binary, waiver approval or production merge authorization.
