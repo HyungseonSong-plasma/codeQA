@@ -76,7 +76,13 @@ class Batch1CompatibilityTests(unittest.TestCase):
                     (row["symbol"]["name"], row["symbol"]["kind"],
                      row["symbol"]["line"], row["symbol"]["owner"]),
                 )
-                self.assertEqual(c["human_decision"], "UNRESOLVED")
+                self.assertEqual(c["human_decision"], {
+                    11: "OBSERVATION_CONFIRMED",
+                    15: "UNRESOLVED",
+                    25: "OBSERVATION_CONFIRMED",
+                }[c["index"]])
+                self.assertEqual(c["decision_source_comment_url"],
+                                 packet["human_amendment"]["amendment_comment_url"])
                 self.assertEqual(c["ast_observation"], "AST_OBSERVED")
                 self.assertTrue(c["known_reference_candidates"])
                 self.assertTrue(c["remaining_unknown"])
@@ -114,7 +120,69 @@ class Batch1CompatibilityTests(unittest.TestCase):
         self.assertFalse(packet["automatic_rename_authorized"])
         self.assertFalse(packet["issue_close_authorized"])
         self.assertEqual([x["human_decision"] for x in packet["cases"]],
-                         ["UNRESOLVED"] * 3)
+                         ["OBSERVATION_CONFIRMED", "UNRESOLVED",
+                          "OBSERVATION_CONFIRMED"])
+
+
+    def test_observed_amendment_is_source_scoped_not_a_policy_approval(self):
+        """Project-owner issue comments are attributed evidence, not a final policy."""
+        packet = self.packet
+        change = packet["human_amendment"]
+        self.assertEqual(change["source_type"],
+                         "GITHUB_ISSUE_COMMENT_OBSERVED_NOT_CRYPTOGRAPHICALLY_SIGNED")
+        self.assertEqual(change["observed_github_author"], "HyungseonSong-plasma")
+        self.assertEqual(change["original_comment_url"], packet["human_comment"]["url"])
+        self.assertEqual(change["amendment_comment_url"],
+                         "https://github.com/HyungseonSong-plasma/codeQA/issues/91"
+                         "#issuecomment-6415147582")
+        self.assertEqual(change["decision_axis"], "PINNED_SOURCE_AST_OBSERVATION_ONLY")
+        self.assertEqual(change["counts"], {
+            "observation_confirmed": 4,
+            "observation_rejected": 0,
+            "unresolved": 1,
+            "not_adjudicated": 45,
+        })
+        self.assertFalse(change["independent_human_signature_verified"])
+        self.assertEqual(change["official_glossary_adoption"], "NOT_ADOPTED")
+        self.assertEqual(change["semantic_policy_applicability"], "NOT_EVALUATED")
+        self.assertFalse(change["automatic_rename_authorized"])
+        self.assertFalse(change["issue_close_authorized"])
+        self.assertEqual(packet["human_policy_adoption"], "NOT_ADOPTED")
+        self.assertFalse(packet["automatic_rename_authorized"])
+        self.assertFalse(packet["issue_close_authorized"])
+
+        worklist = build_review_worklist(self.proposal)
+        observed = change["observations"]
+        self.assertEqual([d["index"] for d in observed], [1, 11, 13, 15, 25])
+        for decision in observed:
+            with self.subTest(index=decision["index"]):
+                row = worklist["rows"][decision["index"] - 1]
+                self.assertEqual(row["site_id"], decision["site_id"])
+                self.assertEqual(row["group"], "original_candidates")
+                self.assertIn(decision["review_comment_url"], (
+                    change["original_comment_url"], change["amendment_comment_url"]))
+                row.update(decision=decision["decision"],
+                           reviewer_login=change["observed_github_author"],
+                           review_comment_url=decision["review_comment_url"],
+                           rationale=decision["rationale"])
+        result = assess_review_worklist(self.proposal, worklist)
+        self.assertEqual((result.total, result.claimed_decisions,
+                          result.unresolved, result.remaining_without_decision),
+                         (50, 5, 46, 45))
+        self.assertEqual(result.status, "NOT_EVALUATED")
+        self.assertEqual(result.independent_human_authentication, "NOT_EVALUATED")
+        self.assertFalse(result.automatic_rename_authorized)
+
+        for invalid in ("PASS", "OUT_OF_SCOPE", "NEGATIVE_CONFIRMED"):
+            with self.subTest(invalid=invalid):
+                changed = deepcopy(worklist)
+                changed["rows"][14]["decision"] = invalid
+                with self.assertRaises(NamingReviewWorklistError):
+                    assess_review_worklist(self.proposal, changed)
+        changed = deepcopy(worklist)
+        changed["policy_adopted"] = True
+        with self.assertRaises(NamingReviewWorklistError):
+            assess_review_worklist(self.proposal, changed)
 
     def test_out_of_scope_is_not_a_human_observation_verdict(self):
         worklist = build_review_worklist(self.proposal)

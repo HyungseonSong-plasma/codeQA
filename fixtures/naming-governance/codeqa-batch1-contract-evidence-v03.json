@@ -6,7 +6,8 @@
     "url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106",
     "observed_github_author": "HyungseonSong-plasma",
     "github_identity_independently_authenticated_by_packet": false,
-    "substantive_independent_human_review_completed": false
+    "substantive_independent_human_review_completed": false,
+    "subsequent_amendment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582"
   },
   "source": {
     "repository": "HyungseonSong-plasma/codeQA",
@@ -23,7 +24,7 @@
       "kind": "function",
       "line": 19,
       "owner": "",
-      "human_decision": "UNRESOLVED",
+      "human_decision": "OBSERVATION_CONFIRMED",
       "ast_observation": "AST_OBSERVED",
       "known_reference_candidates": [
         "src/codeqa/evaluation/naming_glossary.py:8",
@@ -35,7 +36,8 @@
         "unscanned_non_src_or_external_consumers",
         "dynamic_attribute_lookup_and_reflection",
         "domain_role_and_owner_policy"
-      ]
+      ],
+      "decision_source_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582"
     },
     {
       "index": 15,
@@ -55,7 +57,8 @@
         "external_serialized_field_contracts",
         "external_schema_and_fingerprint_consumers",
         "field_policy_owner_approval"
-      ]
+      ],
+      "decision_source_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582"
     },
     {
       "index": 25,
@@ -64,7 +67,7 @@
       "kind": "method",
       "line": 47,
       "owner": "NamingGlossaryProfile",
-      "human_decision": "UNRESOLVED",
+      "human_decision": "OBSERVATION_CONFIRMED",
       "ast_observation": "AST_OBSERVED",
       "known_reference_candidates": [
         "tests/test_naming_glossary.py:25"
@@ -74,7 +77,8 @@
         "cross_class_homonym_semantic_equivalence",
         "runtime_dynamic_dispatch_and_aliases",
         "published_sdk_backward_compatibility"
-      ]
+      ],
+      "decision_source_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582"
     }
   ],
   "source_reference_classification": "PINNED_AST_SYNTAX_CANDIDATES_NOT_RESOLVED_BINDING_GRAPH",
@@ -112,5 +116,61 @@
   },
   "dynamic_reference_coverage": "OUT_OF_SCOPE",
   "api_change_impact_coverage": "OUT_OF_SCOPE",
-  "human_decision_source": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106"
+  "human_decision_source": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106",
+  "human_amendment": {
+    "source_type": "GITHUB_ISSUE_COMMENT_OBSERVED_NOT_CRYPTOGRAPHICALLY_SIGNED",
+    "observed_github_author": "HyungseonSong-plasma",
+    "original_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106",
+    "amendment_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582",
+    "review_date": "2026-10-26",
+    "decision_axis": "PINNED_SOURCE_AST_OBSERVATION_ONLY",
+    "observations": [
+      {
+        "index": 1,
+        "site_id": "n91-61297fdc42d25a9e216a0f35",
+        "decision": "OBSERVATION_CONFIRMED",
+        "review_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106",
+        "rationale": "Observed Python __future__ ImportFrom syntax only; not an ordinary renameable binding"
+      },
+      {
+        "index": 11,
+        "site_id": "n91-beb9347ad0807b5e163376d6",
+        "decision": "OBSERVATION_CONFIRMED",
+        "review_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582",
+        "rationale": "Module-level FunctionDef at pinned line 19; naming policy applicability remains unevaluated"
+      },
+      {
+        "index": 13,
+        "site_id": "n91-6f5945258b58b50d43b9201a",
+        "decision": "OBSERVATION_CONFIRMED",
+        "review_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106",
+        "rationale": "Observed decorator expression is syntax-only, not a whole-expression declaration rename target"
+      },
+      {
+        "index": 15,
+        "site_id": "n91-09e35a4a541b5eac7a96d235",
+        "decision": "UNRESOLVED",
+        "review_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582",
+        "rationale": "Annotated class-body name at line 34; proposed declared_field classification awaits reviewer decision"
+      },
+      {
+        "index": 25,
+        "site_id": "n91-c6d95a6a746261904f1d793a",
+        "decision": "OBSERVATION_CONFIRMED",
+        "review_comment_url": "https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582",
+        "rationale": "Class body method FunctionDef at line 47 with classmethod decorator; external callers not evaluated"
+      }
+    ],
+    "counts": {
+      "observation_confirmed": 4,
+      "observation_rejected": 0,
+      "unresolved": 1,
+      "not_adjudicated": 45
+    },
+    "independent_human_signature_verified": false,
+    "official_glossary_adoption": "NOT_ADOPTED",
+    "semantic_policy_applicability": "NOT_EVALUATED",
+    "automatic_rename_authorized": false,
+    "issue_close_authorized": false
+  }
 }

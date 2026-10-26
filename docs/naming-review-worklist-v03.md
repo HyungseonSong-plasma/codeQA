@@ -1,5 +1,7 @@
 # #91 Naming v0.3 — unsigned review worklist integrity (draft)
 
+**Current human observation checkpoint (2026-10-26):** 4 confirmed, 1 unresolved (#15), 45 unadjudicated. Stage 3–4 counts below are historical; Stage 5 records the attributed amendment and does not adopt the Naming policy.
+
 This is a **mechanical preparation tool** for owner/human review. The merged #117 policy selector and AST observations remain opt-in and do not authorize renaming. The pinned source packet is `fixtures/naming-governance/codeqa-ast-review-v03-proposal.json`: **26 original candidates, 17 additional AST observations, seven negative-control proposals**. Each still lacks a human adjudication. This PR does **not** supply or fabricate one.
 
 ## Reviewer workflow
@@ -72,3 +74,34 @@ The original human review worklist's `decision` supports `OBSERVATION_CONFIRMED`
 ### Verifiable negative controls
 
 `test_naming_batch1_contract_v03.py` checks exact three excluded domains, strict `OUT_OF_SCOPE` status, retained `NOT_EVALUATED` safety claims, and explicitly rejects using `OUT_OF_SCOPE` as a worklist observation decision. Full source-pinned AST and isolated-wheel runtime tests continue to provide independent evidence within their stated limits.
+
+## Stage 5 — attributed human Batch 1 amendment (2026-10-26)
+
+The actual [owner-posted GitHub amendment](https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6415147582) supersedes only the earlier
+Batch 1 AST-observation decisions. The original review remains linked at
+[Batch 1](https://github.com/HyungseonSong-plasma/codeQA/issues/91#issuecomment-6414512106). Machine-readable `human_amendment` in
+`fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json` records
+the observed GitHub author, exact 5 pinned `site_id` values, the per-site
+comment URL and a short reviewer-scope rationale. The three previously unresolved
+cases now read **#11 CONFIRMED, #15 UNRESOLVED, #25 CONFIRMED**. Original
+#1 and #13 remain source-observation CONFIRMED.
+
+The full 50-row review worklist therefore contains **five attributed claims**:
+four confirmed, one unresolved; **45 still lack decisions**. The assessment
+reports `NOT_EVALUATED` even after these observations are reconciled because
+a GitHub comment URL and login do not amount to cryptographically signed,
+independently sufficient human policy approval. Tests align each amended
+entry to the historical source `site_id`, reject `PASS`/`OUT_OF_SCOPE` as
+human observation verdicts, and preserve `policy_adopted=false` and
+`automatic_rename_authorized=false`.
+
+The only outstanding Batch 1 observation judgment is whether the annotated
+`GlossaryTerm.canonical` at pinned line 34 should be finally classified as
+the `declared_field` site proposed in the review inventory. The owner must
+independently post `OBSERVATION_CONFIRMED`, `OBSERVATION_REJECTED`, or
+`UNRESOLVED`; source syntax alone does not supply that human verdict.
+
+For this limited review, external SDK consumers, dynamic/transitive references,
+and API rename compatibility remain explicitly `OUT_OF_SCOPE`. These exclusions
+do **not** close the original issue acceptance gates. No auto-rename, official
+glossary adoption, semantic PASS, merge approval, or #91 closure is implied.
