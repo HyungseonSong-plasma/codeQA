@@ -12,7 +12,7 @@ from codeqa.evaluation.formal_generated_gate import GeneratedFixtureDecision
 
 POLICY = "a" * 64
 SOURCE = "b" * 40
-SNAPSHOT = "git:test@sha"
+SNAPSHOT = "git:HyungseonSong-plasma/codeQA@" + SOURCE
 CI_URL = "https://github.com/HyungseonSong-plasma/codeQA/actions/runs/40242127832"
 
 
@@ -81,6 +81,32 @@ class AuthorityPropagationTests(unittest.TestCase):
         )
         result = self.check(rejected, self.receipt(rejected, "codeqa.evidence_gate"))
         self.assertEqual(result.consumer_authorization, "BLOCK")
+
+    def test_coherent_receipt_cannot_bind_wrong_source_revision(self) -> None:
+        stale = "git:HyungseonSong-plasma/codeQA@" + "c" * 40
+        gate = replace(self.gate, snapshot_id=stale)
+        receipt = self.receipt(gate, "codeqa.evidence_gate")
+        receipt["snapshot_id"] = stale
+        result = audit_authority_propagation(
+            gate, expected_snapshot_id=stale,
+            expected_policy_fingerprint=POLICY,
+            expected_source_sha=SOURCE, receipt=receipt,
+        )
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertIn("SNAPSHOT_SOURCE_BINDING_UNVERIFIED", result.reasons)
+
+    def test_opaque_snapshot_cannot_authorize_even_with_matching_receipt(self) -> None:
+        opaque = "git:fixture-without-commit"
+        gate = replace(self.gate, snapshot_id=opaque)
+        receipt = self.receipt(gate, "codeqa.evidence_gate")
+        receipt["snapshot_id"] = opaque
+        result = audit_authority_propagation(
+            gate, expected_snapshot_id=opaque,
+            expected_policy_fingerprint=POLICY,
+            expected_source_sha=SOURCE, receipt=receipt,
+        )
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertIn("SNAPSHOT_SOURCE_BINDING_UNVERIFIED", result.reasons)
 
     def test_missing_receipt_blocks_even_when_gate_passes(self) -> None:
         self.assertEqual(self.check(self.gate, None).consumer_authorization, "BLOCK")
