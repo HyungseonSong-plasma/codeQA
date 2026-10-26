@@ -104,7 +104,12 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
 
     def test_exact_exception_never_matches_another_symbol(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
-        r = p.resolve(**args(p, symbol="other_function"))
+        source = SOURCE + "def other_function(): pass\\n"
+        sources = {"src/codeqa/physics/electron.py": source}
+        r = p.resolve(**args(
+            p, symbol="other_function", sources=sources,
+            expected_source_sha256=sha256(source.encode()).hexdigest(),
+        ))
         self.assertEqual(r.status, "CHECK_CANDIDATE")
         self.assertEqual(r.selected_level, "path_symbol")
 
@@ -220,10 +225,36 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
         raw = sample()
         raw["rules"][-1]["selector"]["symbol"] = "__init__"
         p = NamingPrecedencePolicy.from_mapping(raw)
-        self.assertEqual(p.resolve(**args(p, symbol="__init__")).status,
-                         "EXCLUDE_CANDIDATE")
+        source = SOURCE + "def __init__(): pass\\n"
+        sources = {"src/codeqa/physics/electron.py": source}
+        self.assertEqual(p.resolve(**args(
+            p, symbol="__init__", sources=sources,
+            expected_source_sha256=sha256(source.encode()).hexdigest(),
+        )).status, "EXCLUDE_CANDIDATE")
         with self.assertRaises(NamingPrecedenceError):
             p.resolve(**args(p, symbol="рlasma_density"))
+
+    def test_absent_or_prefix_only_symbol_never_becomes_policy_candidate(self):
+        p = NamingPrecedencePolicy.from_mapping(sample())
+        for name in ("never_declared", "plasma"):
+            with self.subTest(name=name):
+                r = p.resolve(**args(p, symbol=name))
+                self.assertEqual(r.status, "NOT_EVALUATED")
+                self.assertEqual(r.reason, "symbol not lexically observed in selected source")
+                self.assertTrue(r.human_review_required)
+                self.assertFalse(r.semantic_proven)
+
+    def test_comment_only_lexical_hit_does_not_prove_declaration(self):
+        p = NamingPrecedencePolicy.from_mapping(sample())
+        source = "# comment_only\\n"
+        sources = {"src/codeqa/physics/electron.py": source}
+        r = p.resolve(**args(
+            p, symbol="comment_only", sources=sources,
+            expected_source_sha256=sha256(source.encode()).hexdigest(),
+        ))
+        self.assertEqual(r.status, "CHECK_CANDIDATE")
+        self.assertFalse(r.semantic_proven)
+        self.assertTrue(r.human_review_required)
 
     def test_lexical_only_not_policy_gate_or_source_mutation(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
