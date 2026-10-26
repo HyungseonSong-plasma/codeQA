@@ -102,9 +102,10 @@ def prepare_migration_review_packet(
                 if not name.isidentifier():
                     continue
                 try:
+                    tokens = tuple(tokenize.generate_tokens(
+                        io.StringIO(content).readline))
                     if any(token.type == tokenize.NAME and token.string == name
-                           for token in tokenize.generate_tokens(
-                               io.StringIO(content).readline)):
+                           for token in tokens):
                         return True
                 except (tokenize.TokenError, IndentationError, SyntaxError):
                     # A malformed token stream must not certify name presence.
