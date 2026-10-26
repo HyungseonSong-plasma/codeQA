@@ -65,7 +65,7 @@ class PythonDeclarationReview:
         if kind == "decorator":
             return ("SYNTAX_ONLY" if any(
                 d.line == line and d.owner == owner
-                and re.sub(r"\\s+", "", d.expression) == re.sub(r"\\s+", "", name)
+                and re.sub(r"\s+", "", d.expression) == re.sub(r"\s+", "", name)
                 for d in self.decorators
             ) else "NOT_EVALUATED")
         if any(d.name == name and d.kind == kind and d.line == line
