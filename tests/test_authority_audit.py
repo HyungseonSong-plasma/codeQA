@@ -82,6 +82,41 @@ class AuthorityPropagationTests(unittest.TestCase):
         result = self.check(rejected, self.receipt(rejected, "codeqa.evidence_gate"))
         self.assertEqual(result.consumer_authorization, "BLOCK")
 
+    def test_forged_gate_requirement_with_violations_cannot_allow(self) -> None:
+        forged = replace(self.gate, requirements=(replace(
+            self.gate.requirements[0], observed_violations=1,
+        ),))
+        result = self.check(forged, self.receipt(forged, "codeqa.evidence_gate"))
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertIn("GATE_REQUIREMENTS_OR_ADMITTED_EVIDENCE_MISSING", result.reasons)
+
+    def test_duplicate_gate_requirement_ids_cannot_allow(self) -> None:
+        forged = replace(self.gate, requirements=self.gate.requirements * 2)
+        self.assertEqual(
+            self.check(forged, self.receipt(forged, "codeqa.evidence_gate")).consumer_authorization,
+            "BLOCK",
+        )
+
+    def test_forged_fixture_scope_cannot_promote_authority(self) -> None:
+        forged = replace(self.fixture, scope="PRODUCTION_DEPLOYMENT")
+        result = self.check(forged, self.receipt(forged, "codeqa.formal_generated_gate"))
+        self.assertEqual(result.consumer_authorization, "BLOCK")
+        self.assertFalse(result.production_merge_authorized)
+
+    def test_fixture_broken_manifest_identity_cannot_allow(self) -> None:
+        forged = replace(self.fixture, deployed_manifest_sha256="e" * 64)
+        self.assertEqual(
+            self.check(forged, self.receipt(forged, "codeqa.formal_generated_gate")).consumer_authorization,
+            "BLOCK",
+        )
+
+    def test_fixture_missing_requirements_cannot_allow(self) -> None:
+        forged = replace(self.fixture, requirement_ids=())
+        self.assertEqual(
+            self.check(forged, self.receipt(forged, "codeqa.formal_generated_gate")).consumer_authorization,
+            "BLOCK",
+        )
+
     def test_coherent_receipt_cannot_bind_wrong_source_revision(self) -> None:
         stale = "git:HyungseonSong-plasma/codeQA@" + "c" * 40
         gate = replace(self.gate, snapshot_id=stale)
