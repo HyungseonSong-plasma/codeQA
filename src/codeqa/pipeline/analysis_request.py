@@ -19,6 +19,29 @@ class AnalysisRequestError(ValueError):
     """An optional request would imply unsupported or ambiguous execution."""
 
 
+def _validate_json_tree(value: Any, active: set[int] | None = None) -> None:
+    """Prevent ambiguous option/profile identities from JSON key coercion."""
+    if active is None:
+        active = set()
+    if isinstance(value, Mapping) or isinstance(value, list):
+        if id(value) in active:
+            raise AnalysisRequestError("cyclic analysis policy JSON")
+        active.add(id(value))
+        try:
+            if isinstance(value, Mapping):
+                if any(type(key) is not str for key in value):
+                    raise AnalysisRequestError("analysis policy JSON keys must be strings")
+                for nested in value.values():
+                    _validate_json_tree(nested, active)
+            else:
+                for nested in value:
+                    _validate_json_tree(nested, active)
+        finally:
+            active.remove(id(value))
+    elif type(value) not in (str, int, float, bool, type(None)):
+        raise AnalysisRequestError("analysis policy must use JSON-compatible values")
+
+
 @dataclass(frozen=True, slots=True)
 class AnalysisOptions:
     version: str = "0.1"
@@ -61,6 +84,8 @@ class AnalysisOptions:
         for policy in (self.semantic_policy, self.behavior_policy):
             if policy is not None and not isinstance(policy, Mapping):
                 raise AnalysisRequestError("optional policy must be a mapping")
+            if policy is not None:
+                _validate_json_tree(policy)
         if (not isinstance(self.changed_paths, tuple)
                 or any(not isinstance(p, str) or not p or p.startswith("/")
                        or "\\" in p or any(ord(c) < 32 or ord(c) == 127 for c in p)
@@ -124,6 +149,10 @@ def analyze_python_request(
     opts.validate()
     if not isinstance(request.snapshot_id, str) or not request.snapshot_id:
         raise AnalysisRequestError("immutable snapshot identity required")
+    # Fingerprints must not silently conflate e.g. {1: "x"} and
+    # {"1": "x"} through JSON's string-key coercion.
+    _validate_json_tree(request.ccg_schema)
+    _validate_json_tree(request.mechanical_profile)
     analysis = analyze_python(
         request.sources, snapshot_id=request.snapshot_id,
         ccg_schema=request.ccg_schema,
