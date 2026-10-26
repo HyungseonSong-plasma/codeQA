@@ -49,3 +49,7 @@ The [versioned 13-site fixture](../fixtures/naming-governance/codeqa-real-source
 A `class_annotation` is intentionally **not** asserted to be a runtime field, especially if its declaration lacks validated dataclass or descriptor semantics. `local_binding` is **not an approved Naming field**. For every row, `role=UNKNOWN` and `approved_scope=false`. The checked-in policy still has `scopes=[]`, and the joined real-source `_stable_symbol(node_id)` parameter is tested to return `UNKNOWN:NO_EXPLICIT_ROLE_SCOPE` from `SemanticCandidateRules`.
 
 The fixture is a reproducible baseline for future owner-domain meaning assessment, *not* a policy configuration and not a validated symbol/binding graph. If source changes, a new pinned commit, complete path denominator and separately reviewed candidate fixture are required; none of these rows authorize rename.
+
+## Stage 3 — real code evidence by source role
+
+The [13-site source-grounded `node_id` witness](naming-node-id-role-evidence-v04.md) now verifies two `def::` identifier generators, two string parameters and nine standard-library dataclass string-field candidates against exact pinned source AST and the complete Stage 2 Git tree audit. This justifies a **lexical source-role candidate**, not an approved path/role scope or semantic Naming policy. The original owner glossary proposal remains `NOT_ADOPTED`, and source rename is prohibited.

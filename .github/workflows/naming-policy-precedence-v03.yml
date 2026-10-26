@@ -17,6 +17,10 @@ on:
       - 'src/codeqa/core/naming_scope_discovery_v04.py'
       - 'src/codeqa/pipeline/naming_scope_discovery_v04.py'
       - 'tests/test_naming_scope_discovery_v04.py'
+      - 'tests/test_naming_node_id_role_evidence_v04.py'
+      - 'src/codeqa/core/naming_node_id_role_evidence_v04.py'
+      - 'fixtures/naming-governance/codeqa-node-id-role-witness-v04.json'
+      - 'docs/naming-node-id-role-evidence-v04.md'
       - 'fixtures/naming-governance/codeqa-real-source-role-sites-v04.json'
       - 'fixtures/naming-governance/codeqa-source-scope-manifest-v04.json'
       - 'docs/naming-scope-discovery-v04.md'
@@ -55,6 +59,10 @@ on:
       - 'src/codeqa/core/naming_scope_discovery_v04.py'
       - 'src/codeqa/pipeline/naming_scope_discovery_v04.py'
       - 'tests/test_naming_scope_discovery_v04.py'
+      - 'tests/test_naming_node_id_role_evidence_v04.py'
+      - 'src/codeqa/core/naming_node_id_role_evidence_v04.py'
+      - 'fixtures/naming-governance/codeqa-node-id-role-witness-v04.json'
+      - 'docs/naming-node-id-role-evidence-v04.md'
       - 'fixtures/naming-governance/codeqa-real-source-role-sites-v04.json'
       - 'fixtures/naming-governance/codeqa-source-scope-manifest-v04.json'
       - 'docs/naming-scope-discovery-v04.md'
@@ -104,6 +112,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_naming_rule_inventory_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_semantic_candidate_v04.py' -v
           python -m unittest discover -s tests -p 'test_naming_scope_discovery_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_node_id_role_evidence_v04.py' -v
           python -m unittest discover -s tests -p 'test_naming_snapshot_coverage_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_review_worklist_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_policy_precedence_v03.py' -v
