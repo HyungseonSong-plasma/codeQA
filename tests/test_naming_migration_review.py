@@ -63,6 +63,15 @@ class MigrationReviewTests(unittest.TestCase):
             with self.subTest(after=after), self.assertRaises(MigrationPlanError):
                 self.make(candidate_revision=after)
 
+    def test_revision_repository_dot_segments_rejected(self):
+        for repo in ("../repo", "./repo", "owner/..", "owner/."):
+            with self.subTest(repository=repo):
+                with self.assertRaisesRegex(MigrationPlanError, "immutable revisions"):
+                    self.make(
+                        baseline_revision="git:" + repo + "@" + "a" * 40,
+                        candidate_revision="git:" + repo + "@" + "b" * 40,
+                    )
+
     def test_forged_human_approval_rejected(self):
         checks = {name: "NOT_EVALUATED" for name in BOUNDARIES}
         checks["public_api"] = "APPROVED"
