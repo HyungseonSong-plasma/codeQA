@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import date
 from hashlib import sha256
 import json
@@ -82,6 +82,8 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
             "physics-functions", "exception-reviewed",
         ))
         self.assertEqual(r.source_sha256, sha256(SOURCE.encode()).hexdigest())
+        self.assertEqual(r.observation, "LEXICAL_ONLY")
+        self.assertEqual(asdict(r)["observation"], "LEXICAL_ONLY")
         self.assertTrue(r.human_review_required)
         self.assertFalse(r.semantic_proven)
 
@@ -259,6 +261,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
                 r = p.resolve(**args(p, symbol=name))
                 self.assertEqual(r.status, "NOT_EVALUATED")
                 self.assertEqual(r.reason, "symbol not lexically observed in selected source")
+                self.assertEqual(r.observation, "NOT_OBSERVED")
                 self.assertTrue(r.human_review_required)
                 self.assertFalse(r.semantic_proven)
 
@@ -271,8 +274,26 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
             expected_source_sha256=sha256(source.encode()).hexdigest(),
         ))
         self.assertEqual(r.status, "CHECK_CANDIDATE")
+        self.assertEqual(r.observation, "LEXICAL_ONLY")
         self.assertFalse(r.semantic_proven)
         self.assertTrue(r.human_review_required)
+
+    def test_string_only_and_missing_scope_remain_lexical_only(self):
+        p = NamingPrecedencePolicy.from_mapping(sample())
+        source = 'note = "comment_only"\n'
+        r = p.resolve(**args(
+            p, symbol="comment_only", sources={"src/codeqa/physics/electron.py": source},
+            expected_source_sha256=sha256(source.encode()).hexdigest(),
+        ))
+        self.assertEqual(r.status, "CHECK_CANDIDATE")
+        self.assertEqual(asdict(r)["observation"], "LEXICAL_ONLY")
+        self.assertFalse(r.semantic_proven)
+        # A lexical hit outside the explicitly allowed symbol kind is not a
+        # policy selection, but the token is still only a lexical observation.
+        no_scope = p.resolve(**args(p, symbol_kind="parameter"))
+        self.assertEqual(no_scope.status, "NOT_EVALUATED")
+        self.assertEqual(no_scope.observation, "LEXICAL_ONLY")
+        self.assertTrue(no_scope.human_review_required)
 
     def test_lexical_only_not_policy_gate_or_source_mutation(self):
         p = NamingPrecedencePolicy.from_mapping(sample())
@@ -332,6 +353,44 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
         self.assertTrue(next(d for d in self.review.declarations
             if d.name == "terms" and d.line == 44).eligible_kind)
 
+    def test_all_17_grok_omission_candidates_are_scope_specific_ast_sites(self):
+        # AI candidate omissions are AST observations, not algorithmic FN
+        # unless the extractor's declared coverage includes their kinds.
+        sites = {(d.name, d.kind, d.line, d.owner): d
+                 for d in self.review.declarations}
+        owner = "NamingGlossaryProfile.from_mapping"
+        expected = [
+            ("name", "parameter", 19, "tokenize_identifier"),
+            ("cls", "parameter", 47, owner),
+            ("value", "parameter", 47, owner),
+            ("self", "parameter", 100, "NamingGlossaryProfile.fingerprint"),
+            ("prefixes", "local_binding", 54, owner),
+            ("values", "local_binding", 61, owner),
+            ("terms", "local_binding", 64, owner),
+            ("ownership", "local_binding", 65, owner),
+            ("allowed", "local_binding", 66, owner),
+            ("keys", "local_binding", 94, owner),
+            ("value", "local_binding", 101, "NamingGlossaryProfile.fingerprint"),
+            ("segment", "loop_binding", 23, "tokenize_identifier"),
+            ("matched", "local_binding", 25, "tokenize_identifier"),
+            ("item", "loop_binding", 67, owner),
+            ("phrase", "loop_binding", 82, owner),
+            ("k", "loop_binding", 89, owner),
+            ("key", "local_binding", 90, owner),
+        ]
+        self.assertEqual(len(expected), 17)
+        for key in expected:
+            with self.subTest(site=key):
+                self.assertIn(key, sites)
+                if key[1] in {"local_binding", "loop_binding"}:
+                    self.assertFalse(sites[key].eligible_kind)
+        future = next(d for d in self.review.declarations
+                      if d.name == "annotations" and d.line == 2)
+        self.assertEqual(future.kind, "import_binding")
+        self.assertFalse(future.eligible_kind)
+        self.assertFalse(next(d for d in self.review.declarations
+            if d.name == "TOKEN" and d.line == 16).eligible_kind)
+
     def test_no_lexical_comment_string_attribute_or_decorator_promotion(self):
         from codeqa.core.naming_declaration_evidence_v03 import observe_pinned_python
         source = b'# phantom\nmessage = "phantom"\nclass C:\n    @factory(enabled=True)\n    def f(self):\n        self.phantom = 1\n'
@@ -351,6 +410,19 @@ class NamingASTReviewOwnerDecisionTests(unittest.TestCase):
         self.assertEqual(review.classify_candidate(
             {"name": "f", "kind": "method", "line": 5, "owner": "C"}),
             "AST_OBSERVED")
+
+    def test_decorator_expression_literal_whitespace_cannot_be_erased(self):
+        from codeqa.core.naming_declaration_evidence_v03 import observe_pinned_python
+        source = b'@tag(label="a b")\ndef f(): pass\n'
+        review = observe_pinned_python(source, expected_sha256=sha256(source).hexdigest())
+        for expression, expected in (('tag(label="a b")', "SYNTAX_ONLY"),
+                                     ('tag(label="ab")', "NOT_EVALUATED"),
+                                     ('tag(label="a  b")', "NOT_EVALUATED"),
+                                     ("tag(label=", "NOT_EVALUATED")):
+            with self.subTest(expression=expression):
+                self.assertEqual(review.classify_candidate({
+                    "name": expression, "kind": "decorator", "line": 1, "owner": "f",
+                }), expected)
 
     def test_stale_unparseable_and_malformed_evidence_fail_closed(self):
         from codeqa.core.naming_declaration_evidence_v03 import (
