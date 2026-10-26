@@ -71,8 +71,18 @@ def unpack_verified_resource_bundle(
                 raise ResourceBundleError("missing or duplicated bundle member")
             if any(not _safe_path(name) or name.endswith("/") for name in names):
                 raise ResourceBundleError("unsafe archive member path")
-            if len({_portable_path_key(name) for name in names}) != len(names):
+            portable_names = {_portable_path_key(name) for name in names}
+            if len(portable_names) != len(names):
                 raise ResourceBundleError("portable archive path collision")
+            # Every member is a regular file. A file that is also an
+            # ancestor of another member would fail midway through extraction,
+            # potentially leaving a partially written resource root. Compare
+            # portable keys to catch case-insensitive prefix aliases too.
+            for name in portable_names:
+                parts = name.split("/")
+                if any("/".join(parts[:index]) in portable_names
+                       for index in range(1, len(parts))):
+                    raise ResourceBundleError("archive file/directory path conflict")
             if any(stat.S_IFMT(info.external_attr >> 16) == stat.S_IFLNK for info in infos):
                 raise ResourceBundleError("archive symlinks are forbidden")
             if any(info.file_size > 16 * 1024 * 1024 for info in infos) or sum(
