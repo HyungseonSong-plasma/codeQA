@@ -53,3 +53,25 @@ The Ubuntu runner is not an immutable compiler binary/dependency manifest.
 This is **actual controlled compiler evidence**, but **not** proof of
 real MOOSE framework headers, SDK/DSL naming, public ABI, dynamic consumers
 or any production compatibility window. Those remain `NOT_EVALUATED`.
+
+## Pinned upstream MOOSE framework source identity (not a release/ABI proof)
+
+The canonical `moose-test-repo/physics_app/dependencies.lock` at
+`1977ad5559e5aa7a1c8d04c83735c15e007130d5` pins upstream
+`idaholab/moose@9f388366ccf38b9c34542ec5561198249fde0ac9`.
+The GitHub commit and three upstream framework files were independently
+read, with exact Git blob SHA-1 identities recorded in
+`fixtures/moose-framework/source-lock-v0.1.json`: `MooseApp.h`,
+`InputParameters.h`, and `Parser.C`. The mixed-source CI now fetches
+those exact upstream source bytes, compares Git blob identities against
+the reviewed lock and application dependency pin, and publishes a
+machine-readable receipt with per-file SHA-256. Negative tests reject
+stale dependencies, changed headers, forged repository identity,
+missing files and invented production ABI authority.
+
+This establishes **source provenance for three upstream files only**.
+It does **not** establish an independently versioned MOOSE *release*,
+the complete HIT input DSL grammar, reserved vs customizable application
+parameter names, C++ compilation/linking against MOOSE headers, ABI
+compatibility, or actual runtime consumers. Those remain `NOT_EVALUATED`;
+no automatic rename, migration or production compatibility decision.
