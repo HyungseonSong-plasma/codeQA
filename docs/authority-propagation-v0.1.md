@@ -62,3 +62,26 @@ This is only **syntactic revision binding**: it does not authenticate GitHub,
 prove the source was checked out by the runner, or establish deployed binary
 identity. Two negative regression tests exercise the previously unguarded
 cross-field mismatch.
+
+## Read-only GitHub run/source relationship witness (2026-10-26)
+
+The pinned Dafny consumer CI now requires `actions: read` and
+`contents: read` **only**. Its bounded, fixed-host GitHub REST GETs
+independently retrieve the current workflow run and exact checked-out commit.
+For PR CI, the synthetic merge commit's second parent must match the run's
+actual raw PR head, and the run must reference the same PR number, repository,
+workflow, run attempt and event. Push/manual runs instead require direct
+commit-head identity. Forged run IDs, workflow paths, repositories, merge
+parents, PR heads, attempts and unsafe refs fail closed. The resulting
+`remote_run_attestation` field has
+`GITHUB_API_RUN_SOURCE_RELATIONSHIP_VERIFIED` **only after real API readback**.
+
+This is stronger than a self-consistent caller receipt, but **does not
+authenticate the Actions runner, uploaded artifact bytes, solver binary,
+compiler semantics, requirements applicability, deployment identity, or
+human production merge policy**. The existing typed #98/#99 Gate consumer
+still reports `CALLER_PINNED_RECEIPT_ONLY` at its own contract level;
+the CI wrapper adds separately scoped GitHub metadata. The general Formal
+Gate remains `UNKNOWN/BLOCK`, generated fixture
+`ALLOW_FIXTURE_ONLY`, and `production_merge_authorized=false`.
+No cross-repository write capability or production rollout is enabled.
