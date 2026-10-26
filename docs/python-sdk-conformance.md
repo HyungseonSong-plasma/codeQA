@@ -150,3 +150,21 @@ The remaining real consumer/stub and versioned public DTO/DB migration
 evidence remains `NOT_EVALUATED`, as does runtime behavior of external
 plugins, dynamic metaclasses and callbacks. Do not promote a controlled
 typechecker PASS to global Naming or API compatibility PASS.
+
+## Exact Pyright diagnostic source binding (additional #92 hardening)
+
+The pinned Pyright runner validates **every** native JSON diagnostic, including
+warnings and rules outside the Gate predicate, against the exact temporary
+project file paths before constructing #98 evidence. A matching basename in
+another directory, `../` traversal, missing diagnostic file, unknown severity,
+malformed range, contradictory `summary.errorCount`, or absent/insufficient
+`summary.filesAnalyzed` now fails closed. The controlled `contract.py` and
+optional `public_sdk.py` are mapped to their original pinned fixture digests
+only after exact path validation. Eleven parser-side tests include six new
+adversarial JSON cases; actual Pyright CLI conformance remains independently
+required and must pass at the updated PR head.
+
+The numeric `filesAnalyzed` count is a minimum completeness check, **not** an
+independent file-by-file scan manifest. This still does not prove public SDK
+consumer compatibility, production callback dispatch or deployed schema/DB
+migration safety; those remain `NOT_EVALUATED` pending independent evidence.
