@@ -70,3 +70,7 @@ Run:
 ```sh
 python -m unittest discover -s tests -p 'test_naming_field_evidence_v03.py' -v
 ```
+
+## Bounded no-review closure gate
+
+[Deterministic source-rule acceptance](naming-rule-acceptance-v03.md) evaluates the exact 50 historical source sites without turning their syntax into domain/glossary approval or modifying prior human decisions. Previous Issue #91 semantic obligations must be preserved in a separate open successor, never silently marked satisfied.

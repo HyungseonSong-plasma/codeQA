@@ -12,6 +12,11 @@ on:
       - 'tests/test_naming_batch1_contract_v03.py'
       - 'tests/test_naming_field_classification_v03.py'
       - 'tests/test_naming_field_evidence_v03.py'
+      - 'tests/test_naming_rule_inventory_v03.py'
+      - 'src/codeqa/core/naming_rule_inventory_v03.py'
+      - 'src/codeqa/pipeline/naming_rule_inventory_v03.py'
+      - 'fixtures/naming-governance/codeqa-rule-acceptance-v03.json'
+      - 'docs/naming-rule-acceptance-v03.md'
       - 'src/codeqa/core/naming_field_evidence_v03.py'
       - 'src/codeqa/pipeline/naming_field_evidence_v03.py'
       - 'src/codeqa/core/naming_field_classification_v03.py'
@@ -35,6 +40,11 @@ on:
       - 'tests/test_naming_batch1_contract_v03.py'
       - 'tests/test_naming_field_classification_v03.py'
       - 'tests/test_naming_field_evidence_v03.py'
+      - 'tests/test_naming_rule_inventory_v03.py'
+      - 'src/codeqa/core/naming_rule_inventory_v03.py'
+      - 'src/codeqa/pipeline/naming_rule_inventory_v03.py'
+      - 'fixtures/naming-governance/codeqa-rule-acceptance-v03.json'
+      - 'docs/naming-rule-acceptance-v03.md'
       - 'src/codeqa/core/naming_field_evidence_v03.py'
       - 'src/codeqa/pipeline/naming_field_evidence_v03.py'
       - 'src/codeqa/core/naming_field_classification_v03.py'
@@ -71,6 +81,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_naming_batch1_contract_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_field_classification_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_field_evidence_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_rule_inventory_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_snapshot_coverage_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_review_worklist_v03.py' -v
           python -m unittest discover -s tests -p 'test_naming_policy_precedence_v03.py' -v
