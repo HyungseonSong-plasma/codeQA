@@ -26,7 +26,7 @@
       "human_decision": "UNRESOLVED",
       "ast_observation": "AST_OBSERVED",
       "known_reference_candidates": [
-        "src/codeqa/evaluation/naming_glossary.py:9",
+        "src/codeqa/evaluation/naming_glossary.py:8",
         "src/codeqa/evaluation/naming_glossary.py:71",
         "src/codeqa/evaluation/naming_glossary.py:82"
       ],
