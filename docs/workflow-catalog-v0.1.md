@@ -45,3 +45,23 @@ At merge review, refresh the current main revision, verify the actual YAML,
 update the manifest in the same reviewed commit as the workflow change,
 and rerun Layout at the **combined exact HEAD**. No automatic protection or
 workflow setting mutation is authorized by this document.
+
+## Tracked workflow source provenance
+
+A companion [Git-blob manifest](workflow-provenance-v0.1.json)
+records exact tracked SHA-1 Git blob identities for all 21 baseline workflows
+at `f7859c7f742ba55025bf1633ef7438d18e8a9416`.
+`codeqa.governance.workflow_provenance` independently recomputes each blob
+identity from checked-out YAML and rejects changed, deleted, invented or
+duplicate workflow entries. The pinned **retirement policy** is
+`HUMAN_REVIEW_REQUIRED_PRESERVE_PINNED_EVIDENCE`: there is no automatic
+deletion. This second manifest complements the category/trigger/required-check
+catalog; a Git blob digest proves source-byte identity, **not** that any CI ran
+successfully, that the file is branch-protected, or that an artifact is
+semantically authoritative. Actual GitHub required-check status still needs
+dated independent ruleset readback.
+
+If PR #128's Self Audit upload change is approved, **both** the
+`artifact_upload_count` field in the primary catalog and the matching
+`blob_sha` in this provenance manifest must be updated within the same
+reviewed integration change. The drift tests intentionally fail otherwise.
