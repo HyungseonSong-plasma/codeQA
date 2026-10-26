@@ -65,6 +65,24 @@ class RustParserEvidenceTests(unittest.TestCase):
         with self.assertRaises(RustParserEvidenceError):
             self.parse(b"fn good() {}\n", source_revision="main")
 
+    def test_repository_and_path_must_be_scoped_and_traversal_free(self):
+        source = b"fn good() {}\n"
+        for repository in ("", "unqualified", "owner/repo/extra",
+                           "https://github.com/owner/repo", "../repo"):
+            with self.subTest(repository=repository):
+                with self.assertRaisesRegex(RustParserEvidenceError, "exact source"):
+                    self.parse(source, source_repository=repository)
+        for path in ("../outside.rs", "src/../outside.rs", "src/./lib.rs",
+                     "./lib.rs", "src//lib.rs", "/src/lib.rs"):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(RustParserEvidenceError, "exact source"):
+                    self.parse(source, source_path=path)
+
+    def test_oversized_source_is_rejected_before_parser(self):
+        source = b" " * 1_000_001
+        with self.assertRaisesRegex(RustParserEvidenceError, "exact source"):
+            self.parse(source)
+
     def test_nested_source_line_and_producer_are_deterministic(self):
         source = b"struct Engine;\nimpl Engine {\n  fn internal_helper(&self) {}\n}\n"
         first = self.parse(source)
