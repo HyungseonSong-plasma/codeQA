@@ -243,7 +243,7 @@ class NamingPolicyPrecedenceTests(unittest.TestCase):
         p = NamingPrecedencePolicy.from_mapping(sample())
         for bad in ("src/codeqa/physics/unsafe:stream.py",
                     "src/codeqa/physics/trailing./file.py",
-                    "src/codeqa/physics/name .py"):
+                    "src/codeqa/physics/name /file.py"):
             with self.subTest(path=bad):
                 with self.assertRaisesRegex(NamingPrecedenceError, "source path"):
                     p.resolve(**args(p, path=bad))
