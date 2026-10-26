@@ -10,9 +10,11 @@ import argparse
 import ast
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import tomllib
+import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,10 +32,35 @@ def git_blob(raw: bytes) -> str:
     return hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
 
 
+def request_headers(url: str) -> dict[str, str]:
+    """Use the workflow's existing read-only token only for GitHub REST.
+
+    Never send credentials to raw content hosts or unexpected destinations.
+    """
+    parsed = urllib.parse.urlsplit(url)
+    require(parsed.scheme == "https"
+            and parsed.hostname in {"api.github.com", "raw.githubusercontent.com"}
+            and parsed.username is None and parsed.password is None
+            and parsed.port is None and not parsed.fragment,
+            "UNTRUSTED_UPSTREAM_URL")
+    headers = {"User-Agent": "codeQA-public-source-audit/0.1",
+               "Accept": "application/vnd.github+json"}
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if token and parsed.hostname == "api.github.com":
+        headers["Authorization"] = "Bearer " + token
+    return headers
+
+
+class _RejectRedirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # A redirect must never forward the workflow's read-only token.
+        raise RuntimeError("UPSTREAM_REDIRECT_REJECTED")
+
+
 def request_bytes(url: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "codeQA-public-source-audit/0.1",
-                                               "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(req, timeout=30) as response:
+    req = urllib.request.Request(url, headers=request_headers(url))
+    opener = urllib.request.build_opener(_RejectRedirects())
+    with opener.open(req, timeout=30) as response:
         require(response.status == 200, "UPSTREAM_HTTP_STATUS")
         require(response.geturl() == url, "UPSTREAM_REDIRECT_REJECTED")
         raw = response.read(MAX_FILE + 1_000_000)
