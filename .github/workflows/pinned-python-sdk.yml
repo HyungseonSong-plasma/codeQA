@@ -5,6 +5,10 @@ on:
     paths:
       - 'fixtures/python-sdk/**'
       - '.github/scripts/pinned_python_sdk_conformance.py'
+      - '.github/scripts/public_api_benchmark.py'
+      - '.github/scripts/public_python_sdk_benchmark.py'
+      - 'docs/public-api-benchmark-v01.md'
+      - 'docs/public-python-sdk-benchmark-v01.md'
       - '.github/workflows/pinned-python-sdk.yml'
       - 'src/codeqa/core/external_evidence.py'
       - 'src/codeqa/evaluation/evidence_gate.py'
@@ -15,6 +19,10 @@ on:
     paths:
       - 'fixtures/python-sdk/**'
       - '.github/scripts/pinned_python_sdk_conformance.py'
+      - '.github/scripts/public_api_benchmark.py'
+      - '.github/scripts/public_python_sdk_benchmark.py'
+      - 'docs/public-api-benchmark-v01.md'
+      - 'docs/public-python-sdk-benchmark-v01.md'
       - '.github/workflows/pinned-python-sdk.yml'
       - 'src/codeqa/core/external_evidence.py'
       - 'src/codeqa/evaluation/evidence_gate.py'
