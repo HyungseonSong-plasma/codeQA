@@ -2,7 +2,7 @@
   "schema_version": 2,
   "source_repository": "HyungseonSong-plasma/chatgpt-operation",
   "operating_system": {
-    "revision": "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771",
+    "revision": "cb785d898c624ba2b47fbb3d3840d48387605f47",
     "expected_version": "Samuel",
     "index": {
       "path": "docs/operating_system/README.md",
@@ -19,7 +19,7 @@
       "load_on": [
         "INIT"
       ],
-      "revision": "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771",
+      "revision": "cb785d898c624ba2b47fbb3d3840d48387605f47",
       "path": "skills/session-bootstrap/README.md",
       "expected_blob_sha": "6a7a3c23a05907677d0a75ba5412973da37eae54"
     },
@@ -29,7 +29,7 @@
         "INIT",
         "SCHEDULED_CONTROLLER"
       ],
-      "revision": "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771",
+      "revision": "cb785d898c624ba2b47fbb3d3840d48387605f47",
       "path": "skills/state-refresh/README.md",
       "expected_blob_sha": "4efe6135b93456f2cc9da31786967f5f6ac80033"
     },
@@ -38,7 +38,7 @@
       "load_on": [
         "INIT"
       ],
-      "revision": "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771",
+      "revision": "cb785d898c624ba2b47fbb3d3840d48387605f47",
       "path": "skills/problem-oriented-response/README.md",
       "expected_blob_sha": "c0d255134664a35db2250fa62bf3b06b3d8e3313",
       "contract": {
@@ -60,18 +60,18 @@
         "GITHUB_FILE_UPDATE",
         "GITHUB_BRANCH_CREATE"
       ],
-      "revision": "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771",
+      "revision": "cb785d898c624ba2b47fbb3d3840d48387605f47",
       "path": "skills/repository-mutation/README.md",
-      "expected_blob_sha": "496f3c52e8c5c3a8f376abffa23f5317c291f76b"
+      "expected_blob_sha": "a4054584591d8cbbb22891c5d6e870834d2d0264"
     },
     {
       "name": "pull-request-create",
       "load_on": [
         "GITHUB_PR_CREATE"
       ],
-      "revision": "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771",
+      "revision": "cb785d898c624ba2b47fbb3d3840d48387605f47",
       "path": "skills/pull-request-create/README.md",
-      "expected_blob_sha": "a466f465ffd56a13816f1b44a7a22001161b0585"
+      "expected_blob_sha": "059b57b1d3d1b9b1e0c7c722fcd991521deb3d3f"
     }
   ],
   "skill_catalog": {
@@ -80,6 +80,6 @@
   },
   "capability_registry": {
     "path": "skills/capability-registry.json",
-    "expected_blob_sha": "27f8f64249e3582e04e795e92695d84218e262c0"
+    "expected_blob_sha": "89299f29315cb381f7de90380edf44ac8fea9406"
   }
 }
