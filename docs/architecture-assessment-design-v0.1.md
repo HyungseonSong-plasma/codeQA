@@ -1,4 +1,4 @@
-# Architecture QA design v0.1 — diagnosis before reorganization
+# Architecture QA design v0.1 — evidence-first question discovery, then reorganization
 
 **Status:** Proposed (Issue [#165](https://github.com/HyungseonSong-plasma/codeQA/issues/165)); human architecture acceptance pending.  
 **Phase:** design-only; no analyzer implementation, source move or compatibility certification.  
@@ -7,7 +7,7 @@
 
 ## Problem, target outcome and constraints
 
-The codeQA Self Audit exposes function size/call sites and limited domain/import witnesses, but **does not decide** whether the folder tree, Naming placement, Adapter package boundary or language-family grouping is a better design. In particular, the existing [domain inventory](../src/codeqa/evaluation/domain_inventory.py) maps filename hints and source imports; it expressly does not prove semantic cohesion. A `PASS` on the [declared directory role policy](../profiles/semantic-directory-roles-v0.1.json) would mean policy compliance, **not** that the policy or layout is the best choice.
+The codeQA Self Audit exposes function size/call sites and limited domain/import witnesses, but **does not independently surface architecture questions** from these observations. A design that asks about Naming or Adapter layout upfront would merely answer a user-seeded question rather than discover a problem. The architecture analyzer must derive its areas of concern and candidate questions from source evidence first. In particular, the existing [domain inventory](../src/codeqa/evaluation/domain_inventory.py) maps filename hints and source imports; it expressly does not prove semantic cohesion. A `PASS` on the [declared directory role policy](../profiles/semantic-directory-roles-v0.1.json) would mean policy compliance, **not** that the policy or layout is the best choice.
 
 **Target state:** codeQA first diagnoses its own poorly organized areas, supplies comparable evidence and conditional recommendations, then supports a separately approved, safe reorganization and confirms the measured outcome on the same scope. It must also analyze other repositories under their own declared policy rather than assuming codeQA is universally exemplary.
 
@@ -83,9 +83,48 @@ Normative permitted imports remain the current role policy, not this drawing: `c
 | Adapter capability/source-selection contracts | Declared coverage; some Python execution | Real supported/unsupported language-family readiness, with Rust/C++ unknowns (B6) |
 | Self Audit and Domain Inventory CI | Historical/pinned-source reports | Four-question decision report under an exact current checkout (B8) |
 
-## Four required architecture questions and competing hypotheses
+## Required discovery loop — facts before the question
 
-The scenario IDs and candidate paths are versioned in the design fixture. No scenario in this document has been measured to be superior.
+**Never pass L0–L3 or fixed Naming/Adapter questions to the analyzer as its evaluation checklist.** Those are withheld acceptance examples. The diagnostic starts from a repository source snapshot, not from an LLM-authored architecture question.
+
+```text
+PINNED SOURCE SNAPSHOT + DECLARED POLICY
+       |
+       v
+Source tree + coverage + dependency/ownership/exports evidence
+       |
+       v
+Deterministic structural signals (measures + denominators + source witnesses)
+       |
+       v
+Evidence packs + counterhypotheses + unknowns
+       |
+       v
+Zero or more opportunity hypotheses (not decisions)
+       |
+       v
+ChatGPT discovers/rephrases architecture questions from evidence packs
+       |
+       v
+Source-triggered candidate layouts + symmetric trade-off evidence
+       |
+       v
+Conditional judgment / INSUFFICIENT_EVIDENCE / specific review question
+```
+
+**Structural signal families** (declared generically in the fixture, not bound to domain names): responsibility scatter across roles; dependency/boundary pressure; change-surface pressure; language-specific dependency isolation; observed-versus-declared ownership mismatch. Each requires a reproducible derivation rule, source path/line/identity, normalized measurement with denominator, coverage, missing evidence, and a plausible benign counterexample. Frequency of matches alone must not certify poor architecture.
+
+**Signal-to-question derivation:** codeQA should assemble a machine-readable architecture opportunity with originating signal IDs, affected owner boundaries, witnesses, why the question arises, multiple plausible alternatives (including KEEP), counterarguments, risk/compatibility gaps and confidence limits. ChatGPT may then phrase the question in domain terms: e.g. if and only if Naming's cross-role scatter and move surface are substantiated, ask whether that concern should have its own boundary. If and only if Adapter boundary/extension pressure is independently substantiated, consider an external namespace. **No direct tests like `if module_name == 'naming'` are acceptable.**
+
+**No-signal is valid:** when available evidence shows no significant architectural tension, return an empty opportunity list with coverage/unknowns. Under incomplete evidence, emit a tentative opportunity with `INSUFFICIENT_EVIDENCE`, or no question with an explicit coverage warning; do not manufacture a beneficial move. Under conflicting evidence, report symmetric trade-offs and a precise owner review question, not a generic `PREFER`.
+
+**Anti-overfitting acceptance:** run the same algorithm against synthetic repositories with renamed identifiers but equivalent dependency graphs; unrelated responsibilities sharing a name; same responsibility across unrelated filenames; a healthy deliberately shared utility; unresolved dynamic imports; zero discoverable opportunity; and entirely different directory labels. Questions should be triggered by observed structural relations, never by the four named regression cases. A seeded user question may be evaluated by a separate *explicit-request* mode, but must not contaminate the *discovery* benchmark.
+
+**Consumer handoff:** output two separate machine sections: `architecture_signals` (observations and uncertainty) and `question_opportunities` (derived hypotheses/questions with evidence IDs). `scenario_assessments` is optional and can only evaluate a justified discovered opportunity. An LLM response must cite the evidence IDs and independently consider KEEP; no model-generated text becomes an observed source fact.
+
+## Four owner-supplied regression examples, never preseeded analysis questions
+
+The four example question families and possible package paths are recorded as **regression examples**, not compulsory analysis inputs or mandatory generated findings. An unrelated repository may produce entirely different questions; codeQA may legitimately emit none. No example layout has been measured to be superior.
 
 | ID | Owner's question | Baseline and candidate | Mandatory counterargument |
 | --- | --- | --- | --- |
@@ -94,7 +133,7 @@ The scenario IDs and candidate paths are versioned in the design fixture. No sce
 | **L2** | Should adapters sit alongside `codeqa`? | Current `src/codeqa/adapters` vs `src/adapters` sibling package/distribution | A sibling namespace may increase packaging/API burden; external consumer breakage may be unknown |
 | **L3** | Should adapters aggregate as `pythonqa`, `rustqa`, `cppqa`? | Flat current adapters vs language-family packages under current or sibling home | Empty future-language directories are not demonstrated scalability; existing Rust/C++ runtime support is incomplete |
 
-After independent evidence, B4 may compose L1+L3 or L1+L2+L3; virtual namespace collisions and package metadata must be checked before scoring. Package proposal L2 is `src/adapters`, **not a new repository root**. An alternate distribution/wheel must be handled explicitly, not assumed by a directory name.
+Only **after** an independently observed diagnostic signal yields an architecture opportunity may B4 propose package/layout alternatives, possibly including L1+L3 or L1+L2+L3. Virtual namespace collisions and package metadata must be checked before comparison. No example layout is automatically entered into a real repository's assessment. Package proposal L2 is `src/adapters`, **not a new repository root**. An alternate distribution/wheel must be handled explicitly, not assumed by a directory name.
 
 ## Evidence and assessment contract (proposed, B7 to formalize)
 
@@ -138,11 +177,11 @@ A drop in file count, raw import count or a cleaner folder tree alone is not acc
 
 ## Implementation and review gates
 
-1. **A (#165):** adopt/design-review this tree, machine-readable scenario fixture and negative design tests. This phase does **not** implement the analyzer or move production code.
-2. **B1–B3 (#167–#169):** inventory, coverage, dependency and Naming ownership evidence. Reuse existing algorithms rather than rename-only refactoring.
-3. **B4–B6 (#170–#172):** virtual layouts, migration impact and Python/Rust/C++ family trade-off evaluation, including external unknowns.
+1. **A (#165):** adopt/design-review this tree, machine-readable discovery design and non-binding regression examples, plus negative design tests. This phase does **not** implement the analyzer or move production code.
+2. **B1–B3 (#167–#169):** inventory, coverage, dependency evidence and **repository-general signal/opportunity discovery**; Naming is a regression example, not a rule. Reuse existing algorithms rather than rename-only refactoring.
+3. **B4–B6 (#170–#172):** source-triggered virtual layouts, migration impact and language-family trade-off evaluation, including external unknowns. No fixed questionnaire.
 4. **B7 (#173):** implement the independent versioned comparative evidence/result contract with fail-closed decision policy and adversarial fixtures.
-5. **B8 (#174):** run real codeQA on a pinned codeQA snapshot, produce JSON + readable four-question report with source refs and explicit unknowns. Require actual exact-head CI receipts; a workflow declaration is not execution proof.
+5. **B8 (#174):** run real codeQA on a pinned codeQA snapshot **without supplying the four questions as inputs**, produce observed signals, naturally generated question opportunities, comparable source-backed scenarios and explicit unknowns. Assess discovery recall on independent synthetic fixtures, not by forcing answers into the output. Require actual exact-head CI receipts; a workflow declaration is not execution proof.
 6. **Later cleanup (separate migration issue/PR):** never directly reorganize codeQA based only on an unreviewed advisory output. Owner reviews semantics and consumer-compatibility evidence first.
 
-**Human decision at Issue A:** adopt this responsibility boundary and four scenario families as the v0.1 architecture-assessment implementation plan, or request specific changes? This decision does **not** authorize the actual Naming/Adapter migration.
+**Human decision at Issue A:** adopt the evidence-first discovery boundary, allowing the analyzer to emit zero or more source-grounded architecture opportunities without preseeded questions, and retain Naming/Adapter layouts **only as regression cases**? This decision does **not** authorize any actual package migration.
