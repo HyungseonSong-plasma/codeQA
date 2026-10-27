@@ -182,6 +182,43 @@ def validate_design(data: dict) -> None:
     } <= set(data["prohibitions"])
 
 
+    # Owner-approved minimal v0.1 decision policy: no hidden weighted optimizer.
+    decision = data["decision_algorithm_v01"]
+    assert decision["algorithm_id"] == "codeqa.architecture.counterfactual-pareto.v0.1"
+    assert decision["release_scope"] == "DESIGN_ONLY_NOT_IMPLEMENTED"
+    assert decision["phases"] == [
+        "check_comparable_snapshot_and_coverage",
+        "check_hard_constraints_and_unknowns",
+        "measure_bounded_static_quality_proxies_and_migration_surface",
+        "compare_pareto_with_cost_and_human_review",
+        "verify_after_separately_approved_refactor",
+    ]
+    assert set(decision["metrics"]) == {
+        "ownership_boundary_clarity_proxy",
+        "cross_boundary_dependency_proxy",
+        "static_dependency_cycle_count",
+        "reverse_import_impact_proxy",
+        "added_interface_and_migration_surface",
+    }
+    rule_map = {rule["condition"]: rule["decision"] for rule in decision["rules"]}
+    assert len(rule_map) == len(decision["rules"]) == 6
+    assert rule_map == {
+        "NONCOMPARABLE_OR_MISSING_CRITICAL_EVIDENCE": "INSUFFICIENT_EVIDENCE",
+        "KNOWN_HARD_CONSTRAINT_VIOLATION": "KEEP",
+        "CRITICAL_COMPATIBILITY_UNKNOWN": "INSUFFICIENT_EVIDENCE",
+        "CANDIDATE_WEAKLY_DOMINATES_BASELINE_WITH_MATERIAL_GAIN_AND_NO_UNCOMPENSATED_MIGRATION_RISK": "PREFER",
+        "BASELINE_WEAKLY_DOMINATES_CANDIDATE_OR_SAME_METRICS_WITH_POSITIVE_MIGRATION_COST": "KEEP",
+        "MIXED_METRIC_TRADEOFFS_OR_SEMANTIC_OWNERSHIP_CHOICE": "REVIEW_REQUIRED",
+    }
+    assert set(rule_map.values()) == EXPECTED_DECISIONS
+    assert all(decision["postchange_verification"].values())
+    assert {"universal_weighted_score", "learned_weights", "complex_search_optimization",
+            "probabilistic_semantic_inference", "automated_migration",
+            "historical_change_prediction"} <= set(decision["deferred"])
+
+
+
+
 class ArchitectureAssessmentDesignTests(unittest.TestCase):
     def load(self) -> dict:
         return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -200,6 +237,9 @@ class ArchitectureAssessmentDesignTests(unittest.TestCase):
                 self.assertIn(item.lower(), text.lower())
         self.assertIn("not shipped by A", text)
         self.assertIn("no actual source move", text.lower())
+        self.assertIn("Accepted minimum architecture decision algorithm", text)
+        self.assertIn("Pareto", text)
+        self.assertIn("post", text.lower())
 
     def test_local_document_links_resolve(self) -> None:
         text = DESIGN_PATH.read_text(encoding="utf-8")
@@ -241,6 +281,25 @@ class ArchitectureAssessmentDesignTests(unittest.TestCase):
         invalid["regression_examples"][2]["possible_layout_candidates"] = ["src/adapters", "new-root/adapters"]
         with self.assertRaises(AssertionError):
             validate_design(invalid)
+
+
+    def test_decision_policy_rejects_unsupported_scoring_or_premature_release(self) -> None:
+        changed = deepcopy(self.load())
+        changed["decision_algorithm_v01"]["release_scope"] = "IMPLEMENTED"
+        with self.assertRaises(AssertionError):
+            validate_design(changed)
+        changed = deepcopy(self.load())
+        changed["decision_algorithm_v01"]["rules"][2]["decision"] = "PREFER"
+        with self.assertRaises(AssertionError):
+            validate_design(changed)
+        changed = deepcopy(self.load())
+        changed["decision_algorithm_v01"]["deferred"].remove("universal_weighted_score")
+        with self.assertRaises(AssertionError):
+            validate_design(changed)
+        changed = deepcopy(self.load())
+        changed["decision_algorithm_v01"]["postchange_verification"]["same_scope_and_policy"] = False
+        with self.assertRaises(AssertionError):
+            validate_design(changed)
 
     def test_premature_certification_or_forced_question_fails_closed(self) -> None:
         for section, field, value in [
