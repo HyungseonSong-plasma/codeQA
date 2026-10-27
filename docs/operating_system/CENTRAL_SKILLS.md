@@ -52,3 +52,40 @@ Other skills load only when triggered (e.g., `GITHUB_PR_MERGE`,
 ## GitHub creation and update routing
 
 Samuel `cb785d898c624ba2b47fbb3d3840d48387605f47` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled by `pull-request-create` through `github-connector` only. Existing `GITHUB_BRANCH_DELETE` native-first and `GITHUB_PR_MERGE` guarded routes are unchanged. A successful create action does not certify CI, domain semantics, or human acceptance. Read exact target identities before and after any mutation; do not modify the capability registry with the native repository mutation workflow, whose protected policy explicitly denies that path.
+
+## GitHub connector authorization and error triage
+
+For a new GitHub write error, investigate **permissions and effective actor
+identity early**, before proposing a new provider or a repository-native
+workflow. Do not state a permission failure as fact without evidence:
+
+- `GITHUB_PR_CREATE` is connector-only at the pinned Samuel revision. Verify
+  the connector's accessible repository, branch/PR scopes and the exact target
+  head/base before invoking it. An account with GitHub repository `admin`
+  access is not proof that a particular Connector write or Actions token is
+  authorized.
+- A genuine GitHub HTTP `401/403/404` requires read-only verification of
+  the acting identity, installation/token scopes, repository and branch
+  Rulesets, and target existence. A `403` alone can indicate policy or
+  authorization; label the cause `ACCESS_OR_RESOURCE_UNDETERMINED` until
+  established.
+- GitHub Actions `GITHUB_TOKEN` rights and the repository's
+  `Settings → Actions → General → Allow GitHub Actions to create and approve
+  pull requests` are relevant **only** when the failing route is Actions.
+  Owner-reported setting changes do not prove an actual workflow's ability.
+- `BLOCKED BY SAFETY SCREENING` is an **external tool-safety rejection**,
+  not proof of GitHub permission failure. Do not retry the same logical write
+  via a renamed path, different branch, alternate API or provider. Escalate
+  to the originating screening authority and preserve the original refusal.
+- Missing connector operation and a transient provider error are separate
+  from an access denial. Resolve the pinned capability registry, classify
+  the original failure, inspect prior same-intent blockers and verify the
+  exact postcondition before declaring success, failure or global exhaustion.
+
+When reporting an ambiguous failure, say: “This may be an authorization,
+repository policy or provider issue. I will check the acting identity and
+scoped permissions first; the root cause is not yet confirmed.”
+
+For an upstream safety block, instead say: “The original tool rejected this
+write during safety screening. No GitHub permission error was established,
+and changing repository settings does not by itself clear the refusal.”
