@@ -8,6 +8,8 @@ from pathlib import Path
 import subprocess
 import unittest
 
+from jsonschema import Draft202012Validator
+
 from codeqa.evaluation.architecture.inventory import (
     ArchitectureInventoryError,
     analyze_architecture_inventory,
@@ -156,6 +158,22 @@ class ArchitectureInventoryV01Tests(unittest.TestCase):
             )
         with self.assertRaises(ArchitectureInventoryError):
             inventory(excluded_paths=["src/widget/core/model.py"])
+
+    def test_versioned_json_schema_accepts_real_result_and_rejects_false_pass(self) -> None:
+        schema = json.loads(
+            (ROOT / "contracts/qa/architecture-inventory-v0.1.schema.json").read_text()
+        )
+        Draft202012Validator.check_schema(schema)
+        report = inventory()
+        Draft202012Validator(schema).validate(report)
+        invalid = deepcopy(report)
+        invalid["status"] = "PASS"
+        with self.assertRaises(Exception):
+            Draft202012Validator(schema).validate(invalid)
+        invalid = deepcopy(report)
+        invalid["files"][0]["parser_status"] = "SUPPORTED_RUNTIME"
+        with self.assertRaises(Exception):
+            Draft202012Validator(schema).validate(invalid)
 
     def test_actual_codeqa_head_tree_and_role_witnesses(self) -> None:
         """CI integration: enumerate real tracked paths, not a filename mock."""
