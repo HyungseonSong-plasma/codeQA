@@ -53,6 +53,10 @@
       "blob_sha": "1435ea1fef67862ed2c46babb7a73ab2c52168be"
     },
     {
+      "path": ".github/workflows/physicsapp-compiler-evidence.yml",
+      "blob_sha": "8267db706acd7facdf674f9e2f594d07335ceacd"
+    },
+    {
       "path": ".github/workflows/pinned-dafny-formal.yml",
       "blob_sha": "3db98854d8655a39c902ac5b826785406a488c60"
     },
