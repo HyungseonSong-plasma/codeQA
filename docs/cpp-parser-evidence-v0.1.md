@@ -1,0 +1,89 @@
+# #93 — Pinned C++ tree-sitter source syntax evidence (v0.1)
+
+This is an **optional, read-only C++ syntax extractor**, not a compiler,
+framework ABI, override-dispatch or MOOSE input-DSL validator. It extends
+the existing manual/synthetic C++ compiler fixture matrix and the separately
+pinned Rust tree-sitter adapter without modifying frozen CCG, Naming or
+public QA Result contracts.
+
+The parser records exact caller-selected `owner/repo@40-hex-SHA`, source
+path and SHA-256, and requires `tree-sitter==0.25.2` and
+`tree-sitter-cpp==0.23.4`. The source bytes are parsed without executing
+macros, including headers, resolving symbols or building a binary.
+The emitted `CppSyntaxEvidence` has deterministic declaration name/line/
+container observations, producer versions, parse status and explicit
+unknowns. It rejects forged hashes, paths/revisions and parser version drift.
+
+The independently checked **real source sample** is
+`HyungseonSong-plasma/moose-test-repo@1977ad5559e5aa7a1c8d04c83735c15e007130d5`
+`physics_app/src/base/PhysicsApp.C`, byte-compared against the existing
+`fixtures/mixed/cpp/PhysicsApp.C.txt` before the parser is invoked.
+The checkout is a pinned *application source sample*, **not** an attested
+upstream MOOSE framework release or authoritative DSL grammar. The
+existing controlled `fixtures/cpp-override` positive/negative specimens
+remain distinct; a syntactically valid `override` is not evidence that
+a C++ compiler accepts its base signature. A strict syntax error raises;
+an explicitly requested partial parse has
+`PARTIAL_SYNTAX_ERRORS_NOT_EVALUATED`, never a PASS.
+
+The `mixed-source-conformance.yml` workflow installs the optional parser,
+runs all C++ parser tests with **zero skips**, and uploads a source-bound
+`cpp-parser-evidence.json` receipt. Existing mixed-language source
+selection checks continue unchanged. The GitHub Actions runner OS and
+parser packages are pinned as specified, but package supply-chain
+transitive hashes and compiler/framework ABI are not independently attested.
+
+**Unresolved acceptance:** independently pinned C++ compiler toolchain,
+full translation-unit/build flags, templates/macros/generated headers,
+virtual dispatch and public ABI consumers; actual upstream MOOSE SDK
+release, input DSL grammar and reserved-vs-customizable key adjudication;
+Rust trait/compiler evidence and human Naming approval. All remain
+`NOT_EVALUATED` pending separate evidence. No source/DSL migration,
+rename or production authorization is issued.
+
+## Independent controlled C++ compiler check (non-production)
+
+The same mixed-source CI now **requires** available `clang++` and `g++`
+to execute all eight existing positive/negative C++17 virtual override
+fixtures, with `-fsyntax-only -Werror` and **zero skipped tests**. It
+uploads `cpp-compiler-evidence.json` beside the parser receipt, including
+observed compiler versions, exact fixture digests and the explicitly
+unlocked `VERSION_OBSERVED_NOT_INDEPENDENTLY_PINNED` toolchain status.
+The Ubuntu runner is not an immutable compiler binary/dependency manifest.
+This is **actual controlled compiler evidence**, but **not** proof of
+real MOOSE framework headers, SDK/DSL naming, public ABI, dynamic consumers
+or any production compatibility window. Those remain `NOT_EVALUATED`.
+
+## Pinned upstream MOOSE framework source identity (not a release/ABI proof)
+
+The canonical `moose-test-repo/physics_app/dependencies.lock` at
+`1977ad5559e5aa7a1c8d04c83735c15e007130d5` pins upstream
+`idaholab/moose@9f388366ccf38b9c34542ec5561198249fde0ac9`.
+The GitHub commit and three upstream framework files were independently
+read, with exact Git blob SHA-1 identities recorded in
+`fixtures/moose-framework/source-lock-v0.1.json`: `MooseApp.h`,
+`InputParameters.h`, and `Parser.C`. The mixed-source CI now fetches
+those exact upstream source bytes, compares Git blob identities against
+the reviewed lock and application dependency pin, and publishes a
+machine-readable receipt with per-file SHA-256. Negative tests reject
+stale dependencies, changed headers, forged repository identity,
+missing files and invented production ABI authority.
+
+This establishes **source provenance for three upstream files only**.
+It does **not** establish an independently versioned MOOSE *release*,
+the complete HIT input DSL grammar, reserved vs customizable application
+parameter names, C++ compilation/linking against MOOSE headers, ABI
+compatibility, or actual runtime consumers. Those remain `NOT_EVALUATED`;
+no automatic rename, migration or production compatibility decision.
+
+## Pinned HIT parser source identity extension (still not a grammar verdict)
+
+The same upstream MOOSE commit additionally pins five exact parser-related
+files: `MooseSyntax.h`, `Syntax.C`, HIT `lex.cc`, HIT `parse.cc` and
+HIT `parse.h`. The eight-file lock now includes source code that implements
+parts of the input syntax parsing path. CI fetches and byte-checks all eight
+Git blobs against the immutable commit and application dependency lock.
+This is **parser source provenance**, not executed parser conformance against
+the application input files, a complete versioned HIT grammar specification,
+reserved-vs-customizable field classification, or ABI proof. All those
+semantic/compatibility obligations remain `NOT_EVALUATED`.

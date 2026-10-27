@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - 'fixtures/mixed/**'
+      - 'fixtures/cpp-override/**'
+      - 'tests/test_cpp_parser_evidence.py'
+      - 'src/codeqa/adapters/cpp_parser_evidence.py'
+      - 'docs/cpp-parser-evidence-v0.1.md'
+      - 'src/codeqa/adapters/moose_framework_source.py'
+      - 'tests/test_moose_framework_source_lock.py'
+      - 'fixtures/moose-framework/**'
       - 'tests/test_mixed_source_coverage.py'
       - 'docs/mixed-source-coverage.md'
       - 'contracts/adapters/source-selection-v0.1.schema.json'
@@ -12,6 +19,13 @@ on:
     branches: [main]
     paths:
       - 'fixtures/mixed/**'
+      - 'fixtures/cpp-override/**'
+      - 'tests/test_cpp_parser_evidence.py'
+      - 'src/codeqa/adapters/cpp_parser_evidence.py'
+      - 'docs/cpp-parser-evidence-v0.1.md'
+      - 'src/codeqa/adapters/moose_framework_source.py'
+      - 'tests/test_moose_framework_source_lock.py'
+      - 'fixtures/moose-framework/**'
       - 'tests/test_mixed_source_coverage.py'
       - 'docs/mixed-source-coverage.md'
       - 'contracts/adapters/source-selection-v0.1.schema.json'
@@ -55,3 +69,129 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check -e ./codeqa
       - name: Run caller selection and mixed-language coverage conformance
         run: python3 -m unittest discover -s codeqa/tests -p test_mixed_source_coverage.py -v
+      - name: Install exact optional C++ syntax grammar
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'tree-sitter==0.25.2' 'tree-sitter-cpp==0.23.4'
+          python3 -m pip check
+      - name: Require real C++ compiler override controls with no skipped tests
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          import json
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import unittest
+          compilers = {}
+          for name in ("clang++", "g++"):
+              binary = shutil.which(name)
+              if binary is None:
+                  raise SystemExit(f"CPP_COMPILER_UNAVAILABLE {name}")
+              run = subprocess.run([binary, "--version"], capture_output=True,
+                                   text=True, timeout=30, check=False)
+              if run.returncode != 0 or not run.stdout.strip():
+                  raise SystemExit(f"CPP_COMPILER_VERSION_UNVERIFIED {name}")
+              compilers[name] = {"path": binary,
+                                 "observed_version": run.stdout.splitlines()[0]}
+          suite = unittest.defaultTestLoader.discover(
+              start_dir="codeqa/tests", pattern="test_cpp_override_moose_draft_v02.py")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun < 3:
+              raise SystemExit(f"CPP_COMPILER=FAIL tests={result.testsRun} skipped={result.skipped}")
+          samples = {
+              path.name: sha256(path.read_bytes()).hexdigest()
+              for path in sorted(Path("codeqa/fixtures/cpp-override").glob("*.cpp"))
+          }
+          if len(samples) != 8:
+              raise SystemExit("CPP_COMPILER_FIXTURE_SET_DRIFT")
+          receipt = {
+              "schema_version": "0.1",
+              "scope": "CONTROLLED_CPP_OVERRIDE_FIXTURE_ONLY",
+              "toolchain_lock": "VERSION_OBSERVED_NOT_INDEPENDENTLY_PINNED",
+              "compilers": compilers,
+              "source_sha256": samples,
+              "flags": ["-std=c++17", "-fsyntax-only", "-Werror"],
+              "test_count": result.testsRun,
+              "skipped": len(result.skipped),
+              "public_abi": "NOT_EVALUATED",
+              "moose_framework_sdk": "NOT_EVALUATED",
+          }
+          Path("cpp-compiler-evidence.json").write_text(
+              json.dumps(receipt, sort_keys=True, indent=2) + "\n")
+          print("CPP_COMPILER=PASS fixture_matrix=8 toolchain_pin=NOT_EVALUATED abi=NOT_EVALUATED")
+          PY
+      - name: Require parser-backed C++ controls with no skipped tests
+        run: |
+          python3 - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.discover(
+              start_dir="codeqa/tests", pattern="test_cpp_parser_evidence.py")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun < 9:
+              raise SystemExit(f"CPP_PARSER=FAIL tests={result.testsRun} skipped={result.skipped}")
+          print("CPP_PARSER=PASS tests=", result.testsRun)
+          PY
+      - name: Produce pinned real MOOSE application syntax receipt
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          from codeqa.adapters.cpp_parser_evidence import parse_cpp_syntax
+          raw = Path("codeqa/fixtures/mixed/cpp/PhysicsApp.C.txt").read_bytes()
+          report = parse_cpp_syntax(
+              raw, source_repository="HyungseonSong-plasma/moose-test-repo",
+              source_revision="1977ad5559e5aa7a1c8d04c83735c15e007130d5",
+              source_path="physics_app/src/base/PhysicsApp.C",
+              expected_source_sha256=sha256(raw).hexdigest(),
+              require_complete_parse=False,
+          )
+          assert any("PhysicsApp" in d.spelling for d in report.declarations)
+          assert "MOOSE_FRAMEWORK_AND_INPUT_DSL_NOT_EVALUATED" in report.unknowns
+          Path("cpp-parser-evidence.json").write_text(report.canonical_json() + "\n")
+          print("CPP_PARSER_SOURCE=PASS syntax=", report.parse_status,
+                "abi=NOT_EVALUATED moose_dsl=NOT_EVALUATED")
+          PY
+      - name: Verify pinned upstream MOOSE framework source identity (not ABI or DSL)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s codeqa/tests -p test_moose_framework_source_lock.py -v
+          base="https://raw.githubusercontent.com/idaholab/moose/9f388366ccf38b9c34542ec5561198249fde0ac9"
+          for path in \
+            framework/include/base/MooseApp.h \
+            framework/include/utils/InputParameters.h \
+            framework/src/parser/Parser.C \
+            framework/include/parser/MooseSyntax.h \
+            framework/src/parser/Syntax.C \
+            framework/contrib/hit/src/hit/lex.cc \
+            framework/contrib/hit/src/hit/parse.cc \
+            framework/contrib/hit/include/hit/parse.h; do
+            mkdir -p "moose-framework/$(dirname "$path")"
+            curl --fail --show-error --silent --location --retry 3 --connect-timeout 20 \
+              --max-time 120 "$base/$path" -o "moose-framework/$path"
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from codeqa.adapters.moose_framework_source import REQUIRED_FILES, verify_framework_source_lock
+          lock = json.loads(Path("codeqa/fixtures/moose-framework/source-lock-v0.1.json").read_text())
+          deps = Path("moose/physics_app/dependencies.lock").read_text()
+          raw = {path: (Path("moose-framework") / path).read_bytes() for path in REQUIRED_FILES}
+          receipt = verify_framework_source_lock(
+              lock, deps, raw,
+              application_revision="1977ad5559e5aa7a1c8d04c83735c15e007130d5")
+          Path("moose-framework-source-evidence.json").write_text(
+              json.dumps(receipt, sort_keys=True, indent=2) + "\n")
+          print("MOOSE_FRAMEWORK_SOURCE=PINNED_IDENTITY_ONLY abi=NOT_EVALUATED dsl=NOT_EVALUATED")
+          PY
+      - name: Upload parser-only C++ receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-cpp-moose-syntax
+          path: |
+            cpp-parser-evidence.json
+            cpp-compiler-evidence.json
+            moose-framework-source-evidence.json
+          if-no-files-found: error
+          retention-days: 30

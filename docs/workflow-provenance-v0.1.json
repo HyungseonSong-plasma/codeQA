@@ -10,7 +10,7 @@
     },
     {
       "path": ".github/workflows/mixed-source-conformance.yml",
-      "blob_sha": "aa1adcea43a29ecdebc3f117574a67b7a3af36e5"
+      "blob_sha": "b5cc3fd22572a8181e05b2ffb1b42d566664035c"
     },
     {
       "path": ".github/workflows/moose-p3-refactor-conformance.yml",
@@ -71,6 +71,10 @@
     {
       "path": ".github/workflows/rust-ccg-conformance.yml",
       "blob_sha": "cc1c14bac59cfb7ae44b799de6b76a5630cc4f7f"
+    },
+    {
+      "path": ".github/workflows/rust-parser-evidence.yml",
+      "blob_sha": "8ac6c19482a2163ad5960d14257a4de5c1a35a5c"
     },
     {
       "path": ".github/workflows/samuel-adapter-conformance.yml",
