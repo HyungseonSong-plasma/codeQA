@@ -82,13 +82,14 @@ class ConditionalImportShadowTests(unittest.TestCase):
             + "    if condition:\n"
             + "        from other_module import Other as ControlFlowObservation\n"
         )
-        self.assertEqual(graph["syntax_candidate_edges"], 1)
+        # Existing B3 conservatively withholds static provenance for any
+        # nested target import, including a function-local one.
+        self.assertEqual(graph["syntax_candidate_edges"], 0)
         self.assertEqual(graph["runtime_symbol_identity"], "NOT_EVALUATED")
         self.assertFalse(graph["rename_authorized"])
-        self.assertNotIn(
-            "AMBIGUOUS_TARGET_MODULE_BINDING",
-            {x["reason"] for x in scan["unresolved"]},
-        )
+        reasons = {x["reason"] for x in scan["unresolved"]}
+        self.assertIn("NESTED_TARGET_IMPORT_NOT_GLOBAL", reasons)
+        self.assertNotIn("AMBIGUOUS_TARGET_MODULE_BINDING", reasons)
 
     def test_unshadowed_direct_import_remains_candidate(self):
         _, graph = inspect(DIRECT)
