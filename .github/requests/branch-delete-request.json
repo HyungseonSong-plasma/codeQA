@@ -1,3 +1,204 @@
 {
-  "targets": []
+  "targets": [
+    {
+      "branch": "chore/samuel-problem-first-init-pin-20261026",
+      "expected_sha": "c52d7a5c9edd62fda66f7d312ab5a8c9b5092a69"
+    },
+    {
+      "branch": "codeqa/102-formal-proof-receipt-v01-20261025",
+      "expected_sha": "eb77f92b7ad0cc7a21b8dd0a032fb7ee06789134"
+    },
+    {
+      "branch": "codeqa/118-support-surface-v01-20261025",
+      "expected_sha": "ab8072bd1fc3c50e6494dae1f413a2ead122cc5f"
+    },
+    {
+      "branch": "codeqa/119-domain-audit-v01-20261025",
+      "expected_sha": "e44ea3f677e37488ed00295367ddf64c7b6d4fbf"
+    },
+    {
+      "branch": "codeqa/120-naming-opt-in-boundary-20261025",
+      "expected_sha": "8666385e87ca51f89cc64f41b79497b0abd13722"
+    },
+    {
+      "branch": "codeqa/121-authority-audit-v01-20261025",
+      "expected_sha": "9a12ede8321f987a8c2acf40e756a531dddd8712"
+    },
+    {
+      "branch": "codeqa/122-language-matrix-v01-20261025",
+      "expected_sha": "cf151019b071cb14fa0e1d40afe1055b391f0ab4"
+    },
+    {
+      "branch": "codeqa/123-opt-in-analysis-request-v01-20261025",
+      "expected_sha": "5e909b2267db0366b42f09c7a9d87db57d278099"
+    },
+    {
+      "branch": "codeqa/124-workflow-catalog-v01-20261025",
+      "expected_sha": "a636fb1f4471995beff9da4477a8e21f0542e4b6"
+    },
+    {
+      "branch": "codeqa/125-resource-bundle-negatives-v01-20261025",
+      "expected_sha": "b219b5588d7a22382ad96484ddfd3e0d414c1cb7"
+    },
+    {
+      "branch": "codeqa/144-fail-closed-binding-conflicts-20261026",
+      "expected_sha": "21baa081e899a42146257b120aa53cecf69adb0b"
+    },
+    {
+      "branch": "codeqa/144-node-scope-direct-import-gate-20261026",
+      "expected_sha": "c03c22d8395c033cc0a3bfe6167edb5c9bd1e804"
+    },
+    {
+      "branch": "codeqa/144-official-naming-adoption-proposal-v05-20261026",
+      "expected_sha": "d31bf7c26f1a954945c8aa5e49537f0b45932b78"
+    },
+    {
+      "branch": "codeqa/144-pinned-internal-import-census-20261026",
+      "expected_sha": "1ff79d228c5fd1df6430cd0950fb5406344c2062"
+    },
+    {
+      "branch": "codeqa/144-semantic-candidate-rules-v04-20261026",
+      "expected_sha": "7f1beabb40a181c2a6e1fe47c5d70401c927c506"
+    },
+    {
+      "branch": "codeqa/91-naming-precedence-v03-draft",
+      "expected_sha": "86f110405ba9b55400519ad1aeb61f789b5a9557"
+    },
+    {
+      "branch": "codeqa/91-review-worklist-integrity-v03-20261026",
+      "expected_sha": "02e276ec24742b89b01a9126385debf132051ab9"
+    },
+    {
+      "branch": "codeqa/92-pydantic-effective-alias-runtime-v01-20261025",
+      "expected_sha": "365a580d3fd0e54e10bfc35e74570e0892e6883c"
+    },
+    {
+      "branch": "codeqa/94-rename-migration-review-plan-20261025",
+      "expected_sha": "c063a02ae82987925b522131cf48a3da25997ff1"
+    },
+    {
+      "branch": "docs/naming-adr-0004",
+      "expected_sha": "8bcd7fb07c63acf593a1f87a315c60dff8f5dfd0"
+    },
+    {
+      "branch": "feat/93-cpp-parser-owner-coverage-20261026",
+      "expected_sha": "49ace47895849e153464d7f427428ddf40b43ba8"
+    },
+    {
+      "branch": "feat/93-d3-physicsapp-compiler-evidence-20261026",
+      "expected_sha": "156897dfcace1fba6ca18394bcc179a96e971654"
+    },
+    {
+      "branch": "feat/94-staged-migration-review-20261026",
+      "expected_sha": "1c368a1c2626c2d93a3eb71255203f2d41117693"
+    },
+    {
+      "branch": "feat/issue-61-python-naming-safe-mvp",
+      "expected_sha": "d2847ab2682f86e6c0c7afc2326322e01d591ff5"
+    },
+    {
+      "branch": "feat/issue-63-pinned-python-external-ancestry",
+      "expected_sha": "adb8e68e0d45f95e1da9fe6c27725a8949c37c32"
+    },
+    {
+      "branch": "feat/issue-64-directional-dto-mapping",
+      "expected_sha": "ba188331235aa09cc085dfdfbddbacc9c6b60093"
+    },
+    {
+      "branch": "feat/issue-65-naming-glossary-consistency",
+      "expected_sha": "31c988d487059f43e789b77277e5c2d44a02692d"
+    },
+    {
+      "branch": "feat/issue-69-python-naming-coverage-v02",
+      "expected_sha": "df400e6e3e6ca7f6727f6fc34aa1ec68227a7ce9"
+    },
+    {
+      "branch": "feat/issue-75-pinned-naming-source-delta",
+      "expected_sha": "81dd2f02abeb31008dfc2c8b71d8c4adcc748fbc"
+    },
+    {
+      "branch": "feat/naming-final-alias-69",
+      "expected_sha": "0b139149a4149d98660578bd7118d0ac11f2fb9a"
+    },
+    {
+      "branch": "fix/102-canonical-artifact-paths-20261027",
+      "expected_sha": "f58c9a1c2c53e62612ac96cbf8531f5969521cba"
+    },
+    {
+      "branch": "fix/144-conditional-import-shadow-20261027",
+      "expected_sha": "56afd9caf927313554045adcf2f75b349405e0a4"
+    },
+    {
+      "branch": "fix/144-match-capture-shadow-20261026",
+      "expected_sha": "51bfb1d1e457155a2e75f849e65136b0e7fa2dd9"
+    },
+    {
+      "branch": "fix/92-exact-bot-ledger-selector",
+      "expected_sha": "92bd01fa21fb41d8526e8154bc291f7687996d25"
+    },
+    {
+      "branch": "fix/92-pyright-diagnostic-range-20261027",
+      "expected_sha": "7239c0e8264e95554d40ba7d9bdce927a3aeb82a"
+    },
+    {
+      "branch": "fix/92-samuel-origin-workflow-path",
+      "expected_sha": "b143be170928c0c85110d4394cd84adb28f1b39c"
+    },
+    {
+      "branch": "fix/93-rust-trait-lexical-witness-20261027",
+      "expected_sha": "2c79c3e80591f368aae2bd94cabdf1c9c7a699f3"
+    },
+    {
+      "branch": "fix/naming-final-import-evidence-69",
+      "expected_sha": "e44839efde0ffa27b1f5c7f87a08d686c975d627"
+    },
+    {
+      "branch": "issue-100-semgrep-real-adapter-v01",
+      "expected_sha": "89f2d73cdf35b414829f114d3be92f255ccb00e4"
+    },
+    {
+      "branch": "issue-101-safe-incremental-cache-v01",
+      "expected_sha": "40a7bfda0ba5919c83e08fb2f8ecd7645e18f867"
+    },
+    {
+      "branch": "issue-102-formal-binding-provenance",
+      "expected_sha": "5ad0c71049faeb72e3efa7a7ac22d74042f8aa29"
+    },
+    {
+      "branch": "issue-102-generated-formal-gate-fixture-conformance",
+      "expected_sha": "257e8ff7e5865ed178c3618c2a04c3b3ddb468b0"
+    },
+    {
+      "branch": "issue-102-pinned-dafny-proof-build",
+      "expected_sha": "1d78d9495e4146433f28f950b21a54312e367180"
+    },
+    {
+      "branch": "issue-69-76-samuel-create-routing",
+      "expected_sha": "a16ef2ce0827e7cb1056fa3d43e2b10bdb100a32"
+    },
+    {
+      "branch": "issue-69-76-v02-acceptance-scope",
+      "expected_sha": "8257ab4767b317143168b9a19403123d07601b0d"
+    },
+    {
+      "branch": "issue-69-pinned-python-review-inventory",
+      "expected_sha": "f3fb34edb7844c7132bfbec2f01046553a18fff5"
+    },
+    {
+      "branch": "issue-70-override-callback-introspection-v02",
+      "expected_sha": "ed3e2f72ab8bab98f18aa2ee0e3f21c6adff8581"
+    },
+    {
+      "branch": "issue-71-controlled-dto-orm-runtime-v02",
+      "expected_sha": "0ad5cb925f954c31e4c5356655ea83fcb4b1de2b"
+    },
+    {
+      "branch": "issue-72-rust-manual-naming-evidence-v02",
+      "expected_sha": "5d90412250436ce0d09fea64092162dbe1cab6d4"
+    },
+    {
+      "branch": "issue-73-cpp-override-compiler-fixtures",
+      "expected_sha": "bab429f895133377d46533ddefa8f12af6e12d1d"
+    }
+  ]
 }
