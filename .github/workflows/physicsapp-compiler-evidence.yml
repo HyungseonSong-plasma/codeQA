@@ -90,20 +90,23 @@ jobs:
               export METHOD=opt
               test ! -e physics-opt
               echo D3_COMPILER_VERSION_OBSERVED_NOT_INDEPENDENTLY_PINNED
-              command -v c++ || true
-              c++ --version || true
+              command -v c++
+              c++ --version
               make -j2
               test -x physics-opt
               ./physics-opt --check-input -i ci/smoke.i
               echo D3_PHYSICSAPP_COMPILE_LINK_CHECK_INPUT_PASS
             ' 2>&1 | tee d3-evidence/compile-link.log
           echo "D3_PHYSICSAPP_COMPILE_LINK_CHECK_INPUT_PASS" > d3-evidence/result.txt
+          test -s d3-evidence/source-lock.txt
+          test -s d3-evidence/compile-link.log
+          test "$(cat d3-evidence/result.txt)" = "D3_PHYSICSAPP_COMPILE_LINK_CHECK_INPUT_PASS"
       - name: Upload bounded non-ABI compile evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pinned-physicsapp-d3-compile-link
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
           path: |
             d3-evidence/source-lock.txt
