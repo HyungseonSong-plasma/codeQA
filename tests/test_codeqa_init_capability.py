@@ -88,7 +88,16 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
         self.assertIn("chatgpt-operation/.github/actions/branch-delete@" + PIN, content)
         self.assertIn("expected-sha: ${{ matrix.expected_sha }}", content)
         self.assertFalse((ROOT / ".github/workflows/codeqa-merged-branch-cleanup.yml").exists())
-        self.assertEqual(self.validate_request(json.loads(REQUEST.read_text(encoding="utf-8"))), [])
+        # An owner-requested deletion batch is transient but may be nonempty
+        # on a reviewed maintenance PR and its exact main commit. Requiring []
+        # unconditionally made the existing pinned delete workflow unusable.
+        # The validator still rejects default/unsafe/duplicate/stale-format
+        # targets, and the Samuel action checks each live expected SHA.
+        requested = self.validate_request(json.loads(REQUEST.read_text(encoding="utf-8")))
+        self.assertLessEqual(len(requested), 50)
+        self.assertEqual(len({item["branch"] for item in requested}), len(requested))
+        self.assertTrue(all(item["branch"] != "main" for item in requested))
+        self.assertEqual(self.validate_request({"targets": []}), [])
 
     def test_valid_request_and_negative_cases(self) -> None:
         sha = "a" * 40
