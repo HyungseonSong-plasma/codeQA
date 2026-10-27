@@ -1,6 +1,6 @@
 # Central Samuel skills — codeQA consumer
 
-**Source:** `HyungseonSong-plasma/chatgpt-operation@b56b6cdc0d24f9a50e23165503ca6a4bbd70a771`
+**Source:** `HyungseonSong-plasma/chatgpt-operation@7b5b31e143474f4859fb6c85fb4a27afbad4eed3`
 
 ## Required init
 
@@ -51,4 +51,41 @@ Other skills load only when triggered (e.g., `GITHUB_PR_MERGE`,
 
 ## GitHub creation and update routing
 
-Samuel `b56b6cdc0d24f9a50e23165503ca6a4bbd70a771` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is owned by `pull-request-create`: `github-connector` (priority 10) with guarded `repository-native` (priority 20) via `samuel-controller.yml` and `samuel-native-github.yml`. Safety-screening and policy denials are hard stops, not fallback triggers. Native registration does not authorize merges, policy exceptions, or clearing historical blockers. Existing `GITHUB_BRANCH_DELETE` native-first and `GITHUB_PR_MERGE` guarded routes are unchanged. A successful create action does not certify CI, domain semantics, or human acceptance. Read exact target identities before and after any mutation; do not modify the capability registry with the native repository mutation workflow, whose protected policy explicitly denies that path.
+Samuel `7b5b31e143474f4859fb6c85fb4a27afbad4eed3` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
+
+## GitHub connector authorization and error triage
+
+For a new GitHub write error, investigate **permissions and effective actor
+identity early**, before proposing a new provider or a repository-native
+workflow. Do not state a permission failure as fact without evidence:
+
+- `GITHUB_PR_CREATE` is connector-only at the pinned Samuel revision. Verify
+  the connector's accessible repository, branch/PR scopes and the exact target
+  head/base before invoking it. An account with GitHub repository `admin`
+  access is not proof that a particular Connector write or Actions token is
+  authorized.
+- A genuine GitHub HTTP `401/403/404` requires read-only verification of
+  the acting identity, installation/token scopes, repository and branch
+  Rulesets, and target existence. A `403` alone can indicate policy or
+  authorization; label the cause `ACCESS_OR_RESOURCE_UNDETERMINED` until
+  established.
+- GitHub Actions `GITHUB_TOKEN` rights and the repository's
+  `Settings → Actions → General → Allow GitHub Actions to create and approve
+  pull requests` are relevant **only** when the failing route is Actions.
+  Owner-reported setting changes do not prove an actual workflow's ability.
+- `BLOCKED BY SAFETY SCREENING` is an **external tool-safety rejection**,
+  not proof of GitHub permission failure. Do not retry the same logical write
+  via a renamed path, different branch, alternate API or provider. Escalate
+  to the originating screening authority and preserve the original refusal.
+- Missing connector operation and a transient provider error are separate
+  from an access denial. Resolve the pinned capability registry, classify
+  the original failure, inspect prior same-intent blockers and verify the
+  exact postcondition before declaring success, failure or global exhaustion.
+
+When reporting an ambiguous failure, say: “This may be an authorization,
+repository policy or provider issue. I will check the acting identity and
+scoped permissions first; the root cause is not yet confirmed.”
+
+For an upstream safety block, instead say: “The original tool rejected this
+write during safety screening. No GitHub permission error was established,
+and changing repository settings does not by itself clear the refusal.”
