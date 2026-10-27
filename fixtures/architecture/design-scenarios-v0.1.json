@@ -100,72 +100,6 @@
       "purpose": "Caller-owned exact-checkout CI runner; creates versioned artifacts"
     }
   ],
-  "scenarios": [
-    {
-      "id": "L0",
-      "question": "Is the current folder layout suitable?",
-      "kind": "BASELINE",
-      "candidate_package_roots": [
-        "src/codeqa/core",
-        "src/codeqa/adapters",
-        "src/codeqa/evaluation",
-        "src/codeqa/pipeline",
-        "src/codeqa/governance",
-        "src/codeqa/infrastructure"
-      ],
-      "requires": [
-        "complete_source_tree",
-        "declared_roles",
-        "static_dependency_coverage"
-      ]
-    },
-    {
-      "id": "L1",
-      "question": "Would a bounded Naming domain package improve ownership?",
-      "kind": "COUNTERFACTUAL",
-      "candidate_package_roots": [
-        "src/codeqa/naming"
-      ],
-      "requires": [
-        "naming_source_ownership",
-        "public_imports",
-        "internal_dependency_coverage",
-        "semantic_ownership_review"
-      ]
-    },
-    {
-      "id": "L2",
-      "question": "Would a sibling adapters namespace/distribution be better?",
-      "kind": "COUNTERFACTUAL",
-      "candidate_package_roots": [
-        "src/adapters"
-      ],
-      "requires": [
-        "package_metadata",
-        "reverse_imports",
-        "external_consumer_compatibility"
-      ]
-    },
-    {
-      "id": "L3",
-      "question": "Should adapters be grouped by pythonqa/rustqa/cppqa?",
-      "kind": "COUNTERFACTUAL",
-      "candidate_package_roots": [
-        "src/codeqa/adapters/pythonqa",
-        "src/codeqa/adapters/rustqa",
-        "src/codeqa/adapters/cppqa",
-        "src/adapters/pythonqa",
-        "src/adapters/rustqa",
-        "src/adapters/cppqa"
-      ],
-      "requires": [
-        "language_capability_coverage",
-        "shared_contract_ownership",
-        "package_metadata",
-        "public_imports"
-      ]
-    }
-  ],
   "comparison": {
     "evidence_classes": [
       "OBSERVED",
@@ -192,7 +126,11 @@
       "tradeoffs",
       "decision",
       "decision_reasons",
-      "review_question"
+      "review_question",
+      "originating_signals",
+      "candidate_decision_question",
+      "derivation_rule",
+      "counterhypotheses"
     ],
     "fail_closed_on": [
       "unknown_external_consumers",
@@ -201,7 +139,31 @@
       "policy_conflict",
       "noncomparable_coverage"
     ],
-    "principle": "A current policy match cannot by itself certify optimal architecture or semantic cohesion"
+    "principle": "A current policy match cannot by itself certify optimal architecture or semantic cohesion",
+    "required_signal_fields": [
+      "signal_id",
+      "family",
+      "scope",
+      "source_witnesses",
+      "measurements_and_denominators",
+      "coverage",
+      "unknowns",
+      "counterhypotheses",
+      "severity_or_opportunity",
+      "derivation_rule"
+    ],
+    "required_opportunity_fields": [
+      "opportunity_id",
+      "originating_signals",
+      "affected_owners",
+      "source_witnesses",
+      "diagnostic_reason",
+      "candidate_decision_question",
+      "plausible_alternatives",
+      "counterarguments",
+      "missing_evidence",
+      "confidence_limitations"
+    ]
   },
   "prohibitions": [
     "production_source_move",
@@ -210,6 +172,195 @@
     "public_api_change",
     "ccg_v01_change",
     "qa_result_v01_change",
-    "auto_migration"
+    "auto_migration",
+    "hardcoded_preselected_questions"
+  ],
+  "design_intent": "EVIDENCE_FIRST_QUESTION_DISCOVERY_NOT_PRESELECTED_ARCHITECTURE_QUESTIONS",
+  "discovery": {
+    "requires_preseeded_question": false,
+    "applies_to_arbitrary_repository": true,
+    "minimum_source_evidence": [
+      "immutable_source_identity",
+      "observed_structure_and_coverage",
+      "verified_static_relationship_witnesses",
+      "declared_vs_observed_boundaries",
+      "unknown_and_unresolved_evidence"
+    ],
+    "stages": [
+      "extract_source_facts",
+      "detect_structural_signals",
+      "assemble_evidence_packs",
+      "generate_bounded_opportunity_hypotheses",
+      "surface_question_opportunities_to_chatgpt",
+      "derive_relevant_alternative_layouts",
+      "evaluate_counterfactuals_with_compatibility_gates",
+      "issue_conditional_recommendation_or_insufficient_evidence"
+    ],
+    "signal_families": [
+      {
+        "id": "RESPONSIBILITY_SCATTER",
+        "evidence": [
+          "classified_source_owners",
+          "cross_role_witnesses",
+          "unclassified_ratio"
+        ],
+        "hypothesis": "A concern may be split across unrelated package roles",
+        "counterexample": "Intentionally layered concern; name similarity is not cohesion"
+      },
+      {
+        "id": "BOUNDARY_PRESSURE",
+        "evidence": [
+          "inbound_outbound_edges",
+          "static_cycles",
+          "reexported_public_surface",
+          "coverage"
+        ],
+        "hypothesis": "A package boundary may be poorly located or overly exposed",
+        "counterexample": "High-use stable extension interface with deliberate direction"
+      },
+      {
+        "id": "CHANGE_SURFACE_PRESSURE",
+        "evidence": [
+          "reverse_import_impact",
+          "file_and_symbol_distribution",
+          "independent_churn_when_available"
+        ],
+        "hypothesis": "Change propagation may suggest moving a responsibility boundary",
+        "counterexample": "No independent change history or external consumers"
+      },
+      {
+        "id": "LANGUAGE_ISOLATION_PRESSURE",
+        "evidence": [
+          "language_specific_dependencies",
+          "shared_contract_references",
+          "capability_coverage"
+        ],
+        "hypothesis": "Language implementations may benefit from isolation or family grouping",
+        "counterexample": "Only one language implemented; empty future packages are not evidence"
+      },
+      {
+        "id": "DECLARED_OBSERVED_MISMATCH",
+        "evidence": [
+          "declared_role_constraints",
+          "observed_import_edges",
+          "missing_relationships"
+        ],
+        "hypothesis": "Present roles may not explain observed dependencies",
+        "counterexample": "A declared policy violation does not prove a better replacement layout"
+      }
+    ],
+    "required_signal_fields": [
+      "signal_id",
+      "family",
+      "scope",
+      "source_witnesses",
+      "measurements_and_denominators",
+      "coverage",
+      "unknowns",
+      "counterhypotheses",
+      "severity_or_opportunity",
+      "derivation_rule"
+    ],
+    "required_opportunity_fields": [
+      "opportunity_id",
+      "originating_signals",
+      "affected_owners",
+      "source_witnesses",
+      "diagnostic_reason",
+      "candidate_decision_question",
+      "plausible_alternatives",
+      "counterarguments",
+      "missing_evidence",
+      "confidence_limitations"
+    ],
+    "emission_policy": {
+      "no_signal": "EMPTY_OPPORTUNITIES_NOT_FALSE_PASS",
+      "insufficient_evidence": "SURFACE_HYPOTHESIS_AND_UNKNOWN_WITHOUT_PREFERENCE",
+      "candidate_question": "DERIVE_FROM_MEASURED_SIGNALS_NOT_FROM_REPOSITORY_NAME_OR_TEST_CASE",
+      "zero_or_more_questions": true,
+      "no_forced_naming_or_adapter_question": true,
+      "no_mutation_or_migration_authority": true,
+      "never_claim_optimal_from_policy_compliance": true
+    },
+    "anti_tautology_tests": [
+      "rename_identifiers_preserving_graph",
+      "same_names_different_responsibilities",
+      "different_names_same_responsibility",
+      "unrelated_repository_fixture",
+      "no_signal_fixture",
+      "conflicting_metrics",
+      "unknown_external_consumers"
+    ],
+    "downstream_consumer": "ChatGPT receives source-grounded signals/evidence packs and MAY independently raise architecture questions. Generated question text is an advisory, never a precondition to assess architecture."
+  },
+  "regression_examples": [
+    {
+      "example_id": "L0",
+      "historical_owner_question": "Is the current folder layout suitable?",
+      "possible_layout_candidates": [
+        "src/codeqa/core",
+        "src/codeqa/adapters",
+        "src/codeqa/evaluation",
+        "src/codeqa/pipeline",
+        "src/codeqa/governance",
+        "src/codeqa/infrastructure"
+      ],
+      "known_evidence_needs": [
+        "complete_source_tree",
+        "declared_roles",
+        "static_dependency_coverage"
+      ],
+      "evidence_status": "NOT_MEASURED_BY_DESIGN",
+      "role": "REGRESSION_QUESTION_FAMILY_ONLY_NOT_ANALYZER_INPUT"
+    },
+    {
+      "example_id": "L1",
+      "historical_owner_question": "Would a bounded Naming domain package improve ownership?",
+      "possible_layout_candidates": [
+        "src/codeqa/naming"
+      ],
+      "known_evidence_needs": [
+        "naming_source_ownership",
+        "public_imports",
+        "internal_dependency_coverage",
+        "semantic_ownership_review"
+      ],
+      "evidence_status": "NOT_MEASURED_BY_DESIGN",
+      "role": "REGRESSION_QUESTION_FAMILY_ONLY_NOT_ANALYZER_INPUT"
+    },
+    {
+      "example_id": "L2",
+      "historical_owner_question": "Would a sibling adapters namespace/distribution be better?",
+      "possible_layout_candidates": [
+        "src/adapters"
+      ],
+      "known_evidence_needs": [
+        "package_metadata",
+        "reverse_imports",
+        "external_consumer_compatibility"
+      ],
+      "evidence_status": "NOT_MEASURED_BY_DESIGN",
+      "role": "REGRESSION_QUESTION_FAMILY_ONLY_NOT_ANALYZER_INPUT"
+    },
+    {
+      "example_id": "L3",
+      "historical_owner_question": "Should adapters be grouped by pythonqa/rustqa/cppqa?",
+      "possible_layout_candidates": [
+        "src/codeqa/adapters/pythonqa",
+        "src/codeqa/adapters/rustqa",
+        "src/codeqa/adapters/cppqa",
+        "src/adapters/pythonqa",
+        "src/adapters/rustqa",
+        "src/adapters/cppqa"
+      ],
+      "known_evidence_needs": [
+        "language_capability_coverage",
+        "shared_contract_ownership",
+        "package_metadata",
+        "public_imports"
+      ],
+      "evidence_status": "NOT_MEASURED_BY_DESIGN",
+      "role": "REGRESSION_QUESTION_FAMILY_ONLY_NOT_ANALYZER_INPUT"
+    }
   ]
 }
