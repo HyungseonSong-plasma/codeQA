@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from importlib import metadata
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -27,6 +28,12 @@ PIN = {"Pydantic": "2.13.5", "SQLAlchemy": "2.0.50", "pyright": "1.1.414"}
 CHECKED_RULE = "reportIncompatibleMethodOverride"
 
 
+def unprivileged_analyzer_env() -> dict[str, str]:
+    """Do not expose Actions API tokens to third-party typechecker processes."""
+    return {key: value for key, value in os.environ.items()
+            if key not in {"GITHUB_TOKEN", "GH_TOKEN"}}
+
+
 def digest(raw: bytes) -> str:
     return sha256(raw).hexdigest()
 
@@ -39,6 +46,56 @@ def canonical(value: object) -> bytes:
 def need(condition: bool, message: str) -> None:
     if not condition:
         raise RuntimeError(message)
+
+
+def _attested_diagnostic_file(
+    issue: object, project: Path, *, extra_source: Path | None,
+) -> str:
+    """Map a real Pyright diagnostic to an exact scanned file, never its basename."""
+    need(isinstance(issue, dict), "PYRIGHT_MALFORMED_DIAGNOSTIC")
+    raw_path = issue.get("file")
+    need(isinstance(raw_path, str) and bool(raw_path),
+         "PYRIGHT_DIAGNOSTIC_SOURCE_MISSING")
+    source = Path(raw_path)
+    actual = (source if source.is_absolute() else project / source).resolve()
+    permitted = {"contract.py": (project / "contract.py").resolve()}
+    if extra_source is not None:
+        permitted["public_sdk.py"] = (project / "public_sdk.py").resolve()
+    matched = [name for name, expected in permitted.items() if actual == expected]
+    need(len(matched) == 1, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE")
+    return matched[0]
+
+
+def _validate_pyright_diagnostics(
+    parsed: dict, project: Path, *, extra_source: Path | None,
+) -> list[dict]:
+    """Fail closed on truncated or misattributed JSON before constructing evidence."""
+    summary = parsed["summary"]
+    count = summary.get("errorCount")
+    need(type(count) is int and count >= 0, "PYRIGHT_INVALID_ERROR_COUNT")
+    analyzed = summary.get("filesAnalyzed")
+    need(type(analyzed) is int and analyzed >= (2 if extra_source else 1),
+         "PYRIGHT_INCOMPLETE_SCAN_COUNT")
+    diagnostics = parsed["generalDiagnostics"]
+    for issue in diagnostics:
+        file_name = _attested_diagnostic_file(
+            issue, project, extra_source=extra_source)
+        need(issue.get("severity") in ("error", "warning", "information"),
+             "PYRIGHT_UNKNOWN_DIAGNOSTIC_SEVERITY")
+        rule = issue.get("rule")
+        need(rule is None or (isinstance(rule, str) and bool(rule)),
+             "PYRIGHT_MALFORMED_DIAGNOSTIC_RULE")
+        span = issue.get("range")
+        need(isinstance(span, dict) and isinstance(span.get("start"), dict),
+             "PYRIGHT_MALFORMED_DIAGNOSTIC_RANGE")
+        line = span["start"].get("line")
+        need(type(line) is int and line >= 0,
+             "PYRIGHT_MALFORMED_DIAGNOSTIC_LINE")
+        source_lines = (project / file_name).read_text(encoding="utf-8").splitlines()
+        need(line < len(source_lines), "PYRIGHT_DIAGNOSTIC_LINE_OUTSIDE_SOURCE")
+    errors = [issue for issue in diagnostics if issue["severity"] == "error"]
+    need(count == len(errors), "PYRIGHT_ERROR_COUNT_MISMATCH")
+    return errors
 
 
 def check_versions() -> dict[str, str]:
@@ -60,22 +117,36 @@ def check_versions() -> dict[str, str]:
     return reported
 
 
-def pyright_scan(binary: Path, project: Path, *, expect_errors: bool) -> tuple[dict, bytes, int, str, str]:
+def pyright_scan(binary: Path, project: Path, source: Path, *,
+                 expect_errors: bool, required_rules: tuple[str, ...],
+                 extra_source: Path | None = None) -> tuple[dict, bytes, int, str, str]:
     config = {"typeCheckingMode": "strict",
               "reportIncompatibleMethodOverride": "error",
               "reportMissingTypeStubs": "none",
-              "include": ["contract.py"]}
+              "include": ["contract.py"] + (["public_sdk.py"] if extra_source else [])}
     project.mkdir(parents=True, exist_ok=False)
     (project / "pyrightconfig.json").write_bytes(canonical(config))
     script = project / "contract.py"
-    source = FIXTURE / ("invalid_override.py" if expect_errors else "valid_contract.py")
     shutil.copyfile(source, script)
+    if extra_source is not None:
+        need(extra_source.name == "public_sdk.py" and extra_source.parent == FIXTURE,
+             "UNTRUSTED_EXTRA_SDK_SOURCE")
+        shutil.copyfile(extra_source, project / "public_sdk.py")
+    def assert_copied_sources_unchanged() -> None:
+        need(script.read_bytes() == source.read_bytes(),
+             "PYRIGHT_SCANNED_SOURCE_BYTES_DRIFT")
+        if extra_source is not None:
+            need((project / "public_sdk.py").read_bytes() == extra_source.read_bytes(),
+                 "PYRIGHT_SCANNED_SDK_BYTES_DRIFT")
+
+    assert_copied_sources_unchanged()
     args = [str(binary.resolve()), "--project", str(project), "--pythonpath",
             sys.executable, "--outputjson"]
     started = datetime.now(timezone.utc).isoformat()
     run = subprocess.run(args, cwd=ROOT, capture_output=True, text=True,
-                         timeout=120, check=False)
+                         timeout=120, check=False, env=unprivileged_analyzer_env())
     finished = datetime.now(timezone.utc).isoformat()
+    assert_copied_sources_unchanged()
     raw = run.stdout.encode()
     try:
         parsed = json.loads(raw)
@@ -85,12 +156,15 @@ def pyright_scan(binary: Path, project: Path, *, expect_errors: bool) -> tuple[d
          and isinstance(parsed.get("summary"), dict), "PYRIGHT_MALFORMED_JSON")
     need(parsed.get("version") == PIN["pyright"], "PYRIGHT_REPORT_VERSION_DRIFT")
     summary = parsed["summary"]
-    errors = [x for x in parsed["generalDiagnostics"] if x.get("severity") == "error"]
+    errors = _validate_pyright_diagnostics(
+        parsed, project, extra_source=extra_source)
     rules = {x.get("rule") for x in errors}
     if expect_errors:
         need(run.returncode == 1 and int(summary.get("errorCount", 0)) >= 1,
              "NEGATIVE_SDK_SIGNATURE_NOT_REJECTED")
-        need(CHECKED_RULE in rules, "NEGATIVE_OVERRIDE_NOT_DETECTED")
+        need(set(required_rules).issubset(rules),
+             "NEGATIVE_REQUIRED_TYPE_DIAGNOSTICS_MISSING "
+             + repr(sorted(set(required_rules) - rules)))
     else:
         need(run.returncode == 0 and not errors and int(summary.get("errorCount", -1)) == 0,
              "VALID_SDK_TYPES_REJECTED")
@@ -103,12 +177,20 @@ def pyright_scan(binary: Path, project: Path, *, expect_errors: bool) -> tuple[d
 
 
 def run_gate(binary: Path, project: Path, selected_source: Path,
-             *, negative: bool, snapshot_id: str, output: Path) -> dict:
+             *, negative: bool, snapshot_id: str, output: Path,
+             required_rules: tuple[str, ...] = (CHECKED_RULE,),
+             extra_source: Path | None = None) -> dict:
     parsed, raw, exit_code, started, finished = pyright_scan(
-        binary, project, expect_errors=negative)
+        binary, project, selected_source, expect_errors=negative,
+        required_rules=required_rules, extra_source=extra_source)
     source_bytes = selected_source.read_bytes()
     selected = "fixtures/python-sdk/" + selected_source.name
-    record_rule = CHECKED_RULE
+    source_digests = {selected: digest(source_bytes)}
+    if extra_source is not None:
+        source_digests["fixtures/python-sdk/" + extra_source.name] = digest(
+            extra_source.read_bytes())
+    selected_files = [{"path": p, "sha256": d}
+                      for p, d in sorted(source_digests.items())]
     tool_path = ROOT / "node_modules/pyright/dist/pyright.js"
     need(tool_path.is_file(), "PINNED_PYRIGHT_DIST_MISSING")
     config_bytes = (project / "pyrightconfig.json").read_bytes()
@@ -121,14 +203,20 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     }
     findings = []
     for issue in parsed["generalDiagnostics"]:
-        if issue.get("rule") != record_rule:
+        if issue.get("rule") not in required_rules:
             continue
         span = issue.get("range") or {}
         start = span.get("start") or {}
+        file_name = _attested_diagnostic_file(
+            issue, project, extra_source=extra_source)
+        source_path = ("fixtures/python-sdk/" + extra_source.name
+                       if file_name == "public_sdk.py" and extra_source is not None
+                       else selected)
+        need(source_path in source_digests, "PYRIGHT_DIAGNOSTIC_OUTSIDE_ATTESTED_SOURCE")
         findings.append({
-            "kind": "TYPECHECK_DIAGNOSTIC", "rule_id": record_rule,
+            "kind": "TYPECHECK_DIAGNOSTIC", "rule_id": str(issue["rule"]),
             "severity": "ERROR" if issue.get("severity") == "error" else "WARNING",
-            "path": selected, "line": int(start.get("line", 0)) + 1,
+            "path": source_path, "line": int(start.get("line", 0)) + 1,
             "message": str(issue.get("message") or "Pyright diagnostic"),
             "native_status": str(issue.get("rule")),
         })
@@ -142,10 +230,11 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
             "started_at": started, "finished_at": finished,
         },
         "scope": {
-            "expected_files": [{"path": selected, "sha256": digest(source_bytes)}],
-            "scanned_files": [{"path": selected, "sha256": digest(source_bytes)}],
+            "expected_files": selected_files,
+            "scanned_files": selected_files,
             "skipped_files": [], "parser_errors": [],
-            "required_rules": [record_rule], "evaluated_rules": [record_rule],
+            "required_rules": list(required_rules),
+            "evaluated_rules": list(required_rules),
         },
         "raw_artifact": {
             "uri": "artifact://ci/" + selected_source.stem + ".json",
@@ -159,18 +248,18 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     trust = ToolIdentity(**tool_doc)
     admission = assess_external_evidence(
         evidence, expected_snapshot_id=snapshot_id,
-        expected_files={selected: digest(source_bytes)},
-        expected_tool=trust, expected_rules=[record_rule], raw_artifact=raw,
+        expected_files=source_digests,
+        expected_tool=trust, expected_rules=list(required_rules), raw_artifact=raw,
     )
     need(admission.status == "ADMISSIBLE", "PYRIGHT_ADMISSION_FAILED " + str(admission))
     policy_raw = {
         "schema_version": "0.1",
         "policy_id": "controlled-sdk-typecheck-" + selected_source.stem,
         "snapshot_id": snapshot_id,
-        "source_files": [{"path": selected, "sha256": digest(source_bytes)}],
+        "source_files": selected_files,
         "requirements": [{
-            "id": "sdk.override", "scope": selected,
-            "tool": tool_doc, "rule_ids": [record_rule],
+            "id": "sdk.override", "scope": "fixtures/python-sdk/**",
+            "tool": tool_doc, "rule_ids": list(required_rules),
             "predicate": "TYPE_NO_ERRORS", "exceptions": [],
         }],
     }
@@ -178,7 +267,7 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     verdict = evaluate_gate(
         policy, runs={"sdk.override": EvidenceRun(evidence, raw)},
         expected_policy_sha256=policy.fingerprint(), expected_snapshot_id=snapshot_id,
-        expected_sources={selected: digest(source_bytes)},
+        expected_sources=source_digests,
         evaluated_at=datetime.now(timezone.utc).isoformat(),
     )
     wanted = ("FAIL", "BLOCK") if negative else ("PASS", "ALLOW")
@@ -189,6 +278,7 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
     (output / (selected_source.stem + "-pyright.json")).write_bytes(raw)
     return {
         "test": selected_source.name, "source_sha256": digest(source_bytes),
+        "selected_sources": selected_files, "required_rules": list(required_rules),
         "tool": tool_doc, "admission": admission.to_document(),
         "gate": verdict.to_document(), "native_diagnostic_count": len(parsed["generalDiagnostics"]),
         "actual_report_sha256": digest(raw),
@@ -197,9 +287,10 @@ def run_gate(binary: Path, project: Path, selected_source: Path,
 
 def test_runtime(contract: dict) -> dict:
     # This execution is explicitly controlled and is never used on untrusted code.
-    from pydantic import AliasChoices, BaseModel, ConfigDict, Field, computed_field
+    from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, ValidationError, computed_field
+    from pydantic.alias_generators import to_camel
     from sqlalchemy import Integer, String, create_engine, event, inspect
-    from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+    from sqlalchemy.orm import DeclarativeBase, Session, mapped_column
     from sqlalchemy.schema import CreateTable
 
     class Payload(BaseModel):
@@ -230,6 +321,44 @@ def test_runtime(contract: dict) -> dict:
 
     colliding = Collision(first=1, second=2).model_dump(by_alias=True)
     need(len(colliding) != 2, "COLLISION_NEGATIVE_CONTROL_FAILED")
+
+    # Controlled, direction-specific AliasPath and alias_generator witnesses.
+    # A serializer's output aliases are not automatically accepted as input.
+    class NestedPayload(BaseModel):
+        item_code: str = Field(serialization_alias="itemCode")
+
+    class EnvelopePayload(BaseModel):
+        model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+        order_id: int = Field(
+            validation_alias=AliasPath("envelope", "orderId"),
+            serialization_alias="orderId",
+        )
+        nested: NestedPayload
+        private_note: str = Field(exclude=True)
+
+    nested_contract = contract["expected_pydantic_nested"]
+    need(nested_contract["mapping_scope"] == "CONTROLLED_DIRECTIONAL_MAPPING_ONLY",
+         "UNREVIEWED_NESTED_MAPPING_SCOPE")
+    nested = EnvelopePayload.model_validate(nested_contract["input"])
+    nested_by_alias = nested.model_dump(by_alias=True)
+    nested_by_name = nested.model_dump(by_alias=False)
+    need(nested_by_alias == nested_contract["serialization_by_alias"],
+         "PYDANTIC_NESTED_ALIAS_OR_EXCLUSION_DRIFT")
+    need(nested_by_name == nested_contract["serialization_by_name"],
+         "PYDANTIC_NESTED_FIELD_NAME_DRIFT")
+    need("privateNote" not in nested_by_alias and "private_note" not in nested_by_name,
+         "EXCLUDED_FIELD_LEAKED_IN_DTO")
+    alias_path = EnvelopePayload.model_fields["order_id"].validation_alias
+    need(isinstance(alias_path, AliasPath) and alias_path.path == ["envelope", "orderId"],
+         "ALIAS_PATH_EFFECTIVE_MAPPING_DRIFT")
+    need(EnvelopePayload.model_fields["private_note"].alias == "privateNote",
+         "ALIAS_GENERATOR_EFFECTIVE_MAPPING_DRIFT")
+    try:
+        EnvelopePayload.model_validate(nested_contract["invalid_missing_alias_path"])
+    except ValidationError:
+        pass
+    else:
+        raise RuntimeError("MISSING_ALIAS_PATH_NEGATIVE_CONTROL_FAILED")
 
     class Base(DeclarativeBase):
         pass
@@ -277,12 +406,113 @@ def test_runtime(contract: dict) -> dict:
     return {
         "scope": "CONTROLLED_FIXTURE_ONLY",
         "pydantic_alias_mapping": dto,
+        "pydantic_nested_directional_mapping": nested_contract,
         "sqlalchemy_fields": fields,
         "sqlite_reflected_columns": reflected,
         "sqlite_ddl_sha256": digest(ddl.encode()),
         "callback_dispatch_count": len(observed),
         "external_api_consumer_compatibility": "NOT_EVALUATED",
         "production_db_migration_compatibility": "NOT_EVALUATED",
+    }
+
+
+
+def test_extended_orm(contract: dict) -> dict:
+    """Real pinned SQLAlchemy 2.0.50 + SQLite controlled inheritance/migration.
+
+    No production DB history, external ORM consumer or deployed schema is used.
+    """
+    from sqlalchemy import Computed, ForeignKey, Integer, String, create_engine, inspect
+    from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+
+    expected = contract["expected_sqlalchemy_extended"]
+    need(expected["scope"] == "CONTROLLED_IN_MEMORY_SQLITE_ONLY",
+         "UNREVIEWED_ORM_MIGRATION_SCOPE")
+
+    class Base(DeclarativeBase):
+        pass
+
+    class Parent(Base):
+        __tablename__ = "sdk_parent"
+        id = mapped_column(Integer, primary_key=True)
+        kind = mapped_column(String(16))
+        label = mapped_column(String(30))
+        __mapper_args__ = {"polymorphic_on": kind, "polymorphic_identity": "parent"}
+
+    class Child(Parent):
+        __tablename__ = "sdk_child"
+        id = mapped_column(ForeignKey("sdk_parent.id"), primary_key=True)
+        child_label = mapped_column(String(30))
+        __mapper_args__ = {"polymorphic_identity": "child"}
+
+    class ComputedRow(Base):
+        __tablename__ = "sdk_computed"
+        id = mapped_column(Integer, primary_key=True)
+        quantity = mapped_column(Integer)
+        doubled = mapped_column(Integer, Computed("quantity * 2"))
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        session.add_all([
+            Child(id=7, label="base", child_label="derived"),
+            ComputedRow(id=8, quantity=3),
+        ])
+        session.commit()
+        parent = session.get(Parent, 7)
+        computed = session.get(ComputedRow, 8)
+        need(type(parent).__name__ == "Child" and parent.child_label == "derived",
+             "JOINED_INHERITANCE_RUNTIME_MAPPING_DRIFT")
+        need(computed is not None and computed.doubled == expected["computed_value"],
+             "COMPUTED_COLUMN_RUNTIME_DRIFT")
+
+    before = sorted(c["name"] for c in inspect(engine).get_columns("sdk_parent"))
+    need(before == sorted(expected["before_columns"]),
+         "VERSIONED_SQLITE_BASELINE_DRIFT")
+    foreign_keys = inspect(engine).get_foreign_keys("sdk_child")
+    need(any(fk["referred_table"] == "sdk_parent"
+             and fk["constrained_columns"] == ["id"] for fk in foreign_keys),
+         "JOINED_INHERITANCE_FOREIGN_KEY_DRIFT")
+    computed_columns = inspect(engine).get_columns("sdk_computed")
+    need(any(c["name"] == "doubled" and c.get("computed") for c in computed_columns),
+         "SQLITE_COMPUTED_COLUMN_REFLECTION_DRIFT")
+
+    with engine.begin() as connection:
+        connection.exec_driver_sql("ALTER TABLE sdk_parent ADD COLUMN optional_note TEXT")
+    after = sorted(c["name"] for c in inspect(engine).get_columns("sdk_parent"))
+    added, removed = sorted(set(after) - set(before)), sorted(set(before) - set(after))
+    migration = expected["migration"]
+    need(migration["from"] == "fixture_v0" and migration["to"] == "fixture_v1",
+         "UNVERSIONED_CONTROLLED_MIGRATION")
+    def verify_migration(columns: list[str], added_expected: list[str],
+                         removed_expected: list[str]) -> None:
+        need(after == sorted(columns)
+             and added == added_expected and removed == removed_expected,
+             "VERSIONED_SQLITE_MIGRATION_DRIFT")
+    verify_migration(expected["after_columns"],
+                     migration["added_columns"], migration["removed_columns"])
+    # Negative: the exact same reflected DB cannot satisfy a forged migration.
+    try:
+        verify_migration(expected["after_columns"],
+                         ["renamed_or_missing_column"], migration["removed_columns"])
+    except RuntimeError as exc:
+        need(str(exc) == "VERSIONED_SQLITE_MIGRATION_DRIFT",
+             "MIGRATION_NEGATIVE_WRONG_FAILURE")
+    else:
+        raise RuntimeError("MIGRATION_NEGATIVE_CONTROL_FAILED")
+    print("SQLALCHEMY_EXTENDED=PASS inheritance=JOINED computed=REFLECTED "
+          "migration=fixture_v0_to_v1 compatibility=CONTROLLED_ONLY")
+    engine.dispose()
+    return {
+        "scope": "CONTROLLED_IN_MEMORY_SQLITE_ONLY",
+        "inheritance": "JOINED_RUNTIME_AND_FOREIGN_KEY_OBSERVED",
+        "computed_value": expected["computed_value"],
+        "before_columns": before,
+        "after_columns": after,
+        "migration": {"from": migration["from"], "to": migration["to"],
+                      "added_columns": added, "removed_columns": removed},
+        "external_schema_history": "NOT_EVALUATED",
+        "production_migration_compatibility": "NOT_EVALUATED",
     }
 
 
@@ -299,7 +529,8 @@ def main() -> None:
          and contract["packages"] == PIN, "EXTERNAL_CONTRACT_PIN_DRIFT")
     args.output.mkdir(parents=True, exist_ok=True)
     run = subprocess.run([str(args.pyright.resolve()), "--version"],
-                         cwd=ROOT, capture_output=True, text=True, check=False, timeout=60)
+                         cwd=ROOT, capture_output=True, text=True, check=False, timeout=60,
+                         env=unprivileged_analyzer_env())
     need(run.returncode == 0 and PIN["pyright"] in run.stdout + run.stderr,
          "PYRIGHT_CLI_VERSION_DRIFT")
     snapshot = "git:HyungseonSong-plasma/codeQA@"
@@ -315,19 +546,59 @@ def main() -> None:
             args.pyright, tmpdir / "negative",
             FIXTURE / "invalid_override.py", negative=True,
             snapshot_id=snapshot, output=args.output)
+        advanced_rules = (CHECKED_RULE, "reportAssignmentType", "reportCallIssue")
+        advanced_positive = run_gate(
+            args.pyright, tmpdir / "advanced-positive",
+            FIXTURE / "valid_advanced_contract.py", negative=False,
+            required_rules=advanced_rules, extra_source=FIXTURE / "public_sdk.py",
+            snapshot_id=snapshot, output=args.output)
+        advanced_negative = run_gate(
+            args.pyright, tmpdir / "advanced-negative",
+            FIXTURE / "invalid_advanced_contract.py", negative=True,
+            required_rules=advanced_rules, extra_source=FIXTURE / "public_sdk.py",
+            snapshot_id=snapshot, output=args.output)
     runtime = test_runtime(contract)
+    runtime["sqlalchemy_extended"] = test_extended_orm(contract)
     result = {
         "version": "0.1", "source_snapshot": snapshot,
         "contract_sha256": digest(contract_bytes),
         "installed_distribution_metadata_sha256": versions,
         "typechecker": {"version": PIN["pyright"], "positive": positive,
-                        "negative": negative},
+                        "negative": negative,
+                        "advanced_positive": advanced_positive,
+                        "advanced_negative": advanced_negative,
+                        "advanced_scope": "CONTROLLED_PINNED_PYDANTIC_TYPES_ONLY"},
         "runtime": runtime,
         "limitations": ["No actual consumer SDK public API baseline",
                         "No production DB migration verification",
                         "No automatic import or execution of untrusted third-party code",
                         "Only fixed synthetic SDK/ORM models were runtime executed"],
     }
+    # Public benchmark reads only independently pinned source bytes. It NEVER
+    # imports the upstream app or executes its migrations/install scripts.
+    public_run = subprocess.run(
+        [sys.executable, str(ROOT / ".github/scripts/public_api_benchmark.py"),
+         "--output", str(args.output)],
+        cwd=ROOT, capture_output=True, text=True, check=False, timeout=240)
+    print(public_run.stdout, end="")
+    need(public_run.returncode == 0, "PUBLIC_BENCHMARK_FAILED "
+         + (public_run.stderr + public_run.stdout)[-3000:])
+    result["public_benchmark"] = json.loads(
+        (args.output / "public-api-benchmark.json").read_text(encoding="utf-8"))
+    result["limitations"].append(
+        "Pinned FastAPI TypeScript consumer source is not a Python SDK or a deployed API/DB")
+    sdk_run = subprocess.run(
+        [sys.executable, str(ROOT / ".github/scripts/public_python_sdk_benchmark.py"),
+         "--output", str(args.output), "--pyright", str(args.pyright)],
+        cwd=ROOT, capture_output=True, text=True, check=False, timeout=240)
+    print(sdk_run.stdout, end="")
+    need(sdk_run.returncode == 0, "PUBLIC_PYTHON_SDK_SOURCE_FAILED "
+         + (sdk_run.stderr + sdk_run.stdout)[-3000:])
+    result["public_python_sdk"] = json.loads(
+        (args.output / "public-python-sdk-benchmark.json").read_text(encoding="utf-8"))
+    result["limitations"].append(
+        "Stripe 16.0.0 exact public SDK/consumer source attested; real external "
+        "Pyright typechecking, callback dispatch and metaclass remain NOT_EVALUATED")
     (args.output / "sdk-conformance.json").write_bytes(
         json.dumps(result, indent=2, sort_keys=True).encode() + b"\n")
     print("PINNED_PYTHON_SDK=PASS pyright=" + PIN["pyright"]

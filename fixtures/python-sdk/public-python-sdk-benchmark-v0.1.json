@@ -1,0 +1,97 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "stripe/stripe-python",
+  "repository": "https://github.com/stripe/stripe-python",
+  "commit": "89e8528a61d838600097ffe5c9615c9b7d35778a",
+  "tree": "4917f33f5364e856e21dbce4eddeef5124580149",
+  "sdk_version": "16.0.0",
+  "license": "MIT",
+  "named_consumer": "examples/webhooks.py (Flask webhook example; no runtime execution)",
+  "scope": "PINNED_REAL_PYTHON_SDK_SOURCE_ONLY",
+  "files": [
+    [
+      "LICENSE",
+      "f9ee781c976b733377d99911319769bf95229bd8",
+      "8b28bcffabe88a728cc48d37d907bd75febd0ee725fd774946912dca31bc6027"
+    ],
+    [
+      "pyproject.toml",
+      "e9374390fe1749ce33191352e569a48da88e8907",
+      "8611853d4d5f1835c39a23fed91cc25dc82d0b685b932e405734480f5fc73938"
+    ],
+    [
+      "stripe/_version.py",
+      "7360302a433b308818a923b3a26745645ca9e853",
+      "875a59bc0672826a0f346dcc9df702c07ed70913a9b64def1eb703dbd22a0635"
+    ],
+    [
+      "stripe/__init__.py",
+      "d5124858af100a01c9eca619c33d0a94ecbc0cec",
+      "0e388c27a2dc85c62de3e2e5daa6d81d6fce35b306ad60f62f91803bde035120"
+    ],
+    [
+      "stripe/_util.py",
+      "e034b209fa5d6284759ab10a50ba3bbd84e200a7",
+      "ac486e18a4e0d0431b741ba6a5dcec6759844cd34a548c30250049fb20a593bb"
+    ],
+    [
+      "stripe/_ephemeral_key.py",
+      "5ca8ca1e973e7acdd35f34cd35c61819b4d72e1b",
+      "3a21334b80f05baccbd54475a92a57a5e13fec34fab045dee3f06052b4e0a328"
+    ],
+    [
+      "stripe/_createable_api_resource.py",
+      "993a3261669a53816c842e0e49191dae297848ce",
+      "c5cfe980c4996fad418a02209c544cb185e879256ede6e7265abd88ab3318e5a"
+    ],
+    [
+      "stripe/_deletable_api_resource.py",
+      "ee23c742cb7e5ed003d590cb07759214bab67600",
+      "bbf21fa87e573ad9e961acc772b9e2338b6f40a20e6470e555c64cac83f5258c"
+    ],
+    [
+      "stripe/_webhook.py",
+      "a9a041454c80c5996352adb0a5a47222422187d9",
+      "504ba51006955a5a148ed843f5787cfeafdf6003cc9c5a9777f2115ac168d19c"
+    ],
+    [
+      "examples/webhooks.py",
+      "5f393bf00d2044edb14d83e09e759aa04c84c62f",
+      "710624548d57a836153f53b1e95b8a1d7cd87be19c39e41db12f3df67d494739"
+    ]
+  ],
+  "coverage": {
+    "overload": "STATIC_DECLARATION_MATCH",
+    "multiple_inheritance": "STATIC_DECLARATION_MATCH",
+    "aliased_decorator": "STATIC_DECLARATION_MATCH",
+    "reexport": "STATIC_DECLARATION_MATCH",
+    "named_consumer": "STATIC_DECLARATION_MATCH",
+    "metaclass": "NOT_EVALUATED",
+    "callback_runtime_dispatch": "NOT_EVALUATED",
+    "pyright_verified_override": "NOT_EVALUATED",
+    "sdk_install_compatibility": "NOT_EVALUATED"
+  },
+  "release_tag": {
+    "tag": "v16.0.0",
+    "annotated_tag_object_sha": "8f2bd3f5bf2e21553b08bb0d47f0a3984a576e47",
+    "commit": "29363094b09a67f8b1b50f577b463edbbb27ec9a",
+    "tree": "d11d37ace1173fb7dfb4d66afa29b4b9a6760f4c",
+    "selected_blobs": {
+      "LICENSE": "f9ee781c976b733377d99911319769bf95229bd8",
+      "pyproject.toml": "e9374390fe1749ce33191352e569a48da88e8907",
+      "stripe/_version.py": "7360302a433b308818a923b3a26745645ca9e853",
+      "stripe/__init__.py": "d5124858af100a01c9eca619c33d0a94ecbc0cec",
+      "stripe/_util.py": "8b378c63c880eda7180a025ec8d9f745895f619f",
+      "stripe/_ephemeral_key.py": "5ca8ca1e973e7acdd35f34cd35c61819b4d72e1b",
+      "stripe/_createable_api_resource.py": "993a3261669a53816c842e0e49191dae297848ce",
+      "stripe/_deletable_api_resource.py": "ee23c742cb7e5ed003d590cb07759214bab67600",
+      "stripe/_webhook.py": "9fc269e691b6566e804d19132ef79b2d270f4da8",
+      "examples/webhooks.py": "5f393bf00d2044edb14d83e09e759aa04c84c62f"
+    },
+    "expected_drift_paths": [
+      "stripe/_util.py",
+      "stripe/_webhook.py"
+    ],
+    "wheel_equivalence": "NOT_EVALUATED"
+  }
+}
