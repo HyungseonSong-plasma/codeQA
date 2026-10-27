@@ -38,7 +38,7 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - name: Delete by pinned Samuel exact-SHA guarded capability
-        uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@b56b6cdc0d24f9a50e23165503ca6a4bbd70a771
+        uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@cb785d898c624ba2b47fbb3d3840d48387605f47
         with:
           repository: HyungseonSong-plasma/codeQA
           branch: ${{ matrix.branch }}
