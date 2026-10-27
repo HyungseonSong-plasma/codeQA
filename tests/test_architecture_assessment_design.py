@@ -239,7 +239,7 @@ class ArchitectureAssessmentDesignTests(unittest.TestCase):
         self.assertIn("no actual source move", text.lower())
         self.assertIn("Accepted minimum architecture decision algorithm", text)
         self.assertIn("Pareto", text)
-        self.assertIn("post", text.lower())
+        self.assertIn("verify real changes separately", text.lower())
 
     def test_local_document_links_resolve(self) -> None:
         text = DESIGN_PATH.read_text(encoding="utf-8")
