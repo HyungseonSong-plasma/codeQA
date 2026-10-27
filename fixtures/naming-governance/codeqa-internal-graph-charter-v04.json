@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.4-internal-graph-source-census",
+  "source_commit": "1b6dd3329a3c6e4fc70602cdaaea9e2fd0698f76",
+  "source_tree_sha": "c8a8dd5906d33bf49f46c8a2355f2512c225048b",
+  "source_path_selection": "src/codeqa/**/*.py",
+  "selected_python_file_count": 100,
+  "root_symbol": "ControlFlowObservation",
+  "root_module": "codeqa.core.complexity",
+  "root_field_owner": "ControlFlowObservation",
+  "root_field_line": 10,
+  "known_direct_clients": [
+    {
+      "path": "src/codeqa/adapters/python_complexity.py",
+      "line": 12
+    },
+    {
+      "path": "src/codeqa/evaluation/complexity.py",
+      "line": 8
+    }
+  ],
+  "external_callers": "DEFERRED_NO_EVIDENCE",
+  "external_deferred_issue": 147,
+  "glossary_adoption": "NOT_ADOPTED",
+  "rename_authorized": false
+}

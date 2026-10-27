@@ -3,17 +3,24 @@
 **Consumer:** `HyungseonSong-plasma/codeQA`  
 **Central authority:** `HyungseonSong-plasma/chatgpt-operation`  
 **Expected OS:** Samuel  
-**Immutable revision:** `059050330a549fce0b543687e2e9d4dca6c3f624`
+**Immutable revision:** `7b5b31e143474f4859fb6c85fb4a27afbad4eed3`
 
 ## codeQA-init
 
 Start at [BOOTSTRAP.md](BOOTSTRAP.md). The pinned source and blob checks are
 specified by [central_skills.json](central_skills.json). Read the central OS index,
-essential rules, `session-bootstrap`, `state-refresh`, catalog and capability
-registry at **that exact commit**, verifying the recorded blob identities.
+essential rules, `session-bootstrap`, `state-refresh`, and the mandatory
+`problem-oriented-response` README + machine contract at **that exact commit**.
+Verify their recorded blob identities, along with the skill catalog and capability
+registry. If the response skill or contract does not resolve, init fails closed as
+`BLOCKED_RESPONSE_CONTRACT`.
 For the requested always-ready branch-delete path, resolve
 `GITHUB_BRANCH_DELETE` and load central `repository-mutation` as a
 deliberate init-time immediate-obligation trigger.
+
+Successful init reports `response_contract=samuel.problem-first-response.v1`,
+`response_mode=problem_first`, `detail_policy=on_request`. After init, show
+unresolved problems and exact human-review questions before optional details.
 
 Report `GITHUB_CAPABILITY_ROUTING=READY|BLOCKED` and
 `GITHUB_MUTATION_PREFLIGHT=TRIGGER_REQUIRED` independently of the visible

@@ -1,0 +1,163 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "fastapi/full-stack-fastapi-template",
+  "repository": "https://github.com/fastapi/full-stack-fastapi-template",
+  "commit": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+  "tree": "94de969c70c4d283e7a57eb0795cea9a8d7813ef",
+  "license": "MIT",
+  "backend_project_version": "0.1.0",
+  "backend_python_requires": ">=3.14,<4.0",
+  "consumer": "frontend/src/client/sdk.gen.ts (TypeScript, not Python)",
+  "scope": "PINNED_PUBLIC_SOURCE_ONLY",
+  "files": [
+    [
+      "LICENSE",
+      "f11987b50cfa15ae4f99d4c559137458c87d7a69",
+      "0bd4e76cdd06ab24cce2de5e74f490920897f90a22ad35e8403ed006d4560f48"
+    ],
+    [
+      "backend/pyproject.toml",
+      "7892d500d06324e2188e7bb00959acf6476e3ae6",
+      "a4fdc75ae9c47e77dd70c3460a4a3a83545def601650786df386976b49da892e"
+    ],
+    [
+      "backend/app/models.py",
+      "181acf2bf16b4285becb5a5626cf3aa56210211e",
+      "4696396c84832a50ca9d60337c2b6ba24e961f2ee5b5e660d8081fb929ebf459"
+    ],
+    [
+      "backend/app/api/routes/users.py",
+      "1748f5848434ea95197494e36deea14dace54242",
+      "566f253330d75bdbf04f2fd59b380dd2c51041d931bd7af6b2064ee66ea96e6d"
+    ],
+    [
+      "backend/app/alembic/versions/e2412789c190_initialize_models.py",
+      "7529ea91fa7ceb3d0b3b1a4c4769565dea1d3af9",
+      "a73fcd9ff8a143b0a75228b63b6589e0ecbfa14c27286d33d4adeffe99c40075"
+    ],
+    [
+      "backend/app/alembic/versions/9c0a54914c78_add_max_length_for_string_varchar_.py",
+      "78a41773b9be608c3789ebbe4917b940a15bc60f",
+      "d9919ae828a0d1aa0fa68fd75bc75a90994a256b66a3a153918149d9578c0c1b"
+    ],
+    [
+      "backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py",
+      "37af1fa21533b0d2aebff992c4287ce026a79dd2",
+      "d5c549df50ddda6c9877e637e146cd757095460ee6285a7db06bb66724f32730"
+    ],
+    [
+      "backend/app/alembic/versions/1a31ce608336_add_cascade_delete_relationships.py",
+      "a5246906df6a0804720e76076cdc4adba212df48",
+      "56d9a949c1455e59dc9a4b09c469a4d35cd6063230ab1ac1059ba4b58f6804c1"
+    ],
+    [
+      "backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py",
+      "3e15754825f16eb855a396a0f4e916a076635bea",
+      "68dc46eb06c7a6fe9059930eadbdeb349f5b13c789bb1a11846b05eccea0c304"
+    ],
+    [
+      "frontend/src/client/types.gen.ts",
+      "6252d88c2fe7cd2635fabcbb43fc5a02dd3ee743",
+      "8d80ce774ec90437b7d11dc1c7f75b19af07565b4af36f5082fd652f9941f84f"
+    ],
+    [
+      "frontend/src/client/sdk.gen.ts",
+      "b1dd2cf1d56e05b5a55ce1dd5ab1832c918309e7",
+      "16b436bc3c8b5cdc4474cefdd00ebc23046f5a4545ef9ea5d3d53acf3b82818c"
+    ]
+  ],
+  "dto_fields": {
+    "UserPublic": [
+      "email",
+      "is_active",
+      "is_superuser",
+      "full_name",
+      "id",
+      "created_at"
+    ],
+    "UserCreate": [
+      "email",
+      "is_active",
+      "is_superuser",
+      "full_name",
+      "password"
+    ],
+    "UserRegister": [
+      "email",
+      "password",
+      "full_name"
+    ],
+    "UsersPublic": [
+      "data",
+      "count"
+    ],
+    "ItemPublic": [
+      "title",
+      "description",
+      "id",
+      "owner_id",
+      "created_at"
+    ],
+    "UserUpdateMe": [
+      "full_name",
+      "email"
+    ]
+  },
+  "routes": {
+    "read_users": "UsersPublic",
+    "create_user": "UserPublic",
+    "register_user": "UserPublic",
+    "read_user_me": "UserPublic"
+  },
+  "ts_sdk_methods": [
+    "readUsers",
+    "createUser",
+    "registerUser",
+    "readUserMe"
+  ],
+  "migrations": {
+    "e2412789c190": null,
+    "9c0a54914c78": "e2412789c190",
+    "d98dd8ec85a3": "9c0a54914c78",
+    "1a31ce608336": "d98dd8ec85a3",
+    "fe56fa70289e": "1a31ce608336"
+  },
+  "initial_tables": {
+    "user": [
+      "email",
+      "is_active",
+      "is_superuser",
+      "full_name",
+      "id",
+      "hashed_password"
+    ],
+    "item": [
+      "description",
+      "id",
+      "title",
+      "owner_id"
+    ]
+  },
+  "current_tables": {
+    "user": [
+      "email",
+      "is_active",
+      "is_superuser",
+      "full_name",
+      "id",
+      "hashed_password",
+      "created_at"
+    ],
+    "item": [
+      "title",
+      "description",
+      "id",
+      "created_at",
+      "owner_id"
+    ]
+  },
+  "compatibility_windows": "NOT_EVALUATED",
+  "runtime_postgresql": "NOT_EVALUATED",
+  "data_migration": "NOT_EVALUATED",
+  "python_sdk_consumer": "NOT_EVALUATED"
+}

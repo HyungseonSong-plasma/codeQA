@@ -1,0 +1,369 @@
+{
+  "schema_version": "0.1",
+  "source_main_sha": "82e1678b6fb6dd784456770f38f45fa538f04245",
+  "ruleset": {
+    "id": 25360323,
+    "name": "codeQA-main-protection",
+    "observed_date": "2026-10-26",
+    "required_check_context": "layout",
+    "readback": "GITHUB_RULESET_READBACK_VERIFIED_AT_OBSERVED_DATE_NOT_LIVE_CI_PROOF"
+  },
+  "workflows": [
+    {
+      "path": ".github/workflows/layout.yml",
+      "category": "required",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": "layout",
+      "required_status": "OBSERVED_REQUIRED_BY_RULESET_25360323",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/mixed-source-conformance.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/moose-p3-refactor-conformance.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/moose-test-audit.yml",
+      "category": "experimental",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "INFORMATIONAL_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-coverage-v02.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-directional-fields.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-external-ancestor.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-glossary.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-policy-precedence-v03.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-python-conformance.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/naming-source-delta.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/persistent-ccg-cache.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/physicsapp-compiler-evidence.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/pinned-dafny-formal.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/pinned-python-sdk.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/python-package.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/rust-ccg-conformance.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/rust-parser-evidence.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/samuel-adapter-conformance.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/samuel-branch-delete.yml",
+      "category": "operations",
+      "owner": "Samuel target-owned operations",
+      "trigger_events": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "OPERATIONAL_RECEIPT_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/samuel-codeqa-issue-execute.yml",
+      "category": "operations",
+      "owner": "Samuel target-owned operations",
+      "trigger_events": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "OPERATIONAL_RECEIPT_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/samuel-crossrepo-preflight.yml",
+      "category": "operations",
+      "owner": "Samuel target-owned operations",
+      "trigger_events": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "OPERATIONAL_RECEIPT_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/self-audit.yml",
+      "category": "experimental",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 2,
+      "artifact_authority": "INFORMATIONAL_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
+      "path": ".github/workflows/semgrep-gate.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    }
+  ]
+}

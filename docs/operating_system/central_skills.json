@@ -2,11 +2,11 @@
   "schema_version": 2,
   "source_repository": "HyungseonSong-plasma/chatgpt-operation",
   "operating_system": {
-    "revision": "059050330a549fce0b543687e2e9d4dca6c3f624",
+    "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
     "expected_version": "Samuel",
     "index": {
       "path": "docs/operating_system/README.md",
-      "expected_blob_sha": "77448ab850a06c141b16976c1c75353e7224973d"
+      "expected_blob_sha": "a5fdc9985affe32e455b6e0a09398047497ba0b4"
     },
     "essential_rules": {
       "path": "docs/operating_system/ESSENTIAL_RULES.md",
@@ -19,9 +19,9 @@
       "load_on": [
         "INIT"
       ],
-      "revision": "059050330a549fce0b543687e2e9d4dca6c3f624",
+      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
       "path": "skills/session-bootstrap/README.md",
-      "expected_blob_sha": "de554ce4ba3a73089a3539b4b8726cd89b340c46"
+      "expected_blob_sha": "6a7a3c23a05907677d0a75ba5412973da37eae54"
     },
     {
       "name": "state-refresh",
@@ -29,9 +29,26 @@
         "INIT",
         "SCHEDULED_CONTROLLER"
       ],
-      "revision": "059050330a549fce0b543687e2e9d4dca6c3f624",
+      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
       "path": "skills/state-refresh/README.md",
       "expected_blob_sha": "4efe6135b93456f2cc9da31786967f5f6ac80033"
+    },
+    {
+      "name": "problem-oriented-response",
+      "load_on": [
+        "INIT"
+      ],
+      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
+      "path": "skills/problem-oriented-response/README.md",
+      "expected_blob_sha": "c0d255134664a35db2250fa62bf3b06b3d8e3313",
+      "contract": {
+        "path": "skills/problem-oriented-response/contract.json",
+        "expected_blob_sha": "a49fd5e7513bcbdf354fcff127c8709e0365ec01",
+        "expected_contract_id": "samuel.problem-first-response.v1",
+        "expected_mode": "problem_first",
+        "expected_detail_policy": "on_request",
+        "human_review_requires_question": true
+      }
     },
     {
       "name": "repository-mutation",
@@ -43,23 +60,23 @@
         "GITHUB_FILE_UPDATE",
         "GITHUB_BRANCH_CREATE"
       ],
-      "revision": "059050330a549fce0b543687e2e9d4dca6c3f624",
+      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
       "path": "skills/repository-mutation/README.md",
-      "expected_blob_sha": "a4054584591d8cbbb22891c5d6e870834d2d0264"
+      "expected_blob_sha": "496f3c52e8c5c3a8f376abffa23f5317c291f76b"
     },
     {
       "name": "pull-request-create",
       "load_on": [
         "GITHUB_PR_CREATE"
       ],
-      "revision": "059050330a549fce0b543687e2e9d4dca6c3f624",
+      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
       "path": "skills/pull-request-create/README.md",
-      "expected_blob_sha": "059b57b1d3d1b9b1e0c7c722fcd991521deb3d3f"
+      "expected_blob_sha": "b8917ebcde313229b6d7ff91db95e41dae7ddf7f"
     }
   ],
   "skill_catalog": {
     "path": "skills/catalog.json",
-    "expected_blob_sha": "74bd9180ab816205559843c8c834b0a54f99aaaa"
+    "expected_blob_sha": "392015dcb52f4cb00e2e32ef7a8fca5f04dd4194"
   },
   "capability_registry": {
     "path": "skills/capability-registry.json",

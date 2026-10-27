@@ -5,6 +5,11 @@ on:
     paths:
       - 'fixtures/python-sdk/**'
       - '.github/scripts/pinned_python_sdk_conformance.py'
+      - '.github/scripts/public_api_benchmark.py'
+      - '.github/scripts/public_python_sdk_benchmark.py'
+      - 'tests/test_public_python_sdk_benchmark.py'
+      - 'docs/public-api-benchmark-v01.md'
+      - 'docs/public-python-sdk-benchmark-v01.md'
       - '.github/workflows/pinned-python-sdk.yml'
       - 'src/codeqa/core/external_evidence.py'
       - 'src/codeqa/evaluation/evidence_gate.py'
@@ -15,6 +20,11 @@ on:
     paths:
       - 'fixtures/python-sdk/**'
       - '.github/scripts/pinned_python_sdk_conformance.py'
+      - '.github/scripts/public_api_benchmark.py'
+      - '.github/scripts/public_python_sdk_benchmark.py'
+      - 'tests/test_public_python_sdk_benchmark.py'
+      - 'docs/public-api-benchmark-v01.md'
+      - 'docs/public-python-sdk-benchmark-v01.md'
       - '.github/workflows/pinned-python-sdk.yml'
       - 'src/codeqa/core/external_evidence.py'
       - 'src/codeqa/evaluation/evidence_gate.py'
@@ -58,7 +68,14 @@ jobs:
           test -f node_modules/pyright/dist/pyright.js
           node_modules/.bin/pyright --version
 
+      - name: Validate full-source native Pyright receipt locations (pure negatives)
+        run: python -m unittest discover -s tests -p test_public_python_sdk_benchmark.py -v
+
       - name: Real Pyright positive/negative, #98 evidence, #99 Gate and SDK runtime mapping
+        env:
+          # Built-in read-only Actions token avoids anonymous REST API rate limits.
+          # Python/Node static analyzers run with this token stripped.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python .github/scripts/pinned_python_sdk_conformance.py \

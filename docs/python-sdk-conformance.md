@@ -81,3 +81,135 @@ Naming, Mechanical or QA contract is rewritten.
 **CI:** `.github/workflows/pinned-python-sdk.yml`; entrypoint
 `.github/scripts/pinned_python_sdk_conformance.py`. Evidence is uploaded as
 a bounded artifact with native JSON diagnostics and structured result receipt.
+
+## Additional directional DTO runtime witnesses (#92 incremental)
+
+The pinned Pydantic 2.13.5 runtime fixture now exercises
+`AliasPath("envelope", "orderId")`, the `to_camel` alias generator,
+nested model serialization aliases, `Field(exclude=True)` and an
+explicitly rejected missing inbound alias path. Expected by-alias and
+by-field-name documents are versioned under
+`expected_pydantic_nested` in the controlled
+`fixtures/python-sdk/external-contract-v0.1.json` contract.
+The real pinned Python SDK workflow runs these checks and emits their
+mapping scope in `sdk-conformance.json`.
+
+This verifies **only the selected in-memory DTO fixture**. An effective
+Pydantic input mapping can differ from its output serialization shape;
+do not assume round-trip equivalence or that these aliases match an
+unseen public consumer. External API schema baselines, versioned
+compatibility windows, dynamic validators, ORM migration history and
+real database compatibility remain `NOT_EVALUATED` until independent
+consumer artifacts are provided. No public DTO/DB mutation is authorized.
+
+## Additional controlled ORM migration and inheritance witness (#92)
+
+The pinned SQLAlchemy 2.0.50 job now constructs **actual joined-table ORM
+inheritance** in an isolated in-memory SQLite database, executes a mapped
+subclass insert/query, evaluates and reflects a database-generated
+`Computed("quantity * 2")` column, and checks the reflected foreign key.
+A versioned `fixture_v0 → fixture_v1` `ALTER TABLE` adds `optional_note`;
+the job compares exact reflected before/after column sets and an explicit
+added/removed-column manifest, then verifies that a deliberately forged
+migration expectation is rejected. The expectation lives in
+`fixtures/python-sdk/external-contract-v0.1.json` and all results are
+labeled `CONTROLLED_IN_MEMORY_SQLITE_ONLY`.
+
+This is **not** evidence of any user's production DB migration history,
+independent public DTO consumer, external ORM schema baseline, deployed ABI,
+or a human-approved compatibility window. Those remain `NOT_EVALUATED`
+and the original #92 issue stays open. The workflow must execute the new
+runtime assertions at the exact PR-associated revision before they count as
+a CI witness.
+
+## Controlled advanced Python typechecker matrix (#92 incremental)
+
+The same pinned **real Pyright 1.1.414** invocation now separately checks
+`valid_advanced_contract.py` and `invalid_advanced_contract.py` against
+the installed **Pydantic 2.13.5** type definitions through the explicit
+`public_sdk.py` re-export. The fixtures exercise overload selection,
+a mixin method override, a metaclass attribute, a signature-preserving
+aliased decorator, and typed callback Protocol compatibility. This is a
+**controlled contract fixture**, not an actual independently identified
+third-party SDK consumer, plugin callback dispatcher, or public API baseline.
+
+The negative source must yield native Pyright
+`reportIncompatibleMethodOverride`, `reportAssignmentType`, and
+`reportCallIssue` diagnostics; a missing required diagnostic or a
+tool/config error fails CI. The positive fixture must have zero errors.
+Both files (`contract.py` and the imported `public_sdk.py`) are explicitly
+included in the checked source set, and their original repository bytes,
+SHA-256 identities, required/evaluated rules, raw JSON, tool/config
+fingerprints and scoped #98/#99 Gate outcomes are retained in the
+`pinned-python-sdk-pyright-orm-evidence` artifact. The evidence can establish
+only `TYPE_NO_ERRORS` for the specified controlled fixture; it is **not**
+an external callback dispatch proof or an authorization to rename a public
+symbol. The existing baseline positive/negative Pyright checks are retained.
+
+The remaining real consumer/stub and versioned public DTO/DB migration
+evidence remains `NOT_EVALUATED`, as does runtime behavior of external
+plugins, dynamic metaclasses and callbacks. Do not promote a controlled
+typechecker PASS to global Naming or API compatibility PASS.
+
+## Exact Pyright diagnostic source binding (additional #92 hardening)
+
+The pinned Pyright runner validates **every** native JSON diagnostic, including
+warnings and rules outside the Gate predicate, against the exact temporary
+project file paths before constructing #98 evidence. A matching basename in
+another directory, `../` traversal, missing diagnostic file, unknown severity,
+malformed range, contradictory `summary.errorCount`, or absent/insufficient
+`summary.filesAnalyzed` now fails closed. The controlled `contract.py` and
+optional `public_sdk.py` are mapped to their original pinned fixture digests
+only after exact path validation. Eleven parser-side tests include six new
+adversarial JSON cases; actual Pyright CLI conformance remains independently
+required and must pass at the updated PR head.
+
+The numeric `filesAnalyzed` count is a minimum completeness check, **not** an
+independent file-by-file scan manifest. This still does not prove public SDK
+consumer compatibility, production callback dispatch or deployed schema/DB
+migration safety; those remain `NOT_EVALUATED` pending independent evidence.
+
+The runner additionally re-reads the exact temporary `contract.py` and
+optional `public_sdk.py` copies both before and after the external analyzer
+invocation, rejecting changed bytes. A dedicated mocked-tool negative test
+mutates the scanned source mid-run and requires rejection. This guards the
+controlled temporary inputs but does not authenticate a third-party runner or
+establish independent production consumer provenance.
+
+## Diagnostic location completeness (#92)
+
+All real Pyright diagnostic records, including warnings, must now provide a
+source range whose zero-based start line exists in the exact copied input
+file. Missing ranges or out-of-bounds lines are rejected before constructing
+external evidence; the runner no longer substitutes line 1 for a missing
+location. This is a controlled tool-output integrity check, not independent
+file-by-file scan coverage or real production SDK/DTO/DB compatibility.
+
+## Owner-approved public benchmarks (Option A, 2026-10-26)
+
+Issue #92 owner approval selects real, pinned **public open-source**
+SDK/API/DB benchmarks; no private production SDK or database is required.
+The previous statement that an owner-provided production baseline is a
+prerequisite is superseded for **benchmark selection**, but not for
+independent compatibility acceptance.
+
+- [Public FastAPI API/DB/TypeScript consumer benchmark](public-api-benchmark-v01.md):
+  two immutable upstream source trees, 11 current + 10 historical
+  independently hashed files, selected DTO/consumer fields and migration
+  source delta. The frontend consumer is **TypeScript**, not Python.
+  Both snapshots use backend version 0.1.0 despite source changes.
+- [Real Stripe Python SDK benchmark](public-python-sdk-benchmark-v01.md):
+  independently pinned 10-file SDK and named Flask consumer source,
+  source-grounded overload/multiple inheritance/aliased decorator/re-export
+  witnesses and a **real Pyright 1.1.414 partial-source scan**.
+  Selected source commit differs from the published v16.0.0 tag on
+  important files; installed wheel equivalence is not established.
+
+CI receipts explicitly distinguish
+`PASS_ATTESTED_SNAPSHOT_PAIR_ONLY`, `STATIC_DECLARATION_MATCH`,
+`EXECUTED_PARTIAL_SOURCE_ONLY` and `NOT_EVALUATED`. The external
+Pyright partial scan reports native errors from an incomplete source
+closure, not independently verified SDK incompatibility. Full installed
+SDK/typechecker contracts, callbacks, deployed API/DB version windows,
+data-dependent PostgreSQL migrations and independent human approval
+remain open. No production code, API or DB was changed.
