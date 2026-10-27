@@ -11,6 +11,7 @@
     "source_scope",
     "coverage",
     "unknown_reasons",
+    "declared_role_findings",
     "files",
     "directories",
     "packages",
@@ -312,6 +313,39 @@
     },
     "inventory_id": {
       "$ref": "#/$defs/sha256"
+    },
+    "declared_role_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "status",
+          "source",
+          "reason"
+        ],
+        "properties": {
+          "code": {
+            "enum": [
+              "MISSING_DECLARED_ROLE",
+              "UNCLASSIFIED_ROLE"
+            ]
+          },
+          "status": {
+            "enum": [
+              "VIOLATION",
+              "NOT_EVALUATED"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "$defs": {
