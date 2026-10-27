@@ -98,6 +98,8 @@ def assess_formal_proof_evidence(
     if (not isinstance(expected_specification_path, str)
             or not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.dfy",
                                 expected_specification_path)
+            or any(part in (".", "..")
+                   for part in expected_specification_path.split("/"))
             or not isinstance(expected_specification_sha256, str)
             or not _SHA256.fullmatch(expected_specification_sha256)):
         raise ValueError("independently pinned safe Dafny source path/hash required")

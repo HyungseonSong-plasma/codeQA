@@ -63,7 +63,13 @@ def parse_binding(document: Mapping[str, object]) -> FormalBinding:
         if not isinstance(value, Mapping) or set(value) != {"role", "path", "sha256"}:
             raise BindingContractError("invalid bound artifact")
         a = BoundArtifact(**value)
-        if a.role != role or not isinstance(a.path, str) or not a.path or a.path.startswith("/") or ".." in a.path.split("/") or "\\" in a.path or not _digest(a.sha256):
+        # Reject noncanonical names before comparing immutable digests.
+        # Byte identity does not establish the path/role of an artifact.
+        if (a.role != role or not isinstance(a.path, str) or not a.path
+                or any(part in ("", ".", "..") for part in a.path.split("/"))
+                or "\\" in a.path
+                or any(ord(ch) < 32 or ord(ch) == 127 for ch in a.path)
+                or not _digest(a.sha256)):
             raise BindingContractError("invalid artifact role/path/digest")
         return a
     spec = artifact(document["specification"], "specification")

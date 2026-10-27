@@ -47,3 +47,11 @@ transformation chain, explicit property-to-product requirement applicability,
 signed target/deployment identity, positive production implementation Gate
 and human approval. A matching source hash is byte identity, not a semantic
 equivalence proof. No source/target code-write policy is changed.
+
+## Canonical Dafny source paths
+
+The pinned Dafny source path must not contain `.` or `..` components,
+even when the string otherwise matches the `.dfy` lexical format. This
+blocks path alias/traversal ambiguity before assessing independently pinned
+source proof receipts. It does not elevate source-only proof verification
+to a production implementation authorization.

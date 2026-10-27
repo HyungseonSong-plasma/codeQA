@@ -152,6 +152,16 @@ class FormalProofReceiptTests(unittest.TestCase):
     def test_missing_raw_receipt_is_unknown_not_positive(self):
         self.assertEqual(self.assess(raw_verifier_log=None).status, "NOT_EVALUATED")
 
+    def test_noncanonical_specification_paths_rejected(self):
+        for path in (
+            "../engine.dfy",
+            "models/../engine.dfy",
+            "./engine.dfy",
+            "models/./engine.dfy",
+        ):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                self.assess(expected_specification_path=path)
+
     def test_bad_solver_identity_or_unpinned_requirement_fails_closed(self):
         with self.assertRaises(ValueError):
             SolverIdentity("Z3", "", "d" * 64)
