@@ -108,10 +108,16 @@ def scan_module_imports(source: bytes, *, path: str) -> dict[str, Any]:
                 symbol_bindings.append((stmt.lineno, "DELETION"))
         elif isinstance(stmt, (ast.If, ast.For, ast.AsyncFor, ast.While,
                                ast.With, ast.AsyncWith, ast.Try, ast.Match)):
-            if any((isinstance(n, ast.Name) and n.id == TARGET
-                    and isinstance(n.ctx, (ast.Store, ast.Del))) or
-                   (isinstance(n, ast.ExceptHandler) and n.name == TARGET)
-                   for n in ast.walk(stmt)):
+            if any(
+                (isinstance(n, ast.Name) and n.id == TARGET
+                 and isinstance(n.ctx, (ast.Store, ast.Del)))
+                or (isinstance(n, ast.ExceptHandler) and n.name == TARGET)
+                # Pattern capture names are strings on AST pattern nodes;
+                # they do not appear as Name(Store) in ast.walk.
+                or (isinstance(n, (ast.MatchAs, ast.MatchStar)) and n.name == TARGET)
+                or (isinstance(n, ast.MatchMapping) and n.rest == TARGET)
+                for n in ast.walk(stmt)
+            ):
                 symbol_bindings.append((stmt.lineno, "CONDITIONAL_BINDING"))
         if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef,
                                  ast.ClassDef)):

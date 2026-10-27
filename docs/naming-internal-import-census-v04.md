@@ -95,3 +95,22 @@ binding identity, Naming semantic approval, or rename safety.
 
 The external-client requirements remain archived in **closed, not-planned
 Issue #147**. No external compatibility PASS or reopening is implied.
+
+
+## Stage 8 — Python match/case capture is a module binding candidate
+
+At module scope, `match subject: case ControlFlowObservation:` is a
+**capture**, not a class-pattern reference. The Python AST stores capture
+names on `MatchAs.name`, `MatchStar.name`, or `MatchMapping.rest` as
+strings, not on `Name(Store)` nodes. A preceding direct import of the
+same spelling therefore cannot establish an unambiguous source-provenance
+chain when the capture may rebind that module-level name.
+
+The #144 B3 opt-in scanner now marks such competing match captures
+`AMBIGUOUS_TARGET_MODULE_BINDING` and reports the target import as
+`UNKNOWN`. A class pattern `case ControlFlowObservation():` is not a
+capture; a function-local capture without `global` also does not
+rebind the module symbol. Five targeted parser-only tests cover the
+positive/negative boundaries. No selected pinned historical source bytes
+or exact-denominator census changes. Neither behavior proves runtime
+identity, meaning of `node_id`, external compatibility, or safe rename.

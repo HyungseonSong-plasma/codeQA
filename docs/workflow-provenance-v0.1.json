@@ -53,6 +53,10 @@
       "blob_sha": "1435ea1fef67862ed2c46babb7a73ab2c52168be"
     },
     {
+      "path": ".github/workflows/physicsapp-compiler-evidence.yml",
+      "blob_sha": "8267db706acd7facdf674f9e2f594d07335ceacd"
+    },
+    {
       "path": ".github/workflows/pinned-dafny-formal.yml",
       "blob_sha": "3db98854d8655a39c902ac5b826785406a488c60"
     },
@@ -74,7 +78,7 @@
     },
     {
       "path": ".github/workflows/samuel-branch-delete.yml",
-      "blob_sha": "6416fa321367401faab50236c763ccec557beb11"
+      "blob_sha": "d77b9cb88e22a2aacf3a8a905bcfcba2196efbe2"
     },
     {
       "path": ".github/workflows/samuel-codeqa-issue-execute.yml",
