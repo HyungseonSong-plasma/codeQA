@@ -46,3 +46,24 @@ workflow is retired. See [CENTRAL_SKILLS.md](CENTRAL_SKILLS.md).
 ## Creation and pull-request routing
 
 This explicit Samuel adoption registers GitHub file create/update, branch create and pull-request create, in addition to the existing PR merge, branch delete and workflow dispatch. Creation does not imply approval, and all QA/scientific contracts remain consumer-owned.
+
+
+## Owner-requested branch cleanup batches (2026-10-27)
+
+\`.github/requests/branch-delete-request.json\` is normally empty.
+For explicit owner-authorized maintenance, a reviewed, short-lived nonempty
+request may contain **at most 50** independently selected, exact-SHA pinned
+non-default branch heads. \`validate_branch_delete_request.py\` rejects unsafe
+names, duplicates, malformed SHA and default-branch deletion. The pinned Samuel
+Action performs its own GitHub live HEAD lease check and verifies deletion.
+A stale or moved branch must never be forced or treated as successfully removed.
+
+The prior Layout assertion that the request **must always be empty** contradicted
+the already installed workflow's supported nonempty request behavior. The test
+now validates both the transient approved batch and the safe empty default;
+this does not modify the actual manifest validator or delete contract.
+After all targeted branch deletions have independent readback, restore
+\`{"targets":[]}\` in a separate normal, reviewed maintenance commit.
+Do not interpret any CI PASS or stale request as upstream safety-screening
+clearance, and preserve unmerged branches/PR review records unless separately
+dispositioned. The versioned workflow catalog and provenance remain unchanged.
