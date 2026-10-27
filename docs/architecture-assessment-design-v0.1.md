@@ -159,6 +159,21 @@ Epistemic classes: `OBSERVED`, `DECLARED_POLICY`, `PROXY_INFERENCE`, `HUMAN_REVI
 - Alias/namespace collisions, invalid or escaping destination paths, incomplete selected source, inconsistent SHA/profile and unsupported Rust/C++ translation semantics.
 - An improved proxy ratio that conceals an increased public migration surface or breaks a known consumer.
 
+
+## Accepted minimum architecture decision algorithm — v0.1
+
+**Owner decision (2026-10-27): adopt the initial simple algorithm and evolve later only with execution evidence.** The machine-readable design fixture's `decision_algorithm_v01` captures this **design-only** algorithm; the evaluator itself belongs to B7 [#173](https://github.com/HyungseonSong-plasma/codeQA/issues/173). It is independent of question emergence: no Naming/Adapter keyword, mandatory question, or hardcoded package move enters the decision rule.
+
+1. **Comparable evidence first.** Compare the current structure and one source-triggered virtual alternative under identical selected source, exact snapshot, analyzer, profile and metric denominators. Missing critical identity/coverage/metric evidence → `INSUFFICIENT_EVIDENCE`.
+2. **Fail closed on constraints.** Known forbidden dependency, path collision or proven public API regression → reject that candidate and `KEEP` the current structure. Missing external consumer/packaging proof that is critical to the move → `INSUFFICIENT_EVIDENCE`, not an invented zero-risk judgment.
+3. **Keep metrics small and auditable.** Compare (a) responsibility ownership boundary proxies, (b) observed cross-boundary static imports, (c) dependency cycles, (d) reverse-import change-impact proxy and (e) added interfaces, packaging and migration surface. Every comparison carries source witnesses, denominators, coverage and a counterhypothesis. **A path-only relabel must not produce a claimed cohesion or coupling improvement** when the underlying relationships are unchanged.
+4. **Use simple Pareto-style judgment, not a mystery total score.** If a safe candidate is no worse on all comparable objectives, improves at least one *material* objective, and introduces no unmitigated migration risk, report provisional `PREFER`. If the current structure is no worse, or metrics tie while a move adds cost, `KEEP`. Mixed improvements/regressions or disputed semantic responsibility → `REVIEW_REQUIRED`. Do not override a critical unknown with a numerical score. A merely tiny change with substantial unmeasured migration burden is not material proof of benefit.
+5. **Verify real changes separately.** Following an independently reviewed and authorized migration PR, run the same-scope/same-policy metrics and exact-head tests, public import/packaging checks, and compare predicted vs observed results. An advisory preference never authorizes automatic code moves.
+
+**Deferred from v0.1:** learned/universal weights, complex optimizer or graph search, probabilistic semantic models, predictive change history, automated refactor/rename and empirical calibration. These require a separate versioned extension driven by actual shortcomings observed in v0.1 tests. The target is understandable, evidence-linked advice, not theoretical optimization.
+
+**Decision tests for B7:** favorable dominating candidate; dominated candidate; tied metrics with migration cost; conflicting objectives; path-only relocation; known hard-constraint violation; critical external API unknown; healthy no-question repo. Tests must cover `PREFER`, `KEEP`, `REVIEW_REQUIRED`, `INSUFFICIENT_EVIDENCE` without privileging Naming/Adapter examples.
+
 ## Proof of real cleanup, not just a prettier diagram
 
 A future codeQA-driven cleanup follows an **explicit multi-stage lifecycle**:
