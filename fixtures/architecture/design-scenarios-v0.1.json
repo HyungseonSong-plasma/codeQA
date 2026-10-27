@@ -362,5 +362,64 @@
       "evidence_status": "NOT_MEASURED_BY_DESIGN",
       "role": "REGRESSION_QUESTION_FAMILY_ONLY_NOT_ANALYZER_INPUT"
     }
-  ]
+  ],
+  "decision_algorithm_v01": {
+    "algorithm_id": "codeqa.architecture.counterfactual-pareto.v0.1",
+    "release_scope": "DESIGN_ONLY_NOT_IMPLEMENTED",
+    "principle": "Compare actual relationships under the same source/profile; moving path labels cannot prove a quality gain.",
+    "phases": [
+      "check_comparable_snapshot_and_coverage",
+      "check_hard_constraints_and_unknowns",
+      "measure_bounded_static_quality_proxies_and_migration_surface",
+      "compare_pareto_with_cost_and_human_review",
+      "verify_after_separately_approved_refactor"
+    ],
+    "metrics": [
+      "ownership_boundary_clarity_proxy",
+      "cross_boundary_dependency_proxy",
+      "static_dependency_cycle_count",
+      "reverse_import_impact_proxy",
+      "added_interface_and_migration_surface"
+    ],
+    "rules": [
+      {
+        "condition": "NONCOMPARABLE_OR_MISSING_CRITICAL_EVIDENCE",
+        "decision": "INSUFFICIENT_EVIDENCE"
+      },
+      {
+        "condition": "KNOWN_HARD_CONSTRAINT_VIOLATION",
+        "decision": "KEEP"
+      },
+      {
+        "condition": "CRITICAL_COMPATIBILITY_UNKNOWN",
+        "decision": "INSUFFICIENT_EVIDENCE"
+      },
+      {
+        "condition": "CANDIDATE_WEAKLY_DOMINATES_BASELINE_WITH_MATERIAL_GAIN_AND_NO_UNCOMPENSATED_MIGRATION_RISK",
+        "decision": "PREFER"
+      },
+      {
+        "condition": "BASELINE_WEAKLY_DOMINATES_CANDIDATE_OR_SAME_METRICS_WITH_POSITIVE_MIGRATION_COST",
+        "decision": "KEEP"
+      },
+      {
+        "condition": "MIXED_METRIC_TRADEOFFS_OR_SEMANTIC_OWNERSHIP_CHOICE",
+        "decision": "REVIEW_REQUIRED"
+      }
+    ],
+    "postchange_verification": {
+      "separate_approved_migration_required": true,
+      "same_scope_and_policy": true,
+      "tests_and_public_compatibility": true,
+      "prediction_vs_observation": true
+    },
+    "deferred": [
+      "universal_weighted_score",
+      "learned_weights",
+      "complex_search_optimization",
+      "probabilistic_semantic_inference",
+      "automated_migration",
+      "historical_change_prediction"
+    ]
+  }
 }
