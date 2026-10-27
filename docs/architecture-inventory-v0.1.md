@@ -19,7 +19,9 @@ The output is deterministic for the same input set, regardless of mapping or
 path order. It contains a nested-directory tree, observed Python package init
 markers, source SHA256 witnesses, file and language counts, role-policy-derived
 ownership labels, optional filename hints, package metadata paths, a versioned
-schema and an inventory fingerprint. The policy is hashed separately.
+schema and an inventory fingerprint. The policy is hashed separately. Missing declared
+role directories and unclassified role folders are exposed as policy findings;
+no import-rule claim is made without B2 source edges.
 
 ## Coverage and evidence limits
 
