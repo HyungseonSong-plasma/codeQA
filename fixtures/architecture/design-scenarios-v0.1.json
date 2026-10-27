@@ -1,0 +1,215 @@
+{
+  "schema_version": "0.1",
+  "design_id": "codeqa.architecture-assessment-design.v0.1",
+  "phase": "DESIGN_ONLY",
+  "approval_status": "PROPOSED",
+  "authority": {
+    "frozen_repository_root": "profiles/repository-layout.json",
+    "package_structure": "docs/codeqa-package-architecture.md",
+    "role_policy": "profiles/semantic-directory-roles-v0.1.json",
+    "evidence_sources": [
+      "src/codeqa/evaluation/domain_inventory.py",
+      "src/codeqa/evaluation/semantic_architecture.py",
+      "src/codeqa/evaluation/semantic_layout.py",
+      "src/codeqa/evaluation/impact.py",
+      "src/codeqa/adapters/python_dependencies.py"
+    ]
+  },
+  "ownership": {
+    "core": {
+      "path": "src/codeqa/core",
+      "may_import": [],
+      "responsibility": "Immutable language-neutral scenario, evidence, coverage, and assessment records"
+    },
+    "adapters": {
+      "path": "src/codeqa/adapters",
+      "may_import": [
+        "core"
+      ],
+      "responsibility": "Language-specific syntax and source correspondence, not architecture verdicts"
+    },
+    "evaluation": {
+      "path": "src/codeqa/evaluation",
+      "may_import": [
+        "core"
+      ],
+      "responsibility": "Pure measurements, scenarios, migration candidates, and evidence-bounded comparative assessments"
+    },
+    "pipeline": {
+      "path": "src/codeqa/pipeline",
+      "may_import": [
+        "core",
+        "adapters",
+        "evaluation",
+        "infrastructure"
+      ],
+      "responsibility": "Compose declared input evidence and opt-in architecture analysis"
+    },
+    "governance": {
+      "path": "src/codeqa/governance",
+      "may_import": [
+        "infrastructure"
+      ],
+      "responsibility": "Repository policy integrity; does not replace analyzer assessment"
+    },
+    "infrastructure": {
+      "path": "src/codeqa/infrastructure",
+      "may_import": [],
+      "responsibility": "Local Git/resource plumbing only; no domain verdict"
+    }
+  },
+  "proposed_components": [
+    {
+      "owner": "core",
+      "path": "src/codeqa/core/architecture.py",
+      "purpose": "Typed immutable scenario and result records; never read Git or import Python AST"
+    },
+    {
+      "owner": "evaluation",
+      "path": "src/codeqa/evaluation/architecture/inventory.py",
+      "purpose": "Read-only observed folder/package/role inventory; reuse existing domain inventory"
+    },
+    {
+      "owner": "evaluation",
+      "path": "src/codeqa/evaluation/architecture/metrics.py",
+      "purpose": "Coverage-normalized static dependency and cohesion/coupling proxies"
+    },
+    {
+      "owner": "evaluation",
+      "path": "src/codeqa/evaluation/architecture/scenarios.py",
+      "purpose": "Virtual path relocation and deterministic alternative projection; no writes"
+    },
+    {
+      "owner": "evaluation",
+      "path": "src/codeqa/evaluation/architecture/migration.py",
+      "purpose": "Import, distribution, resource and public API change candidates"
+    },
+    {
+      "owner": "evaluation",
+      "path": "src/codeqa/evaluation/architecture/assessment.py",
+      "purpose": "Evidence-bounded comparison; never claim unobserved semantic improvement"
+    },
+    {
+      "owner": "pipeline",
+      "path": "src/codeqa/pipeline/architecture.py",
+      "purpose": "Opt-in composition; no GitHub mutation"
+    },
+    {
+      "owner": "pipeline",
+      "path": ".github/scripts/architecture_audit.py",
+      "purpose": "Caller-owned exact-checkout CI runner; creates versioned artifacts"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "L0",
+      "question": "Is the current folder layout suitable?",
+      "kind": "BASELINE",
+      "candidate_package_roots": [
+        "src/codeqa/core",
+        "src/codeqa/adapters",
+        "src/codeqa/evaluation",
+        "src/codeqa/pipeline",
+        "src/codeqa/governance",
+        "src/codeqa/infrastructure"
+      ],
+      "requires": [
+        "complete_source_tree",
+        "declared_roles",
+        "static_dependency_coverage"
+      ]
+    },
+    {
+      "id": "L1",
+      "question": "Would a bounded Naming domain package improve ownership?",
+      "kind": "COUNTERFACTUAL",
+      "candidate_package_roots": [
+        "src/codeqa/naming"
+      ],
+      "requires": [
+        "naming_source_ownership",
+        "public_imports",
+        "internal_dependency_coverage",
+        "semantic_ownership_review"
+      ]
+    },
+    {
+      "id": "L2",
+      "question": "Would a sibling adapters namespace/distribution be better?",
+      "kind": "COUNTERFACTUAL",
+      "candidate_package_roots": [
+        "src/adapters"
+      ],
+      "requires": [
+        "package_metadata",
+        "reverse_imports",
+        "external_consumer_compatibility"
+      ]
+    },
+    {
+      "id": "L3",
+      "question": "Should adapters be grouped by pythonqa/rustqa/cppqa?",
+      "kind": "COUNTERFACTUAL",
+      "candidate_package_roots": [
+        "src/codeqa/adapters/pythonqa",
+        "src/codeqa/adapters/rustqa",
+        "src/codeqa/adapters/cppqa",
+        "src/adapters/pythonqa",
+        "src/adapters/rustqa",
+        "src/adapters/cppqa"
+      ],
+      "requires": [
+        "language_capability_coverage",
+        "shared_contract_ownership",
+        "package_metadata",
+        "public_imports"
+      ]
+    }
+  ],
+  "comparison": {
+    "evidence_classes": [
+      "OBSERVED",
+      "DECLARED_POLICY",
+      "PROXY_INFERENCE",
+      "HUMAN_REVIEW"
+    ],
+    "decisions": [
+      "PREFER",
+      "KEEP",
+      "REVIEW_REQUIRED",
+      "INSUFFICIENT_EVIDENCE"
+    ],
+    "required_record_fields": [
+      "scenario_id",
+      "snapshot_sha",
+      "analyzer_version",
+      "profile_sha256",
+      "source_coverage",
+      "source_witnesses",
+      "metrics_with_denominators",
+      "unknowns",
+      "migration_impact",
+      "tradeoffs",
+      "decision",
+      "decision_reasons",
+      "review_question"
+    ],
+    "fail_closed_on": [
+      "unknown_external_consumers",
+      "dynamic_imports",
+      "unresolved_language_parsers",
+      "policy_conflict",
+      "noncomparable_coverage"
+    ],
+    "principle": "A current policy match cannot by itself certify optimal architecture or semantic cohesion"
+  },
+  "prohibitions": [
+    "production_source_move",
+    "rename",
+    "adapter_relocation",
+    "public_api_change",
+    "ccg_v01_change",
+    "qa_result_v01_change",
+    "auto_migration"
+  ]
+}
