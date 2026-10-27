@@ -116,6 +116,18 @@ def scan_module_imports(source: bytes, *, path: str) -> dict[str, Any]:
                 # they do not appear as Name(Store) in ast.walk.
                 or (isinstance(n, (ast.MatchAs, ast.MatchStar)) and n.name == TARGET)
                 or (isinstance(n, ast.MatchMapping) and n.rest == TARGET)
+                # Conditional imports and function/class declarations bind
+                # names without producing Name(Store) nodes in the AST.
+                or (isinstance(n, ast.ImportFrom) and any(
+                    (alias.asname or alias.name) == TARGET
+                    for alias in n.names
+                ))
+                or (isinstance(n, ast.Import) and any(
+                    (alias.asname or alias.name.split(".")[0]) == TARGET
+                    for alias in n.names
+                ))
+                or (isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                   ast.ClassDef)) and n.name == TARGET)
                 for n in ast.walk(stmt)
             ):
                 symbol_bindings.append((stmt.lineno, "CONDITIONAL_BINDING"))

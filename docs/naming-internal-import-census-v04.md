@@ -114,3 +114,20 @@ rebind the module symbol. Five targeted parser-only tests cover the
 positive/negative boundaries. No selected pinned historical source bytes
 or exact-denominator census changes. Neither behavior proves runtime
 identity, meaning of `node_id`, external compatibility, or safe rename.
+
+## Stage 9 — Compound-statement import and declaration rebinding
+
+A direct top-level import of `ControlFlowObservation` is no longer a
+static source-provenance candidate if a module-level compound statement
+(`if`, `for`, `while`, `try`, `with`, or `match`) contains a
+potential competing import, imported alias, function, or class binding
+of the same spelling. These syntax nodes do not expose `Name(Store)`
+for the imported or declared name. The scanner records
+`AMBIGUOUS_TARGET_MODULE_BINDING` and leaves provenance `UNKNOWN`.
+A function-local conditional binding is not promoted to module scope.
+
+The bounded rule is intentionally conservative: conditional reachability,
+the actual runtime object, cross-module references, external consumers and
+safe renaming are still NOT_EVALUATED or UNKNOWN. This change does not
+update the pinned historical census, the adopted one-field Naming v0.5
+policy or default Naming v0.1 contracts.
