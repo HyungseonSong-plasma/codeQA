@@ -30,7 +30,8 @@ class FullSourcePyrightDiagnosticTests(unittest.TestCase):
 
     def witness(self, **changes: object) -> dict:
         value = {"severity": "error", "file": "sample.py",
-                 "range": {"start": {"line": 1}}}
+                 "range": {"start": {"line": 1, "character": 0},
+                           "end": {"line": 1, "character": 1}}}
         value.update(changes)
         return value
 
@@ -38,15 +39,55 @@ class FullSourcePyrightDiagnosticTests(unittest.TestCase):
         self.assertIsNone(validate_full_source_diagnostic(self.witness(), self.root))
 
     def test_missing_range_rejected(self) -> None:
-        with self.assertRaisesRegex(RuntimeError, "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE"):
-            validate_full_source_diagnostic(self.witness(range=None), self.root)
+        for missing in (None, {}, {"start": {"line": 1, "character": 0}},
+                        {"start": {"line": 1, "character": 0}, "end": None},
+                        {"start": {"line": 1}, "end": {"line": 1, "character": 1}}):
+            with self.subTest(missing=missing):
+                with self.assertRaisesRegex(RuntimeError, "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE"):
+                    validate_full_source_diagnostic(self.witness(range=missing), self.root)
 
     def test_out_of_bounds_and_bool_lines_rejected(self) -> None:
-        for bad in (2, -1, True, "1"):
+        for bad, expected in (
+            (3, "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE"),
+            (-1, "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE"),
+            (True, "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE"),
+            ("1", "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE"),
+        ):
             with self.subTest(line=bad):
-                with self.assertRaisesRegex(RuntimeError, "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE"):
+                with self.assertRaisesRegex(RuntimeError, expected):
                     validate_full_source_diagnostic(
-                        self.witness(range={"start": {"line": bad}}), self.root)
+                        self.witness(range={
+                            "start": {"line": bad, "character": 0},
+                            "end": {"line": 1, "character": 1}}), self.root)
+
+    def test_columns_and_endpoints_rejected_when_invalid(self) -> None:
+        specimens = [
+            (1, -1, 1, 1), (1, True, 1, 1),
+            (1, "1", 1, 1), (1, 0, 1, 99),
+            (1, 0, 3, 0), (1, 3, 1, 1),
+        ]
+        for sl, sc, el, ec in specimens:
+            with self.subTest(values=(sl, sc, el, ec)):
+                with self.assertRaises(RuntimeError):
+                    validate_full_source_diagnostic(self.witness(range={
+                        "start": {"line": sl, "character": sc},
+                        "end": {"line": el, "character": ec}}), self.root)
+
+    def test_reversed_multiline_range_rejected(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "FULL_SOURCE_PYRIGHT_REVERSED_RANGE"):
+            validate_full_source_diagnostic(self.witness(range={
+                "start": {"line": 1, "character": 0},
+                "end": {"line": 0, "character": 0}}), self.root)
+
+    def test_utf16_columns_not_codepoints(self) -> None:
+        (self.root / "unicode.py").write_text("name = '🧪'\n", encoding="utf-8")
+        validate_full_source_diagnostic(self.witness(file="unicode.py", range={
+            "start": {"line": 0, "character": 8},
+            "end": {"line": 0, "character": 11}}), self.root)
+        with self.assertRaisesRegex(RuntimeError, "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE"):
+            validate_full_source_diagnostic(self.witness(file="unicode.py", range={
+                "start": {"line": 0, "character": 0},
+                "end": {"line": 0, "character": 12}}), self.root)
 
     def test_foreign_or_missing_source_rejected(self) -> None:
         for bad in ("../outside.py", "missing.py"):

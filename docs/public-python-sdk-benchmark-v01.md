@@ -101,3 +101,20 @@ The receipt status `EXECUTED_PINNED_REPOSITORY_SOURCE` means only that this exac
 A real [source-head pinned SDK run #40305501269](https://github.com/HyungseonSong-plasma/codeQA/actions/runs/40305501269) failed at **HTTP 403 anonymous GitHub REST API rate limit** before public FastAPI source attestation; the new five pure native-diagnostic tests had already passed. This was a network evidence acquisition failure, **not** an observed public API/SDK incompatibility or passing full conformance.
 
 The next revision uses the Actions-provided **built-in read-only `github.token`** solely for HTTPS `api.github.com` commit/tree attestation requests; raw source downloads remain unauthenticated, and unexpected hosts, userinfo, ports and redirects are rejected before credentials can be forwarded. Git checkout and both partial/full Pyright subprocesses explicitly **strip `GITHUB_TOKEN` and `GH_TOKEN`** from their environment. No user-supplied API key, production credential, external write permission or private data is required. The new token-boundary unit tests use only a synthetic string and make no network requests. Actual source-attestation CI must be rerun at the new exact head before claiming PASS; a further 403 or unavailable upstream remains a hard failure/NOT_EVALUATED, not a silent fallback.
+
+
+## Native Pyright UTF-16 diagnostic span integrity (2026-10-27)
+
+The full pinned Stripe source scan now validates both the start and end of
+every reported native Pyright range, including line/character presence,
+strict non-boolean integer coordinates, UTF-16 code-unit column bounds,
+in-source line coordinates, and non-reversed spans. Negative controls cover
+missing endpoints, fabricated out-of-range offsets, booleans, and reversed
+multi-line spans; a non-BMP character verifies UTF-16 rather than Python
+code-point indexing. This guards the fidelity of **reported diagnostics**.
+
+**This is not full analyzed-target coverage, installed-wheel source
+equivalence, an independently resolved third-party dependency set,
+runtime callback semantics, deployed API consumer compatibility or
+production database migration verification.** All those statuses remain
+\`NOT_EVALUATED\` until independently evidenced.
