@@ -1,4 +1,5 @@
 """#102 bounded proof-to-artifact binding: hashes are not formal equivalence."""
+from copy import deepcopy
 import unittest
 from hashlib import sha256
 from codeqa.evaluation.formal_binding import (
@@ -80,6 +81,20 @@ class FormalBindingTests(unittest.TestCase):
         self.record["specification"]["path"]="../escape.dfy"
         with self.assertRaises(BindingContractError):
             parse_binding(self.record)
+
+    def test_reject_noncanonical_paths_in_every_artifact_role(self):
+        paths = (
+            "./engine.py", "build//engine.py", "build/./engine.py",
+            "build/../engine.py", r"build\engine.py", "build/\x00engine.py",
+            "build/\nengine.py", "build/\x7fengine.py",
+        )
+        for role in ("specification", "generated", "deployed"):
+            for path in paths:
+                with self.subTest(role=role, path=path):
+                    forged = deepcopy(self.record)
+                    forged[role]["path"] = path
+                    with self.assertRaises(BindingContractError):
+                        parse_binding(forged)
 
     def test_deterministic_canonical_binding(self):
         a=parse_binding(self.record)

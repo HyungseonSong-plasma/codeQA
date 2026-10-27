@@ -26,3 +26,12 @@ manual translation, changed toolchain/configuration, missing properties and
 malformed source paths.
 
 No CCG/QA Result/Delta/Naming v0.1 semantics change.
+
+## Canonical artifact path identity
+
+Binding artifact paths are strictly repository-relative and must use one
+canonical slash-separated spelling. Empty, `.`, or `..` path components,
+backslashes and ASCII control characters are rejected for **every role**
+(specification, generated and deployed). Caller-provided SHA-256 values alone
+cannot resolve noncanonical source identity. The checker remains
+identity-only and never converts this validation into implementation proof.
