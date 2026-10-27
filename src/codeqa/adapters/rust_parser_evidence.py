@@ -131,3 +131,83 @@ def parse_rust_syntax(
                                   key=lambda d: (d.line, d.kind, d.name, d.container or ""))),
         unknowns=tuple(sorted(unknowns)),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class RustLocalTraitMethodComparison:
+    """Same-file literal spelling comparison; NEVER trait implementation proof."""
+
+    schema_version: str
+    source_sha256: str
+    trait_name: str
+    type_name: str
+    declared_trait_methods: tuple[str, ...]
+    observed_impl_methods: tuple[str, ...]
+    absent_lexical_impl_methods: tuple[str, ...]
+    status: str
+    unknowns: tuple[str, ...]
+    authorization: str = "NONE_SOURCE_SYNTAX_ONLY"
+
+    def canonical_json(self) -> str:
+        return json.dumps(asdict(self), sort_keys=True, separators=(",", ":"),
+                          ensure_ascii=False)
+
+
+def compare_local_trait_method_spellings(
+    evidence: RustSyntaxEvidence, *, trait_name: str, type_name: str,
+) -> RustLocalTraitMethodComparison:
+    """Compare literal same-file method names, without resolving a Rust trait.
+
+    Exact simple 'impl Trait for Type' textual headers only. Generic, qualified,
+    macro-generated or external trait obligations remain NOT_EVALUATED.
+    """
+    if not isinstance(evidence, RustSyntaxEvidence):
+        raise RustParserEvidenceError("typed Rust parser evidence required")
+    if (evidence.authority != "PARSER_SYNTAX_ONLY_NOT_COMPILER_OR_TRAIT_PROOF"
+            or evidence.producer != "tree-sitter@0.25.2/tree-sitter-rust@0.24.0"):
+        raise RustParserEvidenceError("unreviewed syntax evidence authority")
+    for item in (trait_name, type_name):
+        if not isinstance(item, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", item):
+            raise RustParserEvidenceError("simple explicit trait/type spelling required")
+
+    trait_owners = [
+        d for d in evidence.declarations
+        if d.kind == "trait" and d.name == trait_name and d.container is None
+    ]
+    trait_header = "trait " + trait_name
+    impl_header = f"impl {trait_name} for {type_name}"
+    trait_methods = [
+        d.name for d in evidence.declarations
+        if d.kind == "trait_or_impl_method" and d.container == trait_header
+    ]
+    impl_methods = [
+        d.name for d in evidence.declarations
+        if d.kind == "trait_or_impl_method" and d.container == impl_header
+    ]
+    declarations = tuple(sorted(trait_methods))
+    implementations = tuple(sorted(impl_methods))
+    valid = (len(trait_owners) == 1 and bool(declarations)
+             and bool(implementations)
+             and len(declarations) == len(set(declarations))
+             and len(implementations) == len(set(implementations)))
+    absent = tuple(sorted(set(declarations) - set(implementations))) if valid else ()
+    status = ("NOT_EVALUATED" if not valid else
+              "LEXICAL_NAMES_ABSENT_FROM_IMPL" if absent else
+              "LEXICAL_METHOD_NAME_SET_PRESENT")
+    unknowns = {
+        "TRAIT_RESOLUTION_NOT_EVALUATED",
+        "RUST_COMPILER_TRAIT_SATISFACTION_NOT_EVALUATED",
+        "MACRO_AND_DEFAULT_METHOD_EFFECTS_NOT_EVALUATED",
+        "EXTERNAL_CRATE_AND_ABI_NOT_EVALUATED",
+        "SOURCE_IDENTITY_REQUIRES_INDEPENDENT_CI_PIN",
+    }
+    if not valid:
+        unknowns.add("EXACT_LOCAL_DECLARATION_PAIR_NOT_ESTABLISHED")
+    return RustLocalTraitMethodComparison(
+        schema_version="0.1", source_sha256=evidence.source_sha256,
+        trait_name=trait_name, type_name=type_name,
+        declared_trait_methods=declarations,
+        observed_impl_methods=implementations,
+        absent_lexical_impl_methods=absent, status=status,
+        unknowns=tuple(sorted(unknowns)),
+    )

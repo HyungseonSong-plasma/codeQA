@@ -43,3 +43,25 @@ C++ parser/ABI, real MOOSE framework release and input DSL grammar, Rust
 compiler/type checking against pinned external crates, human naming
 adjudication and compatibility decisions remain open #93 acceptance items.
 No automatic rename, SDK mutation or production source execution occurs.
+
+
+## Same-file Rust trait method lexical comparison (bounded D5 evidence)
+
+The optional \`compare_local_trait_method_spellings\` helper accepts a typed,
+source-hash-bound tree-sitter syntax receipt and two exact simple identifiers.
+It compares method **spellings only** between a locally declared
+\`trait Action\` and a literal \`impl Action for Engine\` in the *same selected
+source bytes*. The emitted statuses are \`LEXICAL_METHOD_NAME_SET_PRESENT\`,
+\`LEXICAL_NAMES_ABSENT_FROM_IMPL\` or \`NOT_EVALUATED\`. A missing method is
+a lexical gap, not a compiler-error claim: default trait methods or macros
+may change actual satisfaction. Generic/qualified/external trait headers,
+unresolved declarations, trait bodies without an impl, and ambiguous data
+remain \`NOT_EVALUATED\`.
+
+The result always carries \`authorization=NONE_SOURCE_SYNTAX_ONLY\` and
+\`RUST_COMPILER_TRAIT_SATISFACTION_NOT_EVALUATED\`. Even matching literal
+spellings do not demonstrate trait identity, method signatures, lifetimes,
+crate dependency resolution, macro expansion or ABI compatibility. This
+is not production Rust compilation or an approved Naming policy.
+CI's independently pinned source checkout remains the authority for actual
+external repository/byte identity; the helper itself cannot attest it.

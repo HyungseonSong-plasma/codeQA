@@ -8,6 +8,7 @@ import unittest
 
 from codeqa.adapters.rust_parser_evidence import (
     RustParserEvidenceError, parse_rust_syntax,
+    compare_local_trait_method_spellings,
 )
 
 
@@ -90,6 +91,73 @@ class RustParserEvidenceTests(unittest.TestCase):
         self.assertEqual(first.canonical_json(), second.canonical_json())
         self.assertTrue(any(d.name == "internal_helper" and d.line == 3 for d in first.declarations))
         self.assertEqual(first.producer, "tree-sitter@0.25.2/tree-sitter-rust@0.24.0")
+
+
+
+    def test_local_trait_method_spellings_match_without_trait_proof(self):
+        source = (
+            b"trait Action { fn processInput(&self); fn tick(&self); }\n"
+            b"struct Engine;\n"
+            b"impl Action for Engine { fn tick(&self) {} fn processInput(&self) {} }\n"
+        )
+        report = self.parse(source)
+        a = compare_local_trait_method_spellings(
+            report, trait_name="Action", type_name="Engine")
+        b = compare_local_trait_method_spellings(
+            report, trait_name="Action", type_name="Engine")
+        self.assertEqual(a.canonical_json(), b.canonical_json())
+        self.assertEqual(a.status, "LEXICAL_METHOD_NAME_SET_PRESENT")
+        self.assertEqual(a.declared_trait_methods, ("processInput", "tick"))
+        self.assertEqual(a.absent_lexical_impl_methods, ())
+        self.assertEqual(a.authorization, "NONE_SOURCE_SYNTAX_ONLY")
+        self.assertIn("RUST_COMPILER_TRAIT_SATISFACTION_NOT_EVALUATED", a.unknowns)
+
+    def test_local_missing_method_is_syntax_gap_not_compiler_verdict(self):
+        report = self.parse(
+            b"trait Action { fn run(&self); fn stop(&self); }\n"
+            b"struct Engine;\nimpl Action for Engine { fn run(&self) {} }\n")
+        result = compare_local_trait_method_spellings(
+            report, trait_name="Action", type_name="Engine")
+        self.assertEqual(result.status, "LEXICAL_NAMES_ABSENT_FROM_IMPL")
+        self.assertEqual(result.absent_lexical_impl_methods, ("stop",))
+        self.assertEqual(result.authorization, "NONE_SOURCE_SYNTAX_ONLY")
+
+    def test_external_trait_not_promoted_to_local_match(self):
+        report = self.parse(
+            b"struct Engine;\nimpl external::Action for Engine { fn run(&self) {} }\n")
+        result = compare_local_trait_method_spellings(
+            report, trait_name="Action", type_name="Engine")
+        self.assertEqual(result.status, "NOT_EVALUATED")
+        self.assertIn("EXACT_LOCAL_DECLARATION_PAIR_NOT_ESTABLISHED", result.unknowns)
+
+    def test_trait_without_impl_never_counts_as_match(self):
+        report = self.parse(b"trait Action { fn run(&self); }\nstruct Engine;\n")
+        result = compare_local_trait_method_spellings(
+            report, trait_name="Action", type_name="Engine")
+        self.assertEqual(result.status, "NOT_EVALUATED")
+
+    def test_generic_implementation_not_guessed_as_simple_impl(self):
+        report = self.parse(
+            b"trait Action { fn run(&self); }\n"
+            b"struct Engine<T>(T);\n"
+            b"impl<T> Action for Engine<T> { fn run(&self) {} }\n")
+        result = compare_local_trait_method_spellings(
+            report, trait_name="Action", type_name="Engine")
+        self.assertEqual(result.status, "NOT_EVALUATED")
+
+    def test_bad_trait_identity_and_untrusted_producer_rejected(self):
+        from dataclasses import replace
+        report = self.parse(
+            b"trait Action { fn run(&self); }\n"
+            b"struct Engine;\nimpl Action for Engine { fn run(&self) {} }\n")
+        for bad in ("", "external::Action", "Action<T>", "A B"):
+            with self.subTest(bad=bad), self.assertRaises(RustParserEvidenceError):
+                compare_local_trait_method_spellings(
+                    report, trait_name=bad, type_name="Engine")
+        with self.assertRaises(RustParserEvidenceError):
+            compare_local_trait_method_spellings(
+                replace(report, producer="unknown/parser"),
+                trait_name="Action", type_name="Engine")
 
 
 if __name__ == "__main__":
