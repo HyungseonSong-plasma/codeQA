@@ -104,9 +104,17 @@ def analyze_architecture_inventory(
 
     # Reuse the existing role-policy validator. Import edges are not assessed.
     try:
-        evaluate_semantic_layout(paths, (), role_policy)
+        role_report = evaluate_semantic_layout(paths, (), role_policy)
     except (ValueError, TypeError, KeyError) as exc:
         raise ArchitectureInventoryError("incompatible role policy") from exc
+    # B1 can attest missing/unclassified role folders, but cannot evaluate
+    # import-edge exceptions without the B2 dependency witness set.
+    role_findings = [
+        {"code": finding.code, "status": finding.status,
+         "source": finding.source, "reason": finding.reason}
+        for finding in role_report.findings
+        if finding.code in {"MISSING_DECLARED_ROLE", "UNCLASSIFIED_ROLE"}
+    ]
     root = role_policy["scope"]
     roles = role_policy["roles"]
     hints = _hints(name_hint_rules)
@@ -205,7 +213,9 @@ def analyze_architecture_inventory(
             "role_policy_sha256": _digest(role_policy),
             "name_hint_rules_sha256": _digest(hint_manifest),
         },
-        "status": "INCOMPLETE" if any(counts[s] for s in flags) or counts["MISSING"]
+        "status": "INCOMPLETE" if (any(counts[s] for s in flags) or counts["MISSING"]
+                                    or any(f["code"] == "MISSING_DECLARED_ROLE"
+                                           for f in role_findings))
                   else "EVIDENCE_ONLY",
         "source_scope": root,
         "coverage": {
@@ -216,6 +226,7 @@ def analyze_architecture_inventory(
             "generated": counts["GENERATED"], "parsed": 0,
         },
         "unknown_reasons": dict(sorted(unknown.items())),
+        "declared_role_findings": role_findings,
         "files": files, "directories": directories,
         "packages": sorted(packages, key=lambda x: x["path"]),
         "language_coverage": {
