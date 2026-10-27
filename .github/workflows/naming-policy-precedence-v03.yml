@@ -1,0 +1,162 @@
+name: Naming v0.3 precedence draft conformance
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/core/naming_policy_precedence_v03.py'
+      - 'src/codeqa/core/naming_review_worklist_v03.py'
+      - 'src/codeqa/core/naming_snapshot_coverage_v03.py'
+      - 'src/codeqa/pipeline/naming_snapshot_coverage_v03.py'
+      - 'tests/test_naming_snapshot_coverage_v03.py'
+      - 'tests/test_naming_review_worklist_v03.py'
+      - 'tests/test_naming_batch1_contract_v03.py'
+      - 'tests/test_naming_field_classification_v03.py'
+      - 'tests/test_naming_field_evidence_v03.py'
+      - 'tests/test_naming_rule_inventory_v03.py'
+      - 'tests/test_naming_semantic_candidate_v04.py'
+      - 'src/codeqa/core/naming_scope_discovery_v04.py'
+      - 'src/codeqa/pipeline/naming_scope_discovery_v04.py'
+      - 'tests/test_naming_scope_discovery_v04.py'
+      - 'tests/test_naming_node_id_role_evidence_v04.py'
+      - 'tests/test_naming_import_scope_gate_v04.py'
+      - 'src/codeqa/core/naming_internal_import_graph_v04.py'
+      - 'src/codeqa/pipeline/naming_internal_import_census_v04.py'
+      - 'tests/test_naming_internal_import_census_v04.py'
+      - 'src/codeqa/core/naming_official_adoption_v05.py'
+      - 'src/codeqa/pipeline/naming_official_adoption_v05.py'
+      - 'tests/test_naming_official_adoption_v05.py'
+      - 'src/codeqa/core/naming_official_policy_v05.py'
+      - 'src/codeqa/pipeline/naming_official_policy_v05.py'
+      - 'tests/test_naming_official_policy_v05.py'
+      - 'profiles/codeqa-python-naming-scoped-v0.5.json'
+      - 'docs/naming-official-policy-v05.md'
+      - 'profiles/codeqa-python-naming-scoped-v0.5-proposal.json'
+      - 'docs/naming-official-adoption-v05-proposal.md'
+      - 'fixtures/naming-governance/codeqa-internal-graph-charter-v04.json'
+      - 'docs/naming-internal-import-census-v04.md'
+      - 'src/codeqa/core/naming_import_scope_gate_v04.py'
+      - 'fixtures/naming-governance/codeqa-import-scope-witness-v04.json'
+      - 'docs/naming-import-scope-gate-v04.md'
+      - 'src/codeqa/core/naming_node_id_role_evidence_v04.py'
+      - 'fixtures/naming-governance/codeqa-node-id-role-witness-v04.json'
+      - 'docs/naming-node-id-role-evidence-v04.md'
+      - 'fixtures/naming-governance/codeqa-real-source-role-sites-v04.json'
+      - 'fixtures/naming-governance/codeqa-source-scope-manifest-v04.json'
+      - 'docs/naming-scope-discovery-v04.md'
+      - 'src/codeqa/core/naming_semantic_candidate_v04.py'
+      - 'fixtures/naming-governance/codeqa-semantic-candidate-v04.json'
+      - 'docs/naming-semantic-candidate-v04.md'
+      - 'src/codeqa/core/naming_rule_inventory_v03.py'
+      - 'src/codeqa/pipeline/naming_rule_inventory_v03.py'
+      - 'fixtures/naming-governance/codeqa-rule-acceptance-v03.json'
+      - 'docs/naming-rule-acceptance-v03.md'
+      - 'src/codeqa/core/naming_field_evidence_v03.py'
+      - 'src/codeqa/pipeline/naming_field_evidence_v03.py'
+      - 'src/codeqa/core/naming_field_classification_v03.py'
+      - 'docs/naming-field-classification-v03.md'
+      - 'fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json'
+      - 'docs/naming-review-worklist-v03.md'
+      - 'fixtures/naming-governance/codeqa-ast-review-v03-proposal.json'
+      - 'tests/test_naming_policy_precedence_v03.py'
+      - 'docs/naming-policy-precedence-v03-draft.md'
+      - '.github/workflows/naming-policy-precedence-v03.yml'
+      - 'pyproject.toml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/codeqa/core/naming_policy_precedence_v03.py'
+      - 'src/codeqa/core/naming_review_worklist_v03.py'
+      - 'src/codeqa/core/naming_snapshot_coverage_v03.py'
+      - 'src/codeqa/pipeline/naming_snapshot_coverage_v03.py'
+      - 'tests/test_naming_snapshot_coverage_v03.py'
+      - 'tests/test_naming_review_worklist_v03.py'
+      - 'tests/test_naming_batch1_contract_v03.py'
+      - 'tests/test_naming_field_classification_v03.py'
+      - 'tests/test_naming_field_evidence_v03.py'
+      - 'tests/test_naming_rule_inventory_v03.py'
+      - 'tests/test_naming_semantic_candidate_v04.py'
+      - 'src/codeqa/core/naming_scope_discovery_v04.py'
+      - 'src/codeqa/pipeline/naming_scope_discovery_v04.py'
+      - 'tests/test_naming_scope_discovery_v04.py'
+      - 'tests/test_naming_node_id_role_evidence_v04.py'
+      - 'tests/test_naming_import_scope_gate_v04.py'
+      - 'src/codeqa/core/naming_internal_import_graph_v04.py'
+      - 'src/codeqa/pipeline/naming_internal_import_census_v04.py'
+      - 'tests/test_naming_internal_import_census_v04.py'
+      - 'src/codeqa/core/naming_official_adoption_v05.py'
+      - 'src/codeqa/pipeline/naming_official_adoption_v05.py'
+      - 'tests/test_naming_official_adoption_v05.py'
+      - 'src/codeqa/core/naming_official_policy_v05.py'
+      - 'src/codeqa/pipeline/naming_official_policy_v05.py'
+      - 'tests/test_naming_official_policy_v05.py'
+      - 'profiles/codeqa-python-naming-scoped-v0.5.json'
+      - 'docs/naming-official-policy-v05.md'
+      - 'profiles/codeqa-python-naming-scoped-v0.5-proposal.json'
+      - 'docs/naming-official-adoption-v05-proposal.md'
+      - 'fixtures/naming-governance/codeqa-internal-graph-charter-v04.json'
+      - 'docs/naming-internal-import-census-v04.md'
+      - 'src/codeqa/core/naming_import_scope_gate_v04.py'
+      - 'fixtures/naming-governance/codeqa-import-scope-witness-v04.json'
+      - 'docs/naming-import-scope-gate-v04.md'
+      - 'src/codeqa/core/naming_node_id_role_evidence_v04.py'
+      - 'fixtures/naming-governance/codeqa-node-id-role-witness-v04.json'
+      - 'docs/naming-node-id-role-evidence-v04.md'
+      - 'fixtures/naming-governance/codeqa-real-source-role-sites-v04.json'
+      - 'fixtures/naming-governance/codeqa-source-scope-manifest-v04.json'
+      - 'docs/naming-scope-discovery-v04.md'
+      - 'src/codeqa/core/naming_semantic_candidate_v04.py'
+      - 'fixtures/naming-governance/codeqa-semantic-candidate-v04.json'
+      - 'docs/naming-semantic-candidate-v04.md'
+      - 'src/codeqa/core/naming_rule_inventory_v03.py'
+      - 'src/codeqa/pipeline/naming_rule_inventory_v03.py'
+      - 'fixtures/naming-governance/codeqa-rule-acceptance-v03.json'
+      - 'docs/naming-rule-acceptance-v03.md'
+      - 'src/codeqa/core/naming_field_evidence_v03.py'
+      - 'src/codeqa/pipeline/naming_field_evidence_v03.py'
+      - 'src/codeqa/core/naming_field_classification_v03.py'
+      - 'docs/naming-field-classification-v03.md'
+      - 'fixtures/naming-governance/codeqa-batch1-contract-evidence-v03.json'
+      - 'docs/naming-review-worklist-v03.md'
+      - 'fixtures/naming-governance/codeqa-ast-review-v03-proposal.json'
+      - 'tests/test_naming_policy_precedence_v03.py'
+      - 'docs/naming-policy-precedence-v03-draft.md'
+      - '.github/workflows/naming-policy-precedence-v03.yml'
+      - 'pyproject.toml'
+
+permissions:
+  contents: read
+
+jobs:
+  naming-precedence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0  # pinned historical source SHA for governance regression
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install package and pinned test dependencies
+        run: python -m pip install --disable-pip-version-check -e .
+      - name: Run adversarial precedence tests and existing governance tests
+        env:
+          CODEQA_NAMING_PINNED_REV: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python -m unittest discover -s tests -p 'test_naming_batch1_contract_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_field_classification_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_field_evidence_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_rule_inventory_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_semantic_candidate_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_scope_discovery_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_node_id_role_evidence_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_import_scope_gate_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_internal_import_census_v04.py' -v
+          python -m unittest discover -s tests -p 'test_naming_official_adoption_v05.py' -v
+          python -m unittest discover -s tests -p 'test_naming_official_policy_v05.py' -v
+          python -m unittest discover -s tests -p 'test_naming_snapshot_coverage_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_review_worklist_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_policy_precedence_v03.py' -v
+          python -m unittest discover -s tests -p 'test_naming_glossary_governance_v02.py' -v
+          python -m unittest discover -s tests -p 'test_naming_governance_source_v02.py' -v

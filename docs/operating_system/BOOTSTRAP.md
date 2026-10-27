@@ -10,36 +10,50 @@
 2. Read local `docs/operating_system/README.md` and
    `docs/operating_system/central_skills.json`; reject floating or mixed pins.
 3. Fetch and verify the exact central `chatgpt-operation` commit
-   `059050330a549fce0b543687e2e9d4dca6c3f624`; read the Samuel index, `ESSENTIAL_RULES.md`,
+   `7b5b31e143474f4859fb6c85fb4a27afbad4eed3`; read the Samuel index, `ESSENTIAL_RULES.md`,
    `session-bootstrap` and `state-refresh` at this commit. Verify their
    expected blob SHA values before using them.
 4. **Always** fetch and verify both `skills/catalog.json` and
-   `skills/capability-registry.json` from the same pin; cross-check
-   `GITHUB_BRANCH_DELETE` -> `repository-mutation` and the registry's
-   provider ordering. Do not infer capability absence from connector visibility.
-5. **Always** verify/read the central `repository-mutation` contract and
+   `skills/capability-registry.json` from the same pin; require the catalog's
+   three mandatory `INIT` entries (`session-bootstrap`, `state-refresh`,
+   `problem-oriented-response`). Cross-check `GITHUB_BRANCH_DELETE` ->
+   `repository-mutation` and registry provider order. Do not infer capability
+   absence from connector visibility.
+5. **Always** load `skills/problem-oriented-response/README.md` and its
+   `skills/problem-oriented-response/contract.json` at the exact central pin.
+   Match both blob SHAs against `central_skills.json`; require
+   `contract_id=samuel.problem-first-response.v1`, `mode=problem_first`,
+   `detail_policy=on_request`, and `human_review_requires_question=true`.
+   Missing or inconsistent response contracts mean `BLOCKED_RESPONSE_CONTRACT`;
+   do not report initialization success.
+6. **Always** verify/read the central `repository-mutation` contract and
    inspect local `.github/workflows/samuel-branch-delete.yml`,
    `.github/requests/branch-delete-request.json` and their pinned Action
    binding. This eagerly primes the `GITHUB_BRANCH_DELETE` route; no
    deletion, dispatch, or mutation is performed by initialization.
-6. Restore local codeQA authority from `README.md`,
+7. Restore local codeQA authority from `README.md`,
    `docs/codeqa-package-architecture.md` and
    `docs/repository-structure.md`. Refresh active Issues/PRs, branch,
    CI and current work state. Select immediate work gate and load other
    Samuel skills only if triggered.
-7. Report the exact pin, loaded sources, state, first gate and:
+8. Report the exact pin, loaded sources, state, first gate and:
    ```text
+   response_contract=samuel.problem-first-response.v1
+   response_mode=problem_first
+   detail_policy=on_request
    GITHUB_CAPABILITY_ROUTING=READY|BLOCKED
    GITHUB_BRANCH_DELETE_ROUTE=READY|BLOCKED
    GITHUB_MUTATION_PREFLIGHT=TRIGGER_REQUIRED
    ```
-8. Stop **read-only**. A successful init is neither permission nor an
+9. Stop **read-only**. A successful init is neither permission nor an
    automatic request to delete branches.
 
 ## Fail-closed contract
 
 Mark routing `BLOCKED` if any required identity, verified central source,
 catalog/provider mapping, or consumer execution route is absent/contradictory.
+A missing or inconsistent mandatory response skill/machine contract blocks the
+INIT result as `BLOCKED_RESPONSE_CONTRACT` and forbids normal post-init mode.
 Distinguish routing-readiness from provider authorization/execution state.
 When a later user mutation is requested, re-resolve `GITHUB_BRANCH_DELETE`
 to Samuel `repository-mutation`, follow registry-ordered providers, obtain
