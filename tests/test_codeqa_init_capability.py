@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = "cb785d898c624ba2b47fbb3d3840d48387605f47"
+PIN = "7b5b31e143474f4859fb6c85fb4a27afbad4eed3"
 MANIFEST = ROOT / "docs/operating_system/central_skills.json"
 REQUEST = ROOT / ".github/requests/branch-delete-request.json"
 WORKFLOW = ROOT / ".github/workflows/samuel-branch-delete.yml"
