@@ -1,6 +1,6 @@
 # Central Samuel skills — codeQA consumer
 
-**Source:** `HyungseonSong-plasma/chatgpt-operation@b56b6cdc0d24f9a50e23165503ca6a4bbd70a771`
+**Source:** `HyungseonSong-plasma/chatgpt-operation@cb785d898c624ba2b47fbb3d3840d48387605f47`
 
 ## Required init
 
@@ -51,4 +51,4 @@ Other skills load only when triggered (e.g., `GITHUB_PR_MERGE`,
 
 ## GitHub creation and update routing
 
-Samuel `b56b6cdc0d24f9a50e23165503ca6a4bbd70a771` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is owned by `pull-request-create`: `github-connector` (priority 10) with guarded `repository-native` (priority 20) via `samuel-controller.yml` and `samuel-native-github.yml`. Safety-screening and policy denials are hard stops, not fallback triggers. Native registration does not authorize merges, policy exceptions, or clearing historical blockers. Existing `GITHUB_BRANCH_DELETE` native-first and `GITHUB_PR_MERGE` guarded routes are unchanged. A successful create action does not certify CI, domain semantics, or human acceptance. Read exact target identities before and after any mutation; do not modify the capability registry with the native repository mutation workflow, whose protected policy explicitly denies that path.
+Samuel `cb785d898c624ba2b47fbb3d3840d48387605f47` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled by `pull-request-create` through `github-connector` only. Existing `GITHUB_BRANCH_DELETE` native-first and `GITHUB_PR_MERGE` guarded routes are unchanged. A successful create action does not certify CI, domain semantics, or human acceptance. Read exact target identities before and after any mutation; do not modify the capability registry with the native repository mutation workflow, whose protected policy explicitly denies that path.
