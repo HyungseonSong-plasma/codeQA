@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = "cb785d898c624ba2b47fbb3d3840d48387605f47"
+PIN = "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771"
 MANIFEST = ROOT / "docs/operating_system/central_skills.json"
 REQUEST = ROOT / ".github/requests/branch-delete-request.json"
 WORKFLOW = ROOT / ".github/workflows/samuel-branch-delete.yml"
@@ -32,6 +32,7 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
         for record in [os["index"], os["essential_rules"],
                        manifest["skill_catalog"], manifest["capability_registry"]]:
             self.assertRegex(record["expected_blob_sha"], r"^[0-9a-f]{40}$")
+        self.assertEqual(manifest["capability_registry"]["expected_blob_sha"], "27f8f64249e3582e04e795e92695d84218e262c0")
         by_name = {entry["name"]: entry for entry in manifest["skills"]}
         self.assertEqual(set(by_name), {"session-bootstrap", "state-refresh", "problem-oriented-response", "repository-mutation", "pull-request-create"})
         self.assertEqual(by_name["session-bootstrap"]["load_on"], ["INIT"])
@@ -47,6 +48,8 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
         self.assertEqual(machine["expected_mode"], "problem_first")
         self.assertEqual(machine["expected_detail_policy"], "on_request")
         self.assertIs(machine["human_review_requires_question"], True)
+        self.assertEqual(by_name["repository-mutation"]["expected_blob_sha"], "496f3c52e8c5c3a8f376abffa23f5317c291f76b")
+        self.assertEqual(by_name["pull-request-create"]["expected_blob_sha"], "a466f465ffd56a13816f1b44a7a22001161b0585")
         self.assertEqual(by_name["repository-mutation"]["load_on"], [
             "MUTATE", "GITHUB_BRANCH_DELETE", "GITHUB_MUTATION_CAPABILITY_VERDICT",
             "GITHUB_FILE_CREATE", "GITHUB_FILE_UPDATE", "GITHUB_BRANCH_CREATE"
