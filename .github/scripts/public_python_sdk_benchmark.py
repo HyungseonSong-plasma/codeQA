@@ -313,10 +313,9 @@ def run_partial_pyright(sources: dict[str, bytes], binary: Path, output: Path) -
 
 
 def validate_full_source_diagnostic(diagnostic: object, repo: Path) -> None:
-    """Require a real in-tree diagnostic and a zero-based source line witness.
+    """Check real Pyright UTF-16 source-range locations, not scan coverage.
 
-    This validates diagnostic locations only. It does not prove that every
-    configured target was analyzed, or that dependencies were resolved.
+    A valid location is no proof of type soundness or complete target analysis.
     """
     require(isinstance(diagnostic, dict)
             and diagnostic.get("severity") in {"error", "warning", "information"}
@@ -328,11 +327,33 @@ def validate_full_source_diagnostic(diagnostic: object, repo: Path) -> None:
     require(actual.is_relative_to(repo.resolve()) and actual.is_file(),
             "FULL_SOURCE_PYRIGHT_FOREIGN_DIAGNOSTIC")
     span = diagnostic.get("range")
-    require(isinstance(span, dict) and isinstance(span.get("start"), dict),
+    require(isinstance(span, dict)
+            and isinstance(span.get("start"), dict)
+            and isinstance(span.get("end"), dict),
             "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE")
-    line = span["start"].get("line")
-    require(type(line) is int and 0 <= line < len(actual.read_bytes().splitlines()),
-            "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE")
+    start, end = span["start"], span["end"]
+    for point in (start, end):
+        require(type(point.get("line")) is int
+                and type(point.get("character")) is int,
+                "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE")
+
+    # Pyright uses zero-based UTF-16 code-unit offsets (not Python str
+    # indices); only the selected, independently fetched source is read.
+    try:
+        lines = actual.read_text(encoding="utf-8").split("\n")
+    except UnicodeError as exc:
+        raise RuntimeError("FULL_SOURCE_PYRIGHT_UNREADABLE_SOURCE") from exc
+    for point in (start, end):
+        line, column = point["line"], point["character"]
+        require(0 <= line < len(lines),
+                "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE")
+        body = lines[line].removesuffix("\r")
+        utf16_columns = len(body.encode("utf-16-le")) // 2
+        require(0 <= column <= utf16_columns,
+                "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE")
+    require((end["line"], end["character"])
+            >= (start["line"], start["character"]),
+            "FULL_SOURCE_PYRIGHT_REVERSED_RANGE")
 
 
 def run_full_repository_pyright(manifest: dict, sources: dict[str, bytes],
