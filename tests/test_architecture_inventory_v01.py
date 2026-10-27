@@ -126,6 +126,16 @@ class ArchitectureInventoryV01Tests(unittest.TestCase):
         self.assertEqual(result["source_scope"], "src/garden")
         self.assertEqual(result["status"], "EVIDENCE_ONLY")
 
+    def test_missing_declared_role_is_visible_and_not_a_pass(self) -> None:
+        selected = {p: value for p, value in FILES.items()
+                    if not p.startswith("src/widget/adapter/")}
+        result = inventory(selected)
+        self.assertEqual(result["status"], "INCOMPLETE")
+        self.assertTrue(any(item["code"] == "MISSING_DECLARED_ROLE"
+                            and item["source"] == "src/widget/adapter"
+                            for item in result["declared_role_findings"]))
+        self.assertNotIn("question_opportunities", result)
+
     def test_invalid_paths_and_snapshot_fail_closed(self) -> None:
         for bad in ("../escape.py", "/absolute.py", "src//double.py",
                     "src/widget/../escape.py", "src/widget/bad\nname.py",
