@@ -5,6 +5,10 @@
   "retirement_policy": "HUMAN_REVIEW_REQUIRED_PRESERVE_PINNED_EVIDENCE",
   "workflows": [
     {
+      "path": ".github/workflows/architecture-inventory.yml",
+      "blob_sha": "3a115ab5ee1c8764ab9d3b430abee99b86c3bf86"
+    },
+    {
       "path": ".github/workflows/layout.yml",
       "blob_sha": "19bb64efe07ac6974cc1f965ebf1ffb7fb4635f2"
     },
