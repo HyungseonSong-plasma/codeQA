@@ -9,7 +9,11 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 from collections.abc import Mapping
+import ast
+import io
+import keyword
 import re
+import tokenize
 
 _REV = re.compile(r"git:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}\Z")
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
@@ -90,6 +94,21 @@ def _lexical_name(line: str, name: str) -> bool:
     return bool(re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", line))
 
 
+def _python_name_token_at(source: str, line: int, name: str) -> bool:
+    """Require a real NAME token on a parseable Python source line.
+
+    This is still lexical evidence: it cannot establish declaration identity,
+    runtime binding, API consumers or a safe rename.
+    """
+    try:
+        ast.parse(source)
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+        return any(t.type == tokenize.NAME and t.string == name
+                   and t.start[0] == line for t in tokens)
+    except (SyntaxError, IndentationError, tokenize.TokenError, ValueError):
+        return False
+
+
 def _verify_source(path: str, digest: str, sources: Mapping[str, str]) -> str:
     if not _valid_path(path) or path not in sources or not isinstance(sources[path], str):
         raise RenameImpactError("unverified path or incomplete source scope")
@@ -105,7 +124,9 @@ def assess_rename_impact(
     proposed_name: str, references: tuple[ReferenceWitness, ...],
     source_selection_complete: bool, policy_id: str,
 ) -> RenameImpactReport:
-    if not isinstance(revision, str) or not _REV.fullmatch(revision):
+    if (not isinstance(revision, str) or not _REV.fullmatch(revision)
+            or any(part in (".", "..")
+                   for part in revision[4:].split("@", 1)[0].split("/"))):
         raise RenameImpactError("exact immutable Git revision required")
     if not isinstance(policy_id, str) or not _POLICY.fullmatch(policy_id):
         raise RenameImpactError("versioned policy identity required")
@@ -121,8 +142,21 @@ def assess_rename_impact(
         raise RenameImpactError("invalid declaration identity")
     if not isinstance(proposed_name, str) or not proposed_name or proposed_name == symbol.name:
         raise RenameImpactError("proposal must change an identifier")
+    if symbol.path.endswith((".py", ".pyi")) and (
+        not symbol.name.isidentifier() or keyword.iskeyword(symbol.name)
+    ):
+        raise RenameImpactError("invalid Python source identifier")
+    # Python source migration suggestions must at least be syntactically
+    # expressible as identifiers; this is not a binding or public API proof.
+    if symbol.path.endswith((".py", ".pyi")) and (
+        not proposed_name.isidentifier() or keyword.iskeyword(proposed_name)
+    ):
+        raise RenameImpactError("invalid Python rename target identifier")
     source = _verify_source(symbol.path, symbol.source_sha256, sources)
-    if not _lexical_name(_line(source, symbol.line), symbol.name):
+    symbol_line = _line(source, symbol.line)
+    if not (_python_name_token_at(source, symbol.line, symbol.name)
+            if symbol.path.endswith((".py", ".pyi"))
+            else _lexical_name(symbol_line, symbol.name)):
         raise RenameImpactError("declaration lexical witness missing")
 
     blockers: set[str] = set()
@@ -143,7 +177,8 @@ def assess_rename_impact(
     for ref in references:
         if not isinstance(ref, ReferenceWitness) or ref.classification not in _CLASSES:
             raise RenameImpactError("invalid reference evidence")
-        line = _line(_verify_source(ref.path, ref.source_sha256, sources), ref.line)
+        ref_source = _verify_source(ref.path, ref.source_sha256, sources)
+        line = _line(ref_source, ref.line)
         if not isinstance(ref.target_name, str) or ref.target_name != symbol.name:
             raise RenameImpactError("reference target mismatch")
         key = (ref.path, ref.line, ref.classification)
@@ -151,7 +186,9 @@ def assess_rename_impact(
             raise RenameImpactError("duplicate reference witness")
         seen.add(key)
         if ref.classification == "verified_lexical":
-            if not _lexical_name(line, symbol.name):
+            if not (_python_name_token_at(ref_source, ref.line, symbol.name)
+                    if ref.path.endswith((".py", ".pyi"))
+                    else _lexical_name(line, symbol.name)):
                 raise RenameImpactError("reference lexical token missing")
             lexical_count += 1
         else:

@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import argparse
-from hashlib import sha256
 from importlib.metadata import version
-import json
-from pathlib import Path, PurePosixPath
+from pathlib import Path
+import subprocess
+import sys
 from tempfile import TemporaryDirectory
-from zipfile import ZipFile
 
 
 def main() -> None:
@@ -21,7 +20,9 @@ def main() -> None:
 
     import codeqa
     from codeqa.infrastructure.resources import ResourceRegistry
+    from codeqa.infrastructure.resource_bundle import ResourceBundleError, unpack_verified_resource_bundle
     from codeqa.pipeline.python import analyze_python
+    from codeqa.pipeline.analysis_request import AnalysisOptions, AnalysisRequest, analyze_python_request
 
     installed = Path(codeqa.__file__).resolve()
     checkout = args.source_root.resolve()
@@ -32,34 +33,14 @@ def main() -> None:
 
     with TemporaryDirectory(prefix="codeqa-package-resources-") as tmpdir:
         dest = Path(tmpdir)
-        with ZipFile(args.bundle) as archive:
-            names = archive.namelist()
-            if len(set(names)) != len(names):
-                raise SystemExit("PACKAGE_SMOKE=FAIL duplicate resource archive names")
-            for name in names:
-                p = PurePosixPath(name)
-                if (p.is_absolute() or "\\" in name
-                        or any(part in {"", ".", ".."} for part in name.split("/"))):
-                    raise SystemExit("PACKAGE_SMOKE=FAIL unsafe archive path")
-            if "RESOURCE_MANIFEST.json" not in names:
-                raise SystemExit("PACKAGE_SMOKE=FAIL missing manifest")
-            manifest = json.loads(archive.read("RESOURCE_MANIFEST.json"))
-            if manifest["version"] != args.version:
-                raise SystemExit("PACKAGE_SMOKE=FAIL resource bundle version mismatch")
-            if manifest["source_revision"] != args.source_revision:
-                raise SystemExit("PACKAGE_SMOKE=FAIL resource snapshot mismatch")
-            hashes = manifest["files_sha256"]
-            if set(names) != set(hashes) | {"RESOURCE_MANIFEST.json"}:
-                raise SystemExit("PACKAGE_SMOKE=FAIL bundle content differs from manifest")
-            if len(manifest["resources"]) < 2:
-                raise SystemExit("PACKAGE_SMOKE=FAIL incomplete resource registry")
-            for name, digest in hashes.items():
-                data = archive.read(name)
-                if sha256(data).hexdigest() != digest:
-                    raise SystemExit("PACKAGE_SMOKE=FAIL bundled resource hash mismatch")
-                out = dest.joinpath(*name.split("/"))
-                out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_bytes(data)
+        try:
+            manifest = unpack_verified_resource_bundle(
+                args.bundle, dest, version=args.version,
+                source_revision=args.source_revision,
+            )
+        except ResourceBundleError as exc:
+            raise SystemExit("PACKAGE_SMOKE=FAIL " + str(exc)) from exc
+        hashes = manifest["files_sha256"]
 
         registry = ResourceRegistry(dest)
         schema = registry.load_json("ccg_schema")
@@ -72,6 +53,27 @@ def main() -> None:
         summary = report.summary_document()
         if not report.graph.nodes or summary["source"]["analyzed_files"] != 1:
             raise SystemExit("PACKAGE_SMOKE=FAIL no actual installed-package analysis")
+        requested = analyze_python_request(AnalysisRequest(
+            sources={"src/sample.py": "def hello():\n    return 1\n"},
+            snapshot_id="package-smoke:v0.2",
+            ccg_schema=schema, mechanical_profile=profile,
+            options=AnalysisOptions.from_mapping({"changed_paths": ["src/sample.py"]}),
+        ))
+        if (requested.analysis.graph.to_document() != report.graph.to_document()
+                or requested.analysis.quality.to_document() != report.quality.to_document()
+                or requested.companion_states["impact"] != "EXECUTED"
+                or requested.companion_states["naming"] != "NOT_REQUESTED"
+                or requested.companion_states["formal"] != "NOT_REQUESTED"):
+            raise SystemExit("PACKAGE_SMOKE=FAIL opt-in request changed Mechanical or activated unsupported companions")
+        # A real isolated consumer must reject malformed resources rather
+        # than silently loading files from the checkout.
+        subprocess.run([
+            sys.executable, "-I",
+            str(args.source_root / ".github/scripts/package_negative_smoke.py"),
+            "--bundle", str(args.bundle),
+            "--source-revision", args.source_revision,
+            "--version", args.version,
+        ], check=True)
         print("PACKAGE_SMOKE=PASS", installed, "node_count=", len(report.graph.nodes),
               "resource_count=", len(hashes), "version=", version("codeqa"))
 

@@ -5,15 +5,56 @@ A language-independent, evidence-based code quality evaluation system.
 ## codeQA-init — Samuel capability-ready bootstrap
 
 Run `codeQA-init` using the canonical [consumer bootstrap](docs/operating_system/BOOTSTRAP.md).
-It verifies the exact Samuel binding, essential rules and init skills; **always**
-verifies the central skill catalog and capability registry; and proactively loads
+It verifies the exact Samuel binding, essential rules and init skills, including
+the mandatory `problem-oriented-response` README + machine contract;
+**always** verifies the central skill catalog and capability registry; and proactively loads
 `GITHUB_BRANCH_DELETE` / `repository-mutation` routing to the permanent
 [Samuel branch-delete workflow](.github/workflows/samuel-branch-delete.yml).
-Initialization remains **read-only**. A deletion request is a separate authorized,
+Initialization remains **read-only**. A completed init requires
+`response_contract=samuel.problem-first-response.v1`,
+`response_mode=problem_first` and `detail_policy=on_request`; an absent or
+inconsistent response contract fails closed as `BLOCKED_RESPONSE_CONTRACT`. A deletion request is a separate authorized,
 exact-SHA-guarded change to
 [the request manifest](.github/requests/branch-delete-request.json).
 The connector's missing delete operation is not evidence that Samuel deletion is
 unavailable.
+
+## Supported surface (source-backed v0.1 inventory)
+
+The table below is validated against the [versioned support manifest](docs/support-surface-v0.1.json),
+registered resource IDs, current Python entrypoint symbols and package metadata by
+`tests/test_support_surface.py` in the existing Layout CI. It records **source witnesses only**;
+CI success, human usability, actual SDK/DB compatibility and full P1–P8 correctness
+are **not** implied. `DEFAULT_SCOPED` means default **within the Python Mechanical
+pipeline when invoked**, not automatic execution or certification. `OPT_IN`
+features are independent and do not silently alter the Mechanical verdict.
+
+<!-- support-surface:v0.1:start -->
+| Feature | Mode | Language | Authority | Evidence scope |
+| --- | --- | --- | --- | --- |
+| repository_layout | OPT_IN | language-neutral | SCOPED_REVIEW | TRACKED_ROOT_LAYOUT_ONLY |
+| adapter_capability | CONTRACT_ONLY | language-neutral, Python | CONTRACT_ONLY | DECLARED_SYNTAX_CAPABILITY_ONLY |
+| python_mechanical | DEFAULT_SCOPED | Python | HEURISTIC_REVIEW | PYTHON_AST_INPUT_ONLY |
+| mechanical_companions | OPT_IN | Python | SCOPED_REVIEW | SELECTED_STATIC_METRICS_ONLY |
+| python_naming_safe | OPT_IN | Python | SCOPED_REVIEW | PYTHON_DECLARATION_SPELLING_ONLY |
+| naming_companions | OPT_IN | Python | SCOPED_REVIEW | EXPERIMENTAL_DECLARATION_WITNESSES |
+| official_naming_v05_exact_field | OPT_IN | Python | SCOPED_REVIEW | EXACT_FIELD_LEXICAL_ONLY |
+| qa_result_contract | CONTRACT_ONLY | language-neutral, Python | CONTRACT_ONLY | SCOPED_MECHANICAL_EXCHANGE_ONLY |
+| external_evidence_gate | OPT_IN | language-neutral | SCOPED_GATE | PINNED_ADMITTED_EXTERNAL_EVIDENCE_ONLY |
+| formal_generated_fixture | FIXTURE_ONLY | Dafny, Python | FIXTURE_ONLY | CONTROLLED_GENERATED_PYTHON_FIXTURE |
+| semantic_companions | OPT_IN | Python | SCOPED_REVIEW | DECLARED_ARCHITECTURE_SYNTAX_ONLY |
+| mechanical_p2_p4_p8 | NOT_IMPLEMENTED | language-neutral | NONE | P2_P4_P5_P6_P7_P8_UNSUPPORTED |
+| non_python_mechanical | NOT_IMPLEMENTED | Rust, C++, MOOSE | NONE | END_TO_END_MECHANICAL_NOT_VERIFIED |
+<!-- support-surface:v0.1:end -->
+
+An opt-in Gate's scoped `ALLOW` is not a general production authorization;
+Formal `ALLOW_FIXTURE_ONLY` is never a production merge or semantic-preservation
+approval. Language-neutral CCG schemas are not full Rust/C++/MOOSE analyzers.
+The official Naming v0.5 opt-in policy applies to **one pinned Python field only**; the broader v0.3/v0.4 semantic candidate glossary remains unadopted. Human newcomer comprehension remains `NOT_EVALUATED` pending independent study.
+
+## Language execution coverage
+
+The [versioned per-language execution matrix](docs/language-execution-matrix-v0.1.md) distinguishes the language-neutral CCG **contract** from the actual Python AST pipeline. Rust and C++/MOOSE source fixtures and Dafny-generated Python Formal Gate receipts do not establish end-to-end non-Python Mechanical or production ABI support. Source/workflow references are checked, but actual matching-revision CI must be verified separately; unsupported capabilities remain `NOT_EVALUATED`.
 
 ## Repository status
 

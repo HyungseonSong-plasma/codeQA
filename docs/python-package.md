@@ -84,3 +84,84 @@ No PyPI upload, GitHub Release publishing, automatic tag, signing claim,
 platform-specific binary, MOOSE SDK bundle or source migration is part of this
 work. A public distribution requires an explicit release/publishing decision,
 license/metadata review and separate compatibility review.
+
+## Installed consumer failure modes (#125)
+
+
+The wheel and sdist smoke now use the shared, opt-in
+`codeqa.infrastructure.resource_bundle.unpack_verified_resource_bundle`
+validator. It verifies the exact version/source SHA, bundled registry against
+`pyproject.toml`, every registered resource path and SHA-256, duplicate/unsafe
+ZIP names, archive/destination symlinks and bounded extraction sizes **before writing files**.
+No checkout-local resource fallback is added. A separate isolated-wheel CI
+step corrupts the actual produced resource ZIP (wrong version/source, content
+tamper, missing and extra resources) and also checks that an unknown
+resource profile ID fails after unpacking the real verified bundle. All nine
+negative cases must fail closed, including self-consistent duplicate/non-finite
+JSON payloads; the isolated-wheel runner also rejects partial extraction. Standalone unit tests exercise additional malformed inputs.
+
+Consumers must pin and verify the bundle against their selected package
+release/commit; neither this validator nor the SHA256SUMS artifact independently
+establishes an external SDK, production DB or deployed source compatibility.
+Human newcomer onboarding success remains `NOT_EVALUATED`.
+
+## Resource archive control-character rejection (#125 incremental)
+
+The explicit resource-bundle unpacker now rejects ASCII control characters
+(including newline, tab, carriage return and DEL) in both ZIP member names and
+manifest registry paths. This is an additional fail-closed portability and
+input-integrity guard, not a replacement for existing path traversal,
+symlink, exact SHA-256, version or source-revision checks. No checkout-local
+fallback or production compatibility claim is introduced.
+
+## Hash-consistent malformed JSON rejection (#125)
+
+Resource extraction also parses every registered JSON payload **before any
+filesystem writes**, rejecting malformed UTF-8/JSON, duplicate object keys and
+non-finite JSON constants even if the ZIP manifest SHA-256 matches the invalid
+bytes. This is input-integrity validation, not schema conformance, signed
+provenance or a public consumer compatibility claim. The separate resource
+registry still requires an explicitly supplied, trusted extraction root.
+
+## Cross-platform resource path identity (#125)
+
+The bundle builder and unpacker now reject non-portable resource names before
+publishing or extracting: Windows device components and alternate-data-stream
+colons, trailing dot/space components, non-NFC Unicode components, and
+case-folding aliases between ZIP members or registered resource paths. These
+controls prevent one manifest from addressing different extracted files on
+case-insensitive or Unicode-normalizing filesystems. They do **not** establish
+signed publisher provenance, protection against a concurrent filesystem
+attacker, or production consumer compatibility. Existing explicit root and
+exact-byte SHA-256 checks remain mandatory.
+
+## Pre-extraction file/directory conflict guard (#125)
+
+Even a self-consistent, fully hashed resource manifest can contain a file
+whose path is also the parent of another file (including a case-folding
+alias on portable filesystems). The unpacker now rejects these archive
+member prefix conflicts **before creating the destination directory**;
+otherwise extraction could fail after partially writing a resource root.
+This remains a local integrity check, not a signed source attestation or
+protection against concurrent filesystem modification.
+
+## Consistent strict JSON loading (#125)
+
+The explicit `ResourceRegistry.load_json` path and the verified ZIP unpacker
+now both reject duplicate JSON object keys (including nested duplicates),
+non-standard `NaN`/`Infinity` constants and floating-point exponent overflow
+(e.g. `1e9999`). Previously the bundle's registered JSON check rejected the
+first two but could accept overflow; the standalone registry accepted all
+three. These are deterministic parse-integrity checks, not schema validation,
+cryptographic authenticity or an independently verified consumer release.
+
+## Standalone resource-path portability (#125)
+
+Direct `ResourceRegistry` consumers now receive a bounded
+`ResourceResolutionError` for control-byte paths (including NUL), Windows
+alternate-data-stream/device names, trailing dot/space and non-NFC Unicode
+components. This aligns the explicit local registry's path acceptance with
+verified-bundle portability checks; it does not introduce automatic resource
+discovery or a claim that a mutable local filesystem is authenticated.
+
+The installed wheel and sdist smoke now execute these negative bundle checks using the isolated interpreter **without altering the packaging workflow YAML**. The existing installed AnalysisRequest/default Mechanical equality smoke from #123 remains mandatory. This revision avoids invalidating the versioned #124 workflow Git-blob ledger merely to add an equivalent negative step.

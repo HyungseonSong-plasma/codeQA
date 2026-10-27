@@ -1,0 +1,333 @@
+{
+  "schema_version": "0.1",
+  "package": "codeqa",
+  "release": "0.2.0a1",
+  "evidence_level": "SOURCE_WITNESS_ONLY",
+  "features": [
+    {
+      "id": "repository_layout",
+      "mode": "OPT_IN",
+      "languages": [
+        "language-neutral"
+      ],
+      "authority": "SCOPED_REVIEW",
+      "scope": "TRACKED_ROOT_LAYOUT_ONLY",
+      "source": "src/codeqa/evaluation/layout.py",
+      "entrypoint": "codeqa.evaluation.layout:evaluate_layout",
+      "evidence": [
+        "docs/repository-structure.md"
+      ],
+      "resources": [
+        "repository_layout"
+      ],
+      "principles": [],
+      "limitations": [
+        "no source-code quality certification"
+      ]
+    },
+    {
+      "id": "adapter_capability",
+      "mode": "CONTRACT_ONLY",
+      "languages": [
+        "language-neutral",
+        "Python"
+      ],
+      "authority": "CONTRACT_ONLY",
+      "scope": "DECLARED_SYNTAX_CAPABILITY_ONLY",
+      "source": "src/codeqa/adapters/python.py",
+      "entrypoint": "codeqa.adapters.python:adapt_python_sources",
+      "evidence": [
+        "docs/contracts/language-adapter-0.1.md"
+      ],
+      "resources": [
+        "adapter_capability_schema",
+        "source_selection_schema",
+        "python_adapter_capability"
+      ],
+      "principles": [],
+      "limitations": [
+        "non-Python full Mechanical parity not established"
+      ]
+    },
+    {
+      "id": "python_mechanical",
+      "mode": "DEFAULT_SCOPED",
+      "languages": [
+        "Python"
+      ],
+      "authority": "HEURISTIC_REVIEW",
+      "scope": "PYTHON_AST_INPUT_ONLY",
+      "source": "src/codeqa/pipeline/python.py",
+      "entrypoint": "codeqa.pipeline.python:analyze_python",
+      "evidence": [
+        "docs/mechanical-pipeline.md"
+      ],
+      "resources": [
+        "ccg_schema",
+        "mechanical_profile"
+      ],
+      "principles": [
+        "P1",
+        "P3"
+      ],
+      "limitations": [
+        "heuristic syntax observations only",
+        "unresolved calls and runtime behavior not certified"
+      ]
+    },
+    {
+      "id": "mechanical_companions",
+      "mode": "OPT_IN",
+      "languages": [
+        "Python"
+      ],
+      "authority": "SCOPED_REVIEW",
+      "scope": "SELECTED_STATIC_METRICS_ONLY",
+      "source": "src/codeqa/evaluation/duplication.py",
+      "entrypoint": "codeqa.evaluation.duplication:evaluate_duplication",
+      "evidence": [
+        "README.md"
+      ],
+      "resources": [
+        "extraction_p3_profile",
+        "extraction_p3_report_schema",
+        "structural_p3_delta_schema",
+        "dependency_metrics_profile",
+        "complexity_profile",
+        "duplication_profile",
+        "duplication_report_schema",
+        "statement_similarity_profile",
+        "statement_similarity_report_schema",
+        "complexity_report_schema",
+        "body_complexity_v02_schema",
+        "metric_snapshot_v02_schema",
+        "source_change_v02_schema",
+        "qa_delta_v02_schema"
+      ],
+      "principles": [
+        "P3"
+      ],
+      "limitations": [
+        "profile-driven optional metrics not a P1-P8 certificate"
+      ]
+    },
+    {
+      "id": "python_naming_safe",
+      "mode": "OPT_IN",
+      "languages": [
+        "Python"
+      ],
+      "authority": "SCOPED_REVIEW",
+      "scope": "PYTHON_DECLARATION_SPELLING_ONLY",
+      "source": "src/codeqa/pipeline/naming_product.py",
+      "entrypoint": "codeqa.pipeline.naming_product:analyze_python_naming_opt_in",
+      "evidence": [
+        "docs/naming-product-boundary-v0.1.md"
+      ],
+      "resources": [
+        "python_naming_safe_profile",
+        "naming_report_schema"
+      ],
+      "principles": [],
+      "limitations": [
+        "safe Python AST declaration spelling evidence only",
+        "opt-in; not a default Mechanical or Public QA Result path",
+        "official Naming v0.5 is a separate single-declaration opt-in; no external API proof"
+      ]
+    },
+    {
+      "id": "naming_companions",
+      "mode": "OPT_IN",
+      "languages": [
+        "Python"
+      ],
+      "authority": "SCOPED_REVIEW",
+      "scope": "EXPERIMENTAL_DECLARATION_WITNESSES",
+      "source": "src/codeqa/evaluation/naming.py",
+      "entrypoint": "codeqa.evaluation.naming:evaluate_naming",
+      "evidence": [
+        "README.md"
+      ],
+      "resources": [
+        "python_naming_coverage_v02_profile",
+        "naming_coverage_v02_report_schema",
+        "python_pinned_ancestor_profile",
+        "pinned_ancestor_report_schema",
+        "python_directional_fields_profile",
+        "directional_fields_report_schema",
+        "python_naming_glossary_profile",
+        "naming_glossary_report_schema",
+        "naming_source_delta_schema"
+      ],
+      "principles": [],
+      "limitations": [
+        "human-reviewed glossary and rename migration not established",
+        "companion resource family; no unified default entrypoint"
+      ]
+    },
+    {
+      "id": "official_naming_v05_exact_field",
+      "mode": "OPT_IN",
+      "languages": [
+        "Python"
+      ],
+      "authority": "SCOPED_REVIEW",
+      "scope": "EXACT_FIELD_LEXICAL_ONLY",
+      "source": "src/codeqa/pipeline/naming_official_policy_v05.py",
+      "entrypoint": "codeqa.pipeline.naming_official_policy_v05:evaluate_pinned_official_naming_v05",
+      "evidence": [
+        "docs/naming-official-policy-v05.md"
+      ],
+      "resources": [
+        "codeqa_python_naming_scoped_v05_policy"
+      ],
+      "principles": [],
+      "limitations": [
+        "only ControlFlowObservation.node_id at pinned src/codeqa/core/complexity.py:10",
+        "not a semantic glossary PASS or external API compatibility",
+        "automatic rename forbidden"
+      ]
+    },
+    {
+      "id": "qa_result_contract",
+      "mode": "CONTRACT_ONLY",
+      "languages": [
+        "language-neutral",
+        "Python"
+      ],
+      "authority": "CONTRACT_ONLY",
+      "scope": "SCOPED_MECHANICAL_EXCHANGE_ONLY",
+      "source": "src/codeqa/evaluation/qa_result.py",
+      "entrypoint": "codeqa.evaluation.qa_result:validate_qa_result",
+      "evidence": [
+        "docs/contracts/qa-result-0.1.md"
+      ],
+      "resources": [
+        "qa_result_schema",
+        "qa_delta_schema"
+      ],
+      "principles": [
+        "P1",
+        "P3"
+      ],
+      "limitations": [
+        "unsupported principles explicitly NOT_EVALUATED",
+        "not a universal QA PASS"
+      ]
+    },
+    {
+      "id": "external_evidence_gate",
+      "mode": "OPT_IN",
+      "languages": [
+        "language-neutral"
+      ],
+      "authority": "SCOPED_GATE",
+      "scope": "PINNED_ADMITTED_EXTERNAL_EVIDENCE_ONLY",
+      "source": "src/codeqa/evaluation/evidence_gate.py",
+      "entrypoint": "codeqa.evaluation.evidence_gate:evaluate_gate",
+      "evidence": [
+        "docs/evidence-gate-v01.md"
+      ],
+      "resources": [
+        "external_evidence_envelope_schema",
+        "evidence_gate_schema"
+      ],
+      "principles": [],
+      "limitations": [
+        "ALLOW only within a specific Gate policy",
+        "not a production merge authorization"
+      ]
+    },
+    {
+      "id": "formal_generated_fixture",
+      "mode": "FIXTURE_ONLY",
+      "languages": [
+        "Dafny",
+        "Python"
+      ],
+      "authority": "FIXTURE_ONLY",
+      "scope": "CONTROLLED_GENERATED_PYTHON_FIXTURE",
+      "source": "src/codeqa/evaluation/formal_generated_gate.py",
+      "entrypoint": "codeqa.evaluation.formal_generated_gate:evaluate_generated_fixture_gate",
+      "evidence": [
+        "README.md"
+      ],
+      "resources": [],
+      "principles": [],
+      "limitations": [
+        "ALLOW_FIXTURE_ONLY never authorizes production code",
+        "semantic preservation not established"
+      ]
+    },
+    {
+      "id": "semantic_companions",
+      "mode": "OPT_IN",
+      "languages": [
+        "Python"
+      ],
+      "authority": "SCOPED_REVIEW",
+      "scope": "DECLARED_ARCHITECTURE_SYNTAX_ONLY",
+      "source": "src/codeqa/evaluation/semantic_architecture.py",
+      "entrypoint": "codeqa.evaluation.semantic_architecture:evaluate_semantic_architecture",
+      "evidence": [
+        "README.md"
+      ],
+      "resources": [],
+      "principles": [],
+      "limitations": [
+        "non-scoring evidence",
+        "runtime responsibilities NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "mechanical_p2_p4_p8",
+      "mode": "NOT_IMPLEMENTED",
+      "languages": [
+        "language-neutral"
+      ],
+      "authority": "NONE",
+      "scope": "P2_P4_P5_P6_P7_P8_UNSUPPORTED",
+      "source": null,
+      "entrypoint": null,
+      "evidence": [
+        "docs/mechanical-pipeline.md"
+      ],
+      "resources": [],
+      "principles": [
+        "P2",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8"
+      ],
+      "limitations": [
+        "no full Mechanical P1-P8 certification"
+      ]
+    },
+    {
+      "id": "non_python_mechanical",
+      "mode": "NOT_IMPLEMENTED",
+      "languages": [
+        "Rust",
+        "C++",
+        "MOOSE"
+      ],
+      "authority": "NONE",
+      "scope": "END_TO_END_MECHANICAL_NOT_VERIFIED",
+      "source": null,
+      "entrypoint": null,
+      "evidence": [
+        "docs/contracts/language-adapter-0.1.md"
+      ],
+      "resources": [],
+      "principles": [
+        "P1",
+        "P3"
+      ],
+      "limitations": [
+        "language-neutral CCG is not a runnable non-Python Mechanical pipeline"
+      ]
+    }
+  ]
+}
