@@ -47,9 +47,14 @@ class FullSourcePyrightDiagnosticTests(unittest.TestCase):
                     validate_full_source_diagnostic(self.witness(range=missing), self.root)
 
     def test_out_of_bounds_and_bool_lines_rejected(self) -> None:
-        for bad in (3, -1, True, "1"):
+        for bad, expected in (
+            (3, "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE"),
+            (-1, "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE"),
+            (True, "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE"),
+            ("1", "FULL_SOURCE_PYRIGHT_MALFORMED_RANGE"),
+        ):
             with self.subTest(line=bad):
-                with self.assertRaisesRegex(RuntimeError, "FULL_SOURCE_PYRIGHT_RANGE_OUTSIDE_SOURCE"):
+                with self.assertRaisesRegex(RuntimeError, expected):
                     validate_full_source_diagnostic(
                         self.witness(range={
                             "start": {"line": bad, "character": 0},
