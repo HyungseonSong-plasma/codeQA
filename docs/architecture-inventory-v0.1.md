@@ -49,6 +49,12 @@ This B1 module does not claim those later capabilities are implemented.
 
 ## Validation
 
+The read-only script .github/scripts/architecture_inventory_audit.py enumerates
+Git blobs from the checked-out exact HEAD and emits architecture-inventory.json.
+The Architecture Inventory B1 workflow checks the exact PR head, validates the
+JSON schema and uploads the result as a CI artifact; a green run certifies
+only this bounded source inventory contract, not a general architecture verdict.
+
 Tests exercise arbitrary renamed packages, stable ordering, real codeQA HEAD
 tracked-file inventory, role evidence, missing/excluded/failed/generated files,
 symlinks, empty Python packages, deceptive filename hints, unsafe paths,
