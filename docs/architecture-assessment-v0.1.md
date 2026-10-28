@@ -70,3 +70,18 @@ report actual unprompted findings and limits, and demonstrate a separately
 authorized cleanup and same-scope post-change re-diagnosis where safe and
 supported. If no safe move is supported, do not invent one to satisfy a
 demonstration.
+
+## B8 follow-up: declared package exposure (#184)
+
+The opt-in B8 workflow also emits `architecture-package-surface.json` from
+one exact-HEAD B1 inventory, the B3-derived internal-consumer census and the
+tracked `pyproject.toml` bytes. It validates the configuration file SHA-256
+against the inventory and records potential Python import names, observed
+static importers and setuptools package-discovery declarations. A module is
+only a `DECLARED_DISCOVERY_CANDIDATE` when the source scope matches the
+setuptools find declaration and its regular package initializer paths are
+observed. The declaration is **not** evidence of a built wheel, supported
+public API, executed behavioral tests, dynamic import compatibility or
+external callers. Those remain `NOT_EVALUATED`; no package migration or
+architecture PASS is authorized. Healthy/no-signal repositories produce an
+empty module census rather than seeded package questions.
