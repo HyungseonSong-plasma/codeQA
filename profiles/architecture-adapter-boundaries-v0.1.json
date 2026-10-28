@@ -6,9 +6,21 @@
       "family": "python",
       "module_paths": [
         "src/codeqa/adapters/python.py",
+        "src/codeqa/adapters/python_behavior.py",
+        "src/codeqa/adapters/python_complexity.py",
+        "src/codeqa/adapters/python_context.py",
         "src/codeqa/adapters/python_dependencies.py",
+        "src/codeqa/adapters/python_duplication.py",
+        "src/codeqa/adapters/python_evidence.py",
         "src/codeqa/adapters/python_naming.py",
-        "src/codeqa/adapters/python_snapshot.py"
+        "src/codeqa/adapters/python_naming_ancestor.py",
+        "src/codeqa/adapters/python_naming_coverage_v02.py",
+        "src/codeqa/adapters/python_naming_fields.py",
+        "src/codeqa/adapters/python_p3_witness.py",
+        "src/codeqa/adapters/python_persistent_cache.py",
+        "src/codeqa/adapters/python_snapshot.py",
+        "src/codeqa/adapters/python_statement_similarity.py",
+        "src/codeqa/adapters/python_symbols.py"
       ],
       "capability_status": "PARTIAL",
       "parser_provenance": "VERIFIED"
@@ -33,13 +45,15 @@
   "shared_paths": [
     "src/codeqa/adapters/__init__.py",
     "src/codeqa/adapters/capability.py",
-    "src/codeqa/adapters/lexical.py"
+    "src/codeqa/adapters/lexical.py",
+    "src/codeqa/adapters/semgrep_json.py"
   ],
   "external_consumers": "NOT_EVALUATED",
   "distribution_compatibility": "NOT_EVALUATED",
   "provenance_notes": [
     "Source membership is an owner-declared inventory, not a parser capability claim.",
     "Rust/C++/MOOSE compiler and runtime coverage is not established.",
-    "Unclassified adapter modules remain visible rather than inferred by name."
+    "Unclassified adapter modules remain visible rather than inferred by name.",
+    "MOOSE framework-source lock is deliberately left unclassified: a source witness is not a C++/MOOSE parser."
   ]
 }
