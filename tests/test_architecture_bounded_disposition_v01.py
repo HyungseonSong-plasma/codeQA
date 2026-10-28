@@ -17,7 +17,7 @@ from codeqa.evaluation.architecture.migration import assess_architecture_migrati
 from codeqa.evaluation.architecture.policy_triage import triage_cross_role_concentration
 from codeqa.evaluation.architecture.scenarios import generate_virtual_layout_scenarios
 from test_architecture_policy_triage_v01 import reports
-from test_architecture_scenarios_v01 import SOURCES
+from test_architecture_opportunities_v01 import SOURCES
 
 
 def _digest(report):
