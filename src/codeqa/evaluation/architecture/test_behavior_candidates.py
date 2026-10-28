@@ -31,7 +31,7 @@ def _test_body_nodes(node: ast.FunctionDef | ast.AsyncFunctionDef):
     stack = list(reversed(node.body))
     while stack:
         child = stack.pop()
-        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda, ast.GeneratorExp)):
             continue
         yield child
         stack.extend(reversed(list(ast.iter_child_nodes(child))))
@@ -107,27 +107,56 @@ def _assertion_operand_pairs(
     ]
 
 
+def _scoped_import_aliases(body: list[ast.stmt], import_lines: set[int]) -> set[str]:
+    """Find witnessed imports without crossing a Python lexical scope.
+
+    An import in one test or class body cannot authenticate a call in another
+    test. Module-level imports may be used by tests; imports in a test body
+    belong only to that test. Branch-dependent imports remain static candidates.
+    """
+    aliases: set[str] = set()
+    stack: list[ast.AST] = list(reversed(body))
+    while stack:
+        node = stack.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+                             ast.Lambda, ast.GeneratorExp)):
+            continue
+        if getattr(node, "lineno", None) in import_lines:
+            if isinstance(node, ast.ImportFrom):
+                aliases.update(a.asname or a.name for a in node.names if a.name != "*")
+            elif isinstance(node, ast.Import):
+                # Unaliased imports bind a package root, not an unambiguous module.
+                aliases.update(a.asname for a in node.names if a.asname)
+        stack.extend(reversed(list(ast.iter_child_nodes(node))))
+    return aliases
+
+
 def _candidate_sites(text: str, import_lines: set[int]) -> tuple[list[dict[str, Any]], str]:
     try:
         tree = ast.parse(text)
     except SyntaxError:
         return [], "PARSE_FAILED"
-    aliases: set[str] = set()
-    for node in ast.walk(tree):
-        if getattr(node, "lineno", None) not in import_lines:
-            continue
-        if isinstance(node, ast.ImportFrom):
-            aliases.update(a.asname or a.name for a in node.names if a.name != "*")
-        elif isinstance(node, ast.Import):
-            # Unaliased imports bind a package root, not an unambiguous module.
-            aliases.update(a.asname for a in node.names if a.asname)
-    if not aliases:
-        return [], "NO_UNAMBIGUOUS_IMPORT_BINDING"
+    module_aliases = _scoped_import_aliases(tree.body, import_lines)
+    parents = {
+        child: parent for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
     results = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or not node.name.startswith("test_"):
             continue
-        active_aliases = aliases - _shadowed_import_names(node, import_lines)
+        ancestor = parents.get(node)
+        nested = False
+        while ancestor is not None:
+            if isinstance(ancestor, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                nested = True
+                break
+            ancestor = parents.get(ancestor)
+        if nested:
+            continue
+        active_aliases = (
+            module_aliases | _scoped_import_aliases(node.body, import_lines)
+        ) - _shadowed_import_names(node, import_lines)
         if not active_aliases:
             continue
         calls: set[int] = set()
@@ -259,6 +288,7 @@ def census_test_behavior_candidates(
                 "test import, call and assertion in one function are static proximity only",
                 "assertion-operand call sites are syntactic only; mocks and runtime execution are unknown",
                 "locally rebound import aliases and deferred lambda/generator bodies are conservatively excluded",
+                "import bindings are confined to module/test lexical scopes; nested test definitions are excluded",
                 "test assertions may not inspect the imported call result or downstream edge",
                 "module import may be indirect, mocked, shadowed, or never executed",
                 "no candidate does not establish absent behavioral coverage",
