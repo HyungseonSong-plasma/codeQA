@@ -1,0 +1,64 @@
+name: Architecture Assessment B7 (exact HEAD)
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/architecture/**'
+      - 'contracts/qa/architecture-assessment-v0.1.schema.json'
+      - 'tests/test_architecture_assessment_v01.py'
+      - 'docs/architecture-assessment-v0.1.md'
+      - '.github/scripts/architecture_assessment_audit.py'
+      - '.github/workflows/architecture-assessment.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assessment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: python -m pip install -e .
+      - name: Test bounded decisions and independent fixtures
+        run: python -m unittest discover -s tests -p 'test_architecture_assessment_v01.py' -v
+      - name: Generate B1 to B7 exact-head source evidence
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python .github/scripts/architecture_inventory_audit.py --output architecture-inventory.json
+          python .github/scripts/architecture_metrics_audit.py --inventory architecture-inventory.json --output architecture-metrics.json
+          python .github/scripts/architecture_opportunities_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --output architecture-opportunities.json
+          python .github/scripts/architecture_scenarios_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --opportunities architecture-opportunities.json --output architecture-scenarios.json
+          python .github/scripts/architecture_migration_audit.py --inventory architecture-inventory.json --scenarios architecture-scenarios.json --output architecture-migration.json
+          python .github/scripts/architecture_assessment_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --opportunities architecture-opportunities.json --scenarios architecture-scenarios.json --migration architecture-migration.json --output architecture-assessment.json --summary architecture-assessment.md
+          python - <<'PY'
+          import json
+          import os
+          r = json.load(open("architecture-assessment.json", encoding="utf-8"))
+          assert r["source_identity"]["snapshot_sha"] == os.environ["EXPECTED_HEAD"]
+          assert r["mode"] == "DISCOVERY"
+          assert r["decision"] == "NOT_EVALUATED"
+          assert r["reviewer_decisions"] == []
+          assert all(s["decision_evidence"]["decision"] != "PREFER"
+                     for s in r["scenario_assessments"])
+          PY
+      - name: Upload B7 source-derived decision evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-assessment-b7
+          path: |
+            architecture-assessment.json
+            architecture-assessment.md
+          if-no-files-found: error
