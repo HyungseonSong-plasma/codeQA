@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:architecture-opportunities:v0.1",
+  "title": "codeQA B3 evidence-first architecture question opportunities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_sha",
+    "inventory_id",
+    "metrics_id",
+    "derivation_id",
+    "thresholds",
+    "observation",
+    "evidence_status",
+    "coverage",
+    "architecture_signals",
+    "question_opportunities",
+    "unknowns",
+    "limitations",
+    "opportunities_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "inventory_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "metrics_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "derivation_id": {
+      "const": "codeqa.architecture.opportunity-miner.v0.1"
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_cross_role_pairs",
+        "min_distinct_target_roles",
+        "min_cross_share"
+      ],
+      "properties": {
+        "min_cross_role_pairs": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "min_distinct_target_roles": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "min_cross_share": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "observation": {
+      "enum": [
+        "SIGNALS_OBSERVED",
+        "NO_SIGNALS_OBSERVED"
+      ]
+    },
+    "evidence_status": {
+      "enum": [
+        "INCOMPLETE",
+        "STATIC_ONLY"
+      ]
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "tracked_total",
+        "read",
+        "python_analyzed",
+        "python_unprocessed",
+        "python_missing_from_graph",
+        "unknown_by_reason",
+        "external_consumers",
+        "dynamic_import_completeness"
+      ],
+      "properties": {
+        "tracked_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "python_analyzed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "python_unprocessed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "python_missing_from_graph": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unknown_by_reason": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "external_consumers": {
+          "const": "NOT_EVALUATED"
+        },
+        "dynamic_import_completeness": {
+          "const": "NOT_EVALUATED"
+        }
+      },
+      "additionalProperties": false
+    },
+    "architecture_signals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/signal"
+      }
+    },
+    "question_opportunities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/opportunity"
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "opportunities_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "$defs": {
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_path",
+        "target_path",
+        "source_sha256",
+        "line",
+        "expression",
+        "execution",
+        "evidence_class"
+      ],
+      "properties": {
+        "source_path": {
+          "type": "string"
+        },
+        "target_path": {
+          "type": "string"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution": {
+          "enum": [
+            "top_level",
+            "conditional_or_deferred"
+          ]
+        },
+        "evidence_class": {
+          "const": "GRAPH_PROVIDED_STATIC_IMPORT"
+        }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal_id",
+        "family",
+        "scope_roles",
+        "measurement",
+        "derivation_rule",
+        "source_witnesses",
+        "evidence_class",
+        "hypothesis",
+        "benign_counterhypothesis",
+        "unknowns"
+      ],
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "family": {
+          "enum": [
+            "STATIC_IMPORT_CYCLE",
+            "DECLARED_BOUNDARY_CONFLICT",
+            "CROSS_BOUNDARY_CONCENTRATION"
+          ]
+        },
+        "scope_roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "measurement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator",
+            "ratio"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "ratio": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "derivation_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_witnesses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/witness"
+          }
+        },
+        "evidence_class": {
+          "const": "PROXY_INFERENCE"
+        },
+        "hypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "benign_counterhypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "opportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "originating_signal_ids",
+        "affected_roles",
+        "why_question_arises",
+        "candidate_question",
+        "alternatives",
+        "source_witnesses",
+        "benign_counterhypothesis",
+        "unknowns",
+        "decision"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "originating_signal_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "affected_roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "why_question_arises": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "contains": {
+            "const": "KEEP"
+          },
+          "items": {
+            "enum": [
+              "KEEP",
+              "INVESTIGATE_DEPENDENCY_DIRECTION",
+              "INVESTIGATE_BOUNDARY_OR_COMPOSITION"
+            ]
+          }
+        },
+        "source_witnesses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/witness"
+          }
+        },
+        "benign_counterhypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decision": {
+          "const": "NOT_EVALUATED"
+        }
+      }
+    }
+  }
+}

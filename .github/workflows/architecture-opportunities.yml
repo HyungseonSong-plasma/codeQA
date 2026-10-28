@@ -1,0 +1,58 @@
+name: Architecture Opportunities B3 (exact HEAD)
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/architecture/**'
+      - 'src/codeqa/adapters/python_dependencies.py'
+      - 'contracts/qa/architecture-opportunities-v0.1.schema.json'
+      - 'tests/test_architecture_opportunities_v01.py'
+      - 'docs/architecture-opportunities-v0.1.md'
+      - '.github/scripts/architecture_opportunities_audit.py'
+      - '.github/workflows/architecture-opportunities.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  opportunities:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: python -m pip install -e .
+      - name: Validate B3 adversarial and actual-source tests
+        run: python -m unittest discover -s tests -p 'test_architecture_opportunities_v01.py' -v
+      - name: Generate same-head B1 B2 and B3 evidence
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python .github/scripts/architecture_inventory_audit.py --output architecture-inventory.json
+          python .github/scripts/architecture_metrics_audit.py --inventory architecture-inventory.json --output architecture-metrics.json
+          python .github/scripts/architecture_opportunities_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --output architecture-opportunities.json
+          python - <<'PY'
+          import json
+          import os
+          report = json.load(open("architecture-opportunities.json", encoding="utf-8"))
+          assert report["snapshot_sha"] == os.environ["EXPECTED_HEAD"]
+          assert report["observation"] in ("SIGNALS_OBSERVED", "NO_SIGNALS_OBSERVED")
+          assert report["evidence_status"] != "PASS"
+          assert all("KEEP" in q["alternatives"] for q in report["question_opportunities"])
+          assert all(q["source_witnesses"] for q in report["question_opportunities"])
+          PY
+      - name: Upload B3 source-only evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-opportunities-b3
+          path: architecture-opportunities.json
+          if-no-files-found: error
