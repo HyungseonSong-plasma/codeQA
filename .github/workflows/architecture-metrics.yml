@@ -1,0 +1,63 @@
+name: Architecture Metrics B2 (exact HEAD)
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/architecture/**'
+      - 'src/codeqa/evaluation/dependency_metrics.py'
+      - 'src/codeqa/evaluation/impact.py'
+      - 'src/codeqa/adapters/python_dependencies.py'
+      - 'contracts/qa/architecture-metrics-v0.1.schema.json'
+      - 'tests/test_architecture_metrics_v01.py'
+      - 'docs/architecture-metrics-v0.1.md'
+      - '.github/scripts/architecture_metrics_audit.py'
+      - '.github/workflows/architecture-metrics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  metrics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: python -m pip install -e .
+      - name: Validate B2 adversarial and actual-source tests
+        run: python -m unittest discover -s tests -p 'test_architecture_metrics_v01.py' -v
+      - name: Generate exact-head B1 and B2 evidence and validate B2 schema
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python .github/scripts/architecture_inventory_audit.py --output architecture-inventory.json
+          python .github/scripts/architecture_metrics_audit.py --inventory architecture-inventory.json --output architecture-metrics.json
+          python - <<'PY'
+          import json
+          import os
+          from jsonschema import Draft202012Validator
+          report = json.load(open("architecture-metrics.json", encoding="utf-8"))
+          schema = json.load(open("contracts/qa/architecture-metrics-v0.1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator(schema).validate(report)
+          assert report["snapshot_sha"] == os.environ["EXPECTED_HEAD"]
+          assert report["status"] != "PASS"
+          assert report["coverage"]["external_consumers"] == "NOT_EVALUATED"
+          assert report["coverage"]["python_analyzed"] > 0
+          assert all(w["source_sha256"] for pair in report["resolved_pairs"] for w in pair["witnesses"])
+          PY
+      - name: Upload B2 exact-head source metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-metrics-b2
+          path: architecture-metrics.json
+          if-no-files-found: error
