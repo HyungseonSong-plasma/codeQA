@@ -217,14 +217,19 @@ def assemble_architecture_advisory(
                     or adapter_boundaries["metrics_id"] != metrics["metrics_id"]
                     or adapter_boundaries["decision"] != "NOT_EVALUATED"):
                 raise ArchitectureAssessmentError("B6 provenance mismatch")
+            source_files = {f["path"]: f for f in inventory["files"]}
+            observed_adapter_ids: set[str] = set()
             for signal in adapter_boundaries["architecture_signals"]:
                 sid = signal["signal_id"]
                 witnesses = signal["source_witnesses"]
-                if (sid in signals or not witnesses
-                        or any(w["source_path"] not in {
-                            f["path"] for f in inventory["files"]
-                        } for w in witnesses)):
+                if (sid in signals or sid in observed_adapter_ids or not witnesses
+                        or any(w["source_path"] not in source_files
+                               or w["source_sha256"] !=
+                               source_files[w["source_path"]]["source_sha256"]
+                               or type(w["line"]) is not int or w["line"] < 1
+                               for w in witnesses)):
                     raise ArchitectureAssessmentError("unbound B6 adapter signal")
+                observed_adapter_ids.add(sid)
                 normalized = {
                     "signal_id": sid, "family": signal["family"],
                     "scope_roles": [adapter_boundaries["adapter_scope"]],
