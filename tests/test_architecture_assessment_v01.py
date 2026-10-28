@@ -15,7 +15,11 @@ from codeqa.evaluation.architecture.assessment import (
 )
 from codeqa.evaluation.architecture.scenarios import generate_virtual_layout_scenarios
 from codeqa.evaluation.architecture.migration import assess_architecture_migration
-from test_architecture_scenarios_v01 import reports, CONCENTRATED, SOURCES
+from test_architecture_scenarios_v01 import reports, CONCENTRATED, SOURCES, POLICY, PROFILE, SHA
+from codeqa.core.dependency import DependencyGraph, StaticDependency
+from codeqa.evaluation.architecture.inventory import analyze_architecture_inventory
+from codeqa.evaluation.architecture.metrics import analyze_architecture_metrics
+from codeqa.evaluation.architecture.opportunities import discover_architecture_opportunities
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -158,6 +162,49 @@ class ArchitectureDecisionTests(unittest.TestCase):
         self.assertEqual(result["mode"], "EXPLICIT_QUESTION")
         self.assertEqual(result["discovery_coverage_claim"], "NOT_EVALUATED")
         self.assertNotIn("question_opportunities", result)
+
+    def test_renamed_isomorphic_package_keeps_same_decision_class(self):
+        renamed = {
+            p.replace("orchard", "woodland"): v.replace("orchard", "woodland")
+            for p, v in SOURCES.items()
+        }
+        policy = deepcopy(POLICY)
+        policy["scope"] = "src/woodland"
+        edges = tuple(StaticDependency(
+            e.source_path.replace("orchard", "woodland"),
+            e.target_path.replace("orchard", "woodland"),
+            e.line, e.expression.replace("orchard", "woodland"), e.execution,
+        ) for e in CONCENTRATED)
+        inventory = analyze_architecture_inventory(SHA, renamed, renamed, policy)
+        graph = DependencyGraph(SHA, tuple(sorted(renamed)), (), edges, ())
+        metrics = analyze_architecture_metrics(inventory, graph, policy, PROFILE)
+        opportunities = discover_architecture_opportunities(inventory, metrics)
+        scenarios = generate_virtual_layout_scenarios(
+            inventory, metrics, opportunities, policy
+        )
+        migration = assess_architecture_migration(inventory, scenarios, renamed)
+        other = assemble_architecture_advisory(
+            inventory, metrics, opportunities, scenarios, migration
+        )
+        original = assembled()
+        self.assertEqual(len(other["question_opportunities"]),
+                         len(original["question_opportunities"]))
+        self.assertEqual([x["decision_evidence"]["decision"]
+                          for x in other["scenario_assessments"]],
+                         [x["decision_evidence"]["decision"]
+                          for x in original["scenario_assessments"]])
+
+    def test_deceptive_filename_does_not_force_semantic_ownership(self):
+        sources = {**SOURCES,
+                   "src/orchard/earth/model.py": "class NamingAdapter: pass\\n"}
+        report = assembled(sources=sources)
+        original = assembled()
+        self.assertEqual(len(report["question_opportunities"]),
+                         len(original["question_opportunities"]))
+        self.assertTrue(all(
+            item["decision_evidence"]["decision"] != "PREFER"
+            for item in report["scenario_assessments"]
+        ))
 
     def test_determinism_and_json_schema(self):
         result = assembled()
