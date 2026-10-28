@@ -39,7 +39,7 @@ class MigrationImpactTests(unittest.TestCase):
     def test_static_alias_relative_init_export_and_external_unknown(self):
         extra = {
             "src/orchard/earth/consumer.py":
-                "import orchard.sky.view as alias\n"
+                "import orchard.sky.view as alias\nimport orchard.sky.view\n"
                 "from orchard.sky.view import View as Named\n"
                 "from orchard.sky import view\n"
                 "from orchard.sky import *\n"
