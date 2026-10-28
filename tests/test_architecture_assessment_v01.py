@@ -206,6 +206,64 @@ class ArchitectureDecisionTests(unittest.TestCase):
             for item in report["scenario_assessments"]
         ))
 
+    def test_b6_language_family_pressure_becomes_unseeded_question(self):
+        from test_architecture_adapter_boundaries_v01 import (
+            reports as family_reports, declaration, edge,
+            POLICY as FAMILY_POLICY, SOURCES as FAMILY_SOURCES,
+        )
+        from codeqa.evaluation.architecture.adapter_boundaries import assess_adapter_boundaries
+        inv, metrics = family_reports((edge("a", "b"), edge("a", "c")))
+        opportunities = discover_architecture_opportunities(inv, metrics)
+        self.assertEqual(opportunities["question_opportunities"], [])
+        scenarios = generate_virtual_layout_scenarios(
+            inv, metrics, opportunities, FAMILY_POLICY
+        )
+        migration = assess_architecture_migration(inv, scenarios, FAMILY_SOURCES)
+        b6 = assess_adapter_boundaries(inv, metrics, declaration())
+        result = assemble_architecture_advisory(
+            inv, metrics, opportunities, scenarios, migration,
+            adapter_boundaries=b6,
+        )
+        self.assertEqual(len(result["question_opportunities"]), 1)
+        self.assertEqual(len(result["architecture_signals"]), 1)
+        self.assertEqual(result["scenario_assessments"], [])
+        self.assertEqual(result["question_opportunities"][0]["originating_signal_ids"],
+                         [b6["architecture_signals"][0]["signal_id"]])
+        self.assertIn("KEEP", result["question_opportunities"][0]["alternatives"])
+        self.assertIn("EXTERNAL_CONSUMERS_NOT_EVALUATED", result["unknowns"])
+        self.assertEqual(result["analyzer_hashes"]["adapter_boundary_id"],
+                         b6["boundary_id"])
+        renamed = declaration()
+        renamed["families"][0]["family"] = "quartz"
+        renamed["families"][1]["family"] = "moss"
+        changed = assess_adapter_boundaries(inv, metrics, renamed)
+        other = assemble_architecture_advisory(
+            inv, metrics, opportunities, scenarios, migration,
+            adapter_boundaries=changed,
+        )
+        self.assertEqual(result["question_opportunities"],
+                         other["question_opportunities"])
+
+    def test_healthy_adapter_family_does_not_invent_question(self):
+        from test_architecture_adapter_boundaries_v01 import (
+            reports as family_reports, declaration,
+            POLICY as FAMILY_POLICY, SOURCES as FAMILY_SOURCES,
+        )
+        from codeqa.evaluation.architecture.adapter_boundaries import assess_adapter_boundaries
+        inv, metrics = family_reports()
+        opportunities = discover_architecture_opportunities(inv, metrics)
+        scenarios = generate_virtual_layout_scenarios(
+            inv, metrics, opportunities, FAMILY_POLICY
+        )
+        migration = assess_architecture_migration(inv, scenarios, FAMILY_SOURCES)
+        b6 = assess_adapter_boundaries(inv, metrics, declaration())
+        result = assemble_architecture_advisory(
+            inv, metrics, opportunities, scenarios, migration,
+            adapter_boundaries=b6,
+        )
+        self.assertEqual(result["question_opportunities"], [])
+        self.assertEqual(result["architecture_signals"], [])
+
     def test_determinism_and_json_schema(self):
         result = assembled()
         self.assertEqual(result, assembled())
