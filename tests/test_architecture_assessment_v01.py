@@ -196,7 +196,7 @@ class ArchitectureDecisionTests(unittest.TestCase):
 
     def test_deceptive_filename_does_not_force_semantic_ownership(self):
         sources = {**SOURCES,
-                   "src/orchard/earth/model.py": "class NamingAdapter: pass\\n"}
+                   "src/orchard/earth/model.py": "class NamingAdapter: pass\n"}
         report = assembled(sources=sources)
         original = assembled()
         self.assertEqual(len(report["question_opportunities"]),
