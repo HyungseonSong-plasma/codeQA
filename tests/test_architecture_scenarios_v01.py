@@ -75,9 +75,10 @@ def reports(*, sources=None, policy=None, edges=(), unknown=()):
     return inventory, metrics, opportunities, policy
 
 
-def compare(*, sources=None, policy=None, edges=(), candidate_mappings=None):
+def compare(*, sources=None, policy=None, edges=(), unknown=(),
+            candidate_mappings=None):
     return generate_virtual_layout_scenarios(
-        *reports(sources=sources, policy=policy, edges=edges),
+        *reports(sources=sources, policy=policy, edges=edges, unknown=unknown),
         candidate_mappings=candidate_mappings,
     )
 
@@ -188,6 +189,43 @@ class ArchitectureScenarioTests(unittest.TestCase):
             original["candidates"][0]["measured_proxy_delta"],
             after["candidates"][0]["measured_proxy_delta"],
         )
+
+    def test_indistinguishable_role_proxies_do_not_create_a_preference(self):
+        sources = {**SOURCES, "src/orchard/rain/other.py": "x = 1\n"}
+        edges = CONCENTRATED + (edge("sky/view", "rain/other"),)
+        _, _, opportunities, _ = reports(sources=sources, edges=edges)
+        qid = opportunities["question_opportunities"][0]["opportunity_id"]
+        source = "src/orchard/sky/view.py"
+        first = compare(sources=sources, edges=edges, candidate_mappings={
+            qid: {source: "src/orchard/earth/view.py"},
+        })["candidates"][0]
+        second = compare(sources=sources, edges=edges, candidate_mappings={
+            qid: {source: "src/orchard/rain/view.py"},
+        })["candidates"][0]
+        self.assertEqual(first["measured_proxy_delta"], second["measured_proxy_delta"])
+        self.assertNotEqual(first["path_mapping"], second["path_mapping"])
+        self.assertEqual(first["decision"], second["decision"])
+        self.assertEqual(first["decision"], "NOT_EVALUATED")
+
+    def test_partial_dynamic_and_unclassified_evidence_fail_closed(self):
+        from codeqa.core.dependency import UnknownDependency
+        unknown = (UnknownDependency("src/orchard/sky/view.py", 4,
+                                     "__import__(name)", "dynamic_import"),)
+        result = compare(edges=CONCENTRATED, unknown=unknown)
+        self.assertEqual(result["evidence_status"], "INCOMPLETE")
+        self.assertIn("dynamic_import", result["candidates"][0]["unknowns"])
+        sources = {**SOURCES, "src/orchard/unknown.py": "x = 1\n"}
+        _, _, opportunities, _ = reports(sources=sources, edges=CONCENTRATED)
+        qid = opportunities["question_opportunities"][0]["opportunity_id"]
+        bad = compare(sources=sources, edges=CONCENTRATED, candidate_mappings={
+            qid: {"src/orchard/unknown.py": "src/orchard/earth/unknown.py"},
+        })
+        self.assertEqual(bad["rejected"][0]["reason"], "UNCLASSIFIED_OR_UNREAD_SOURCE")
+        unrelated = compare(edges=CONCENTRATED, candidate_mappings={
+            qid: {"src/orchard/earth/helper.py": "src/orchard/rain/helper.py"},
+        })
+        self.assertEqual(unrelated["rejected"][0]["reason"],
+                         "MAPPING_SOURCE_NOT_IN_ORIGINATING_SIGNAL")
 
     def test_mismatched_identity_or_untriggered_mapping_fails_closed(self):
         inv, metrics, opp, policy = reports(edges=CONCENTRATED)
