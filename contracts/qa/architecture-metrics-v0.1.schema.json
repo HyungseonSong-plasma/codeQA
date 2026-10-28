@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:architecture-metrics:v0.1",
+  "title": "codeQA Architecture Static Metrics v0.1 (source-only proxies)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_sha",
+    "inventory_id",
+    "role_policy_sha256",
+    "dependency_profile_id",
+    "status",
+    "evidence_class",
+    "coverage",
+    "denominators",
+    "groups",
+    "modules",
+    "resolved_pairs",
+    "cross_boundary_witnesses",
+    "cycles",
+    "declared_role_findings",
+    "limitations",
+    "metrics_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_sha": {
+      "$ref": "#/$defs/git_sha"
+    },
+    "inventory_id": {
+      "$ref": "#/$defs/sha256"
+    },
+    "role_policy_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "dependency_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "VIOLATION",
+        "INCOMPLETE",
+        "NOT_EVALUATED",
+        "EVIDENCE_ONLY"
+      ]
+    },
+    "evidence_class": {
+      "const": "PROXY_INFERENCE"
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tracked_total",
+        "read",
+        "python_analyzed",
+        "python_unprocessed",
+        "python_missing_from_graph",
+        "unknown_by_reason",
+        "external_consumers",
+        "dynamic_import_completeness"
+      ],
+      "properties": {
+        "tracked_total": {
+          "$ref": "#/$defs/count"
+        },
+        "read": {
+          "$ref": "#/$defs/count"
+        },
+        "python_analyzed": {
+          "$ref": "#/$defs/count"
+        },
+        "python_unprocessed": {
+          "$ref": "#/$defs/count"
+        },
+        "python_missing_from_graph": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unknown_by_reason": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/count"
+          }
+        },
+        "external_consumers": {
+          "const": "NOT_EVALUATED"
+        },
+        "dynamic_import_completeness": {
+          "const": "NOT_EVALUATED"
+        }
+      }
+    },
+    "denominators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declared_analyzed_modules",
+        "resolved_distinct_pairs",
+        "within_declared_pairs",
+        "cross_declared_pairs",
+        "unclassified_or_out_of_scope_pairs",
+        "within_share_of_declared_pairs",
+        "cross_share_of_declared_pairs"
+      ],
+      "properties": {
+        "declared_analyzed_modules": {
+          "$ref": "#/$defs/count"
+        },
+        "resolved_distinct_pairs": {
+          "$ref": "#/$defs/count"
+        },
+        "within_declared_pairs": {
+          "$ref": "#/$defs/count"
+        },
+        "cross_declared_pairs": {
+          "$ref": "#/$defs/count"
+        },
+        "unclassified_or_out_of_scope_pairs": {
+          "$ref": "#/$defs/count"
+        },
+        "within_share_of_declared_pairs": {
+          "$ref": "#/$defs/nullable_ratio"
+        },
+        "cross_share_of_declared_pairs": {
+          "$ref": "#/$defs/nullable_ratio"
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "analyzed_modules",
+          "within_pairs",
+          "possible_within_directed_pairs",
+          "within_density_proxy",
+          "cross_out_pairs",
+          "cross_in_pairs",
+          "possible_cross_out_directed_pairs",
+          "cross_out_density_proxy",
+          "reverse_import_impact"
+        ],
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "analyzed_modules": {
+            "$ref": "#/$defs/count"
+          },
+          "within_pairs": {
+            "$ref": "#/$defs/count"
+          },
+          "possible_within_directed_pairs": {
+            "$ref": "#/$defs/count"
+          },
+          "within_density_proxy": {
+            "$ref": "#/$defs/nullable_ratio"
+          },
+          "cross_out_pairs": {
+            "$ref": "#/$defs/count"
+          },
+          "cross_in_pairs": {
+            "$ref": "#/$defs/count"
+          },
+          "possible_cross_out_directed_pairs": {
+            "$ref": "#/$defs/count"
+          },
+          "cross_out_density_proxy": {
+            "$ref": "#/$defs/nullable_ratio"
+          },
+          "reverse_import_impact": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "potential_dependents",
+                  "witnesses",
+                  "interpretation"
+                ],
+                "properties": {
+                  "potential_dependents": {
+                    "$ref": "#/$defs/count"
+                  },
+                  "witnesses": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "path",
+                        "distance",
+                        "chain"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        },
+                        "distance": {
+                          "$ref": "#/$defs/count"
+                        },
+                        "chain": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "interpretation": {
+                    "const": "STATIC_POTENTIAL_ONLY"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "role",
+          "fan_in",
+          "fan_out",
+          "unknown_import_sites"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "fan_in": {
+            "$ref": "#/$defs/count"
+          },
+          "fan_out": {
+            "$ref": "#/$defs/count"
+          },
+          "unknown_import_sites": {
+            "$ref": "#/$defs/count"
+          }
+        }
+      }
+    },
+    "resolved_pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_path",
+          "target_path",
+          "source_role",
+          "target_role",
+          "statement_count",
+          "conditional_or_deferred_count",
+          "witnesses"
+        ],
+        "properties": {
+          "source_path": {
+            "type": "string"
+          },
+          "target_path": {
+            "type": "string"
+          },
+          "source_role": {
+            "type": "string"
+          },
+          "target_role": {
+            "type": "string"
+          },
+          "statement_count": {
+            "$ref": "#/$defs/count"
+          },
+          "conditional_or_deferred_count": {
+            "$ref": "#/$defs/count"
+          },
+          "witnesses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/witness"
+            }
+          }
+        }
+      }
+    },
+    "cross_boundary_witnesses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/witness"
+      }
+    },
+    "cycles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nodes",
+          "closed_walk",
+          "edge_witnesses",
+          "evidence_class"
+        ],
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "closed_walk": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2
+          },
+          "edge_witnesses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/witness"
+            },
+            "minItems": 1
+          },
+          "evidence_class": {
+            "const": "STATIC_MODULE_PATH"
+          }
+        }
+      }
+    },
+    "declared_role_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "code",
+          "source",
+          "target",
+          "reason"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "VIOLATION",
+              "REVIEW_REQUIRED",
+              "NOT_EVALUATED"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics_id": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nullable_ratio": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_path",
+        "target_path",
+        "source_sha256",
+        "line",
+        "expression",
+        "execution",
+        "evidence_class"
+      ],
+      "properties": {
+        "source_path": {
+          "type": "string"
+        },
+        "target_path": {
+          "type": "string"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution": {
+          "enum": [
+            "top_level",
+            "conditional_or_deferred"
+          ]
+        },
+        "evidence_class": {
+          "const": "GRAPH_PROVIDED_STATIC_IMPORT"
+        }
+      }
+    }
+  }
+}
