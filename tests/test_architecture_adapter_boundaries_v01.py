@@ -146,5 +146,35 @@ class AdapterBoundaryTests(unittest.TestCase):
         self.assertEqual(report["boundary_id"], expected)
 
 
+    def test_schema_and_missing_dynamic_macro_abi_evidence(self):
+        from pathlib import Path
+        from jsonschema import Draft202012Validator
+        inv, metrics = reports((edge("a", "b"), edge("a", "c")))
+        report = assess_adapter_boundaries(inv, metrics, declaration())
+        for unknown in (
+            "DYNAMIC_PLUGIN_LOADING_NOT_EVALUATED",
+            "RUST_MACRO_TRAIT_SEMANTICS_NOT_EVALUATED",
+            "CPP_MACRO_HEADER_ABI_NOT_EVALUATED",
+            "EXTERNAL_CONSUMERS_NOT_EVALUATED",
+            "DISTRIBUTION_COMPATIBILITY_NOT_EVALUATED",
+        ):
+            self.assertIn(unknown, report["unknowns"])
+        schema = json.loads((Path(__file__).resolve().parents[1] /
+            "contracts/qa/architecture-adapter-boundaries-v0.1.schema.json").read_text())
+        Draft202012Validator.check_schema(schema)
+        Draft202012Validator(schema).validate(report)
+
+    def test_forged_source_witness_rejected_even_if_metrics_digest_updated(self):
+        inv, metrics = reports((edge("a", "b"), edge("a", "c")))
+        bad = deepcopy(metrics)
+        bad["resolved_pairs"][0]["witnesses"][0]["source_sha256"] = "0" * 64
+        bad["metrics_id"] = sha256(json.dumps(
+            {k: v for k, v in bad.items() if k != "metrics_id"},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        with self.assertRaises(AdapterBoundaryError):
+            assess_adapter_boundaries(inv, bad, declaration())
+
+
 if __name__ == "__main__":
     unittest.main()
