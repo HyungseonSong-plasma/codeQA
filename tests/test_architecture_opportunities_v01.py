@@ -216,7 +216,9 @@ class ArchitectureOpportunitiesTests(unittest.TestCase):
             {sid for o in result["question_opportunities"]
              for sid in o["originating_signal_ids"]},
         )
-        self.assertNotIn("PASS", json.dumps(result))
+        self.assertNotEqual(result["evidence_status"], "PASS")
+        self.assertTrue(all(o["decision"] == "NOT_EVALUATED"
+                            for o in result["question_opportunities"]))
         self.assertTrue(all(o["source_witnesses"] for o in result["question_opportunities"]))
 
 
