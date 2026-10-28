@@ -2,8 +2,8 @@
 
 The opt-in evaluator in `codeqa.evaluation.architecture.assessment` consumes
 B1 inventory, B2 dependency metrics, B3 unprompted opportunity discovery,
-B4 virtual path scenarios and B5 migration impact from the **same exact source
-snapshot**. It does not invoke an LLM, edit source or assume Naming/Adapter
+B4 virtual path scenarios, B5 migration impact and optional B6 declared
+language-family boundary evidence from the **same exact source snapshot**. It does not invoke an LLM, edit source or assume Naming/Adapter
 should be split. The normal entrypoint has no question input and can return
 zero signals, zero opportunities and zero assessments.
 
