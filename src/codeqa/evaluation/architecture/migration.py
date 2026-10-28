@@ -245,7 +245,7 @@ def assess_architecture_migration(
                                              hashes[path], old, new, "REVIEW_REQUIRED"))
                         if is_packaging:
                             risk_flags.add("PACKAGE_METADATA_REVIEW")
-                        if "script" in line.lower() or "entry" in line.lower():
+                        if ("script" in line.lower() or "entry" in line.lower() or (is_packaging and any(marker in value for marker in ("[project.scripts]", "[project.gui-scripts]", "[options.entry_points]", "[project.entry-points")))):
                             risk_flags.add("CLI_ENTRYPOINT_REVIEW")
         if conflicts:
             risk_flags.add("DOTTED_MODULE_NAMESPACE_COLLISION")
