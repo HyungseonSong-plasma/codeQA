@@ -26,6 +26,39 @@ def _root_name(node: ast.AST) -> str | None:
     return node.id if isinstance(node, ast.Name) else None
 
 
+def _test_body_nodes(node: ast.FunctionDef | ast.AsyncFunctionDef):
+    """Visit a test body, excluding nested functions/classes and deferred lambdas."""
+    stack = list(reversed(node.body))
+    while stack:
+        child = stack.pop()
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        yield child
+        stack.extend(reversed(list(ast.iter_child_nodes(child))))
+
+
+def _assertion_operand_pairs(
+    nodes: list[ast.AST], aliases: set[str],
+) -> list[dict[str, int]]:
+    """Locate imported calls *inside* assertion expressions (not result-flow proof)."""
+    pairs: set[tuple[int, int]] = set()
+    for node in nodes:
+        operands: list[ast.AST] = []
+        if isinstance(node, ast.Assert):
+            operands = [node.test]
+        elif (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+              and node.func.attr.startswith("assert") and _root_name(node.func) == "self"):
+            operands = [*node.args, *(kw.value for kw in node.keywords)]
+        for operand in operands:
+            for call in ast.walk(operand):
+                if isinstance(call, ast.Call) and _root_name(call.func) in aliases:
+                    pairs.add((call.lineno, node.lineno))
+    return [
+        {"call_line": call_line, "assertion_line": assertion_line}
+        for call_line, assertion_line in sorted(pairs)
+    ]
+
+
 def _candidate_sites(text: str, import_lines: set[int]) -> tuple[list[dict[str, Any]], str]:
     try:
         tree = ast.parse(text)
@@ -48,7 +81,8 @@ def _candidate_sites(text: str, import_lines: set[int]) -> tuple[list[dict[str, 
             continue
         calls: set[int] = set()
         assertions: set[int] = set()
-        for item in ast.walk(node):
+        body_nodes = list(_test_body_nodes(node))
+        for item in body_nodes:
             if isinstance(item, ast.Call):
                 if _root_name(item.func) in aliases:
                     calls.add(item.lineno)
@@ -64,6 +98,7 @@ def _candidate_sites(text: str, import_lines: set[int]) -> tuple[list[dict[str, 
                 "test_function_line": node.lineno,
                 "candidate_call_lines": sorted(calls),
                 "assertion_lines": sorted(assertions),
+                "assertion_operand_pairs": _assertion_operand_pairs(body_nodes, aliases),
                 "evidence_class": "STATIC_CANDIDATE_NOT_BEHAVIORAL_COVERAGE",
             })
     return sorted(results, key=lambda x: (x["test_function_line"], x["test_function"])), "PARSED"
@@ -129,6 +164,7 @@ def census_test_behavior_candidates(
                 decoded[path] = None
         records = []
         total = 0
+        operand_total = 0
         for edge in edges:
             by_path: dict[str, set[int]] = {}
             for w in edge["known_test_path_importers"]:
@@ -140,6 +176,7 @@ def census_test_behavior_candidates(
                 else:
                     candidates, parse_status = _candidate_sites(decoded[path], lines)
                 total += len(candidates)
+                operand_total += sum(len(c["assertion_operand_pairs"]) for c in candidates)
                 sites.append({
                     "test_path": path,
                     "test_source_sha256": files[path]["source_sha256"],
@@ -164,10 +201,12 @@ def census_test_behavior_candidates(
             },
             "observed_cross_role_pairs": len(records),
             "candidate_test_functions_across_edges": total,
+            "assertion_operand_candidate_pairs_across_edges": operand_total,
             "edges": records,
             "decision": "NOT_EVALUATED",
             "limitations": [
                 "test import, call and assertion in one function are static proximity only",
+                "assertion-operand call sites are syntactic only; mocks, shadowing and runtime execution are unknown",
                 "test assertions may not inspect the imported call result or downstream edge",
                 "module import may be indirect, mocked, shadowed, or never executed",
                 "no candidate does not establish absent behavioral coverage",
@@ -194,7 +233,9 @@ def render_test_behavior_candidates_markdown(report: Mapping[str, Any]) -> str:
             "Observed cross-role pairs: " + str(report["observed_cross_role_pairs"]),
             "Candidate test functions across edges: "
             + str(report["candidate_test_functions_across_edges"]),
-            "Call/assert proximity is NOT behavioral coverage or semantic ownership.",
+            "Assertion-operand candidate pairs across edges: "
+            + str(report["assertion_operand_candidate_pairs_across_edges"]),
+            "Assertion-operand proximity is NOT runtime coverage or semantic ownership.",
         ]
         for edge in report["edges"]:
             for path in edge["candidate_test_paths"]:
@@ -205,7 +246,8 @@ def render_test_behavior_candidates_markdown(report: Mapping[str, Any]) -> str:
                         + str(test["test_function_line"]) + "` "
                         + test["test_function"] + " (call="
                         + str(test["candidate_call_lines"]) + ", assertion="
-                        + str(test["assertion_lines"]) + "; candidate only)"
+                        + str(test["assertion_lines"]) + ", assertion-operand="
+                        + str(test["assertion_operand_pairs"]) + "; candidate only)"
                     )
         lines.extend(["", "Behavioral edge coverage, external callers and runtime/API compatibility: NOT_EVALUATED.", ""])
         return "\n".join(lines)
