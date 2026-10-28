@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:architecture-scenarios-v0.1",
+  "title": "B4 evidence-triggered virtual architecture scenarios (advisory only)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "inventory_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "metrics_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "opportunities_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "role_policy_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dependency_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resolved_pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "within_declared_pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cross_declared_pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "static_cycles": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_files": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "resolved_pairs",
+        "within_declared_pairs",
+        "cross_declared_pairs",
+        "static_cycles",
+        "source_files"
+      ]
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "opportunity_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "originating_signal_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "path_mapping": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "to": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "source_sha256"
+              ]
+            }
+          },
+          "rewrite_candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source_path": {
+                  "type": "string"
+                },
+                "target_path": {
+                  "type": "string"
+                },
+                "virtual_source_path": {
+                  "type": "string"
+                },
+                "virtual_target_path": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "expression": {
+                  "type": "string"
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "rewrite_status": {
+                  "const": "NOT_EVALUATED"
+                }
+              },
+              "required": [
+                "source_path",
+                "target_path",
+                "virtual_source_path",
+                "virtual_target_path",
+                "line",
+                "expression",
+                "source_sha256",
+                "rewrite_status"
+              ]
+            }
+          },
+          "measured_proxy_delta": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cross_declared_pairs": {
+                "type": "integer"
+              },
+              "within_declared_pairs": {
+                "type": "integer"
+              },
+              "resolved_static_pairs": {
+                "const": 0
+              },
+              "static_cycles": {
+                "const": 0
+              },
+              "moved_files": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "cross_declared_pairs",
+              "within_declared_pairs",
+              "resolved_static_pairs",
+              "static_cycles",
+              "moved_files"
+            ]
+          },
+          "source_identity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "snapshot_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "inventory_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "metrics_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "role_policy_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "dependency_profile_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "snapshot_sha",
+              "inventory_id",
+              "metrics_id",
+              "role_policy_sha256",
+              "dependency_profile_id"
+            ]
+          },
+          "evidence_class": {
+            "const": "PROJECTED_PATH_ROLE_PROXY_ONLY"
+          },
+          "decision": {
+            "const": "NOT_EVALUATED"
+          },
+          "unknowns": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "opportunity_id",
+          "originating_signal_ids",
+          "path_mapping",
+          "rewrite_candidates",
+          "measured_proxy_delta",
+          "source_identity",
+          "evidence_class",
+          "decision",
+          "unknowns",
+          "limitations",
+          "scenario_id"
+        ]
+      }
+    },
+    "rejected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "opportunity_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "originating_signal_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "witness_pairs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source_path": {
+                  "type": "string"
+                },
+                "target_path": {
+                  "type": "string"
+                },
+                "source_role": {
+                  "type": "string"
+                },
+                "target_role": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source_path",
+                "target_path",
+                "source_role",
+                "target_role"
+              ]
+            }
+          }
+        },
+        "required": [
+          "opportunity_id",
+          "originating_signal_ids",
+          "reason"
+        ]
+      }
+    },
+    "evidence_status": {
+      "const": "INCOMPLETE"
+    },
+    "decision": {
+      "const": "NOT_EVALUATED"
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "scenarios_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "snapshot_sha",
+    "inventory_id",
+    "metrics_id",
+    "opportunities_id",
+    "role_policy_sha256",
+    "dependency_profile_id",
+    "baseline",
+    "candidates",
+    "rejected",
+    "evidence_status",
+    "decision",
+    "limitations",
+    "scenarios_id"
+  ]
+}
