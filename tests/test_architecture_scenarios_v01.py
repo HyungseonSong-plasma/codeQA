@@ -221,8 +221,10 @@ class ArchitectureScenarioTests(unittest.TestCase):
             qid: {"src/orchard/unknown.py": "src/orchard/earth/unknown.py"},
         })
         self.assertEqual(bad["rejected"][0]["reason"], "UNCLASSIFIED_OR_UNREAD_SOURCE")
+        _, _, base_opportunities, _ = reports(edges=CONCENTRATED)
+        base_qid = base_opportunities["question_opportunities"][0]["opportunity_id"]
         unrelated = compare(edges=CONCENTRATED, candidate_mappings={
-            qid: {"src/orchard/earth/helper.py": "src/orchard/rain/helper.py"},
+            base_qid: {"src/orchard/earth/helper.py": "src/orchard/rain/helper.py"},
         })
         self.assertEqual(unrelated["rejected"][0]["reason"],
                          "MAPPING_SOURCE_NOT_IN_ORIGINATING_SIGNAL")
