@@ -191,3 +191,124 @@ def render_policy_triage_markdown(triage: Mapping[str, Any]) -> str:
     if not triage["signal_triage"]:
         lines.extend(["", "No concentration signal; no policy triage entries."])
     return "\n".join(lines) + "\n"
+
+
+def render_policy_candidate_decisions(
+    triage: Mapping[str, Any], assessment: Mapping[str, Any],
+) -> str:
+    """Bind B7 candidate decisions to B3 concentration and B4 rejection evidence.
+
+    KEEP here applies only to a rejected *mapping*, never to semantic ownership
+    or the whole repository. No viable candidate is not proof of a good layout.
+    """
+    try:
+        if (triage["triage_id"] != _digest({
+                k: v for k, v in triage.items() if k != "triage_id"
+            })
+                or assessment["assessment_id"] != _digest({
+                    k: v for k, v in assessment.items() if k != "assessment_id"
+                })
+                or assessment["mode"] != "DISCOVERY"
+                or assessment["decision"] != "NOT_EVALUATED"
+                or triage["decision"] != "NOT_EVALUATED"
+                or triage["semantic_ownership"] != "NOT_EVALUATED"
+                or triage["external_consumers"] != "NOT_EVALUATED"):
+            raise ArchitecturePolicyTriageError("untrusted decision report")
+        source = triage["source_identity"]
+        expected = assessment["source_identity"]
+        if (source["snapshot_sha"] != expected["snapshot_sha"]
+                or source["inventory_id"] != expected["inventory_id"]
+                or source["metrics_id"] != expected["metrics_id"]
+                or source["role_policy_sha256"] != expected["role_policy_sha256"]
+                or source["opportunities_id"] !=
+                   assessment["analyzer_hashes"]["opportunities_id"]):
+            raise ArchitecturePolicyTriageError("candidate source/profile drift")
+        concentrations = {
+            s["signal_id"] for s in assessment["architecture_signals"]
+            if s["family"] == "CROSS_BOUNDARY_CONCENTRATION"
+        }
+        triaged = {s["signal_id"] for s in triage["signal_triage"]}
+        if concentrations != triaged or len(triaged) != len(triage["signal_triage"]):
+            raise ArchitecturePolicyTriageError("missing or duplicate concentration")
+        questions = assessment["question_opportunities"]
+        scenarios = assessment["scenario_assessments"]
+        rejected = assessment["rejected_scenarios"]
+        lines = [
+            "## Source-bound concentration candidate decisions",
+            "",
+            "KEEP is only a disposition of a specific rejected mapping, not",
+            "certification of the existing architecture. External consumers and",
+            "semantic ownership: NOT_EVALUATED.",
+        ]
+        for signal in triage["signal_triage"]:
+            sid = signal["signal_id"]
+            if (signal["observed_cross_pairs"] != len(signal["pairs"])
+                    or sum(signal["declared_policy_counts"].values()) !=
+                       len(signal["pairs"])):
+                raise ArchitecturePolicyTriageError("triage denominator mismatch")
+            linked = [q for q in questions if sid in q["originating_signal_ids"]]
+            if len(linked) != 1:
+                raise ArchitecturePolicyTriageError("missing or ambiguous B7 question")
+            qid = linked[0]["opportunity_id"]
+            accepted = [s for s in scenarios if s["opportunity_id"] == qid]
+            denied = [r for r in rejected if r["opportunity_id"] == qid]
+            lines.extend([
+                "",
+                "- Signal " + sid + " (role `" + signal["source_role"] + "`): "
+                + str(signal["observed_cross_pairs"]) + "/"
+                + str(signal["observed_outgoing_pairs"]) + " cross-role pairs.",
+            ])
+            for candidate in accepted:
+                decision = candidate["decision_evidence"]
+                if decision["decision"] not in {
+                    "KEEP", "PREFER", "REVIEW_REQUIRED", "INSUFFICIENT_EVIDENCE"
+                }:
+                    raise ArchitecturePolicyTriageError("unknown B7 verdict")
+                lines.append(
+                    "  - Compared scenario " + candidate["scenario_id"] + ": "
+                    + decision["decision"] + "; matched denominators="
+                    + str(decision["comparable"])
+                    + "; migration risk=" + decision["migration_risk"]
+                    + "; unknowns=" + ", ".join(decision["critical_unknowns"])
+                )
+            for denied_candidate in denied:
+                reason = denied_candidate["reason"]
+                if reason == "TARGET_COLLISION":
+                    witnesses = denied_candidate.get("collision_witnesses", [])
+                    if not witnesses:
+                        raise ArchitecturePolicyTriageError("collision without source proof")
+                    lines.append("  - KEEP rejected mapping only: TARGET_COLLISION.")
+                    for witness in witnesses:
+                        lines.append(
+                            "    - " + witness["source_path"] + " -> "
+                            + witness["proposed_target_path"]
+                            + " (source_sha256=" + witness["source_sha256"] + ")"
+                        )
+                else:
+                    lines.append(
+                        "  - Rejected candidate (" + reason
+                        + "); no compatibility or quality inference."
+                    )
+            if not accepted:
+                lines.append(
+                    "  - No viable measured alternative; no-move is the safe "
+                    "current action, not a global KEEP/PASS verdict."
+                )
+            if signal["declared_policy_counts"].get("DECLARED_FORBIDDEN", 0):
+                lines.append(
+                    "  - REVIEW_REQUIRED: declared forbidden edges need "
+                    "separate ownership/policy investigation."
+                )
+        if not triage["signal_triage"]:
+            lines.append("- No concentration signal: zero questions is valid, not PASS.")
+        lines.extend([
+            "",
+            "Actual relocation requires independent API/policy authorization,",
+            "exact-head CI and same-scope post-change validation.",
+            "",
+        ])
+        return "\n".join(lines)
+    except (KeyError, TypeError, AttributeError, ValueError) as exc:
+        raise ArchitecturePolicyTriageError(
+            "untrustworthy concentration candidate evidence"
+        ) from exc
