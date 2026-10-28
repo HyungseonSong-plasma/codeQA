@@ -1,0 +1,576 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codeqa:qa:architecture-assessment:v0.1",
+  "title": "codeQA B7 source-derived bounded architecture decision evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "source_identity",
+    "analyzer_hashes",
+    "coverage",
+    "architecture_signals",
+    "question_opportunities",
+    "scenario_assessments",
+    "rejected_scenarios",
+    "unknowns",
+    "provenance",
+    "reviewer_decisions",
+    "decision",
+    "limitations",
+    "assessment_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "mode": {
+      "const": "DISCOVERY"
+    },
+    "source_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_sha",
+        "inventory_id",
+        "metrics_id",
+        "role_policy_sha256",
+        "dependency_profile_id"
+      ],
+      "properties": {
+        "snapshot_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "inventory_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "metrics_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "role_policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dependency_profile_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "analyzer_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory_id",
+        "metrics_id",
+        "opportunities_id",
+        "scenarios_id",
+        "migration_id"
+      ],
+      "properties": {
+        "inventory_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "metrics_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "opportunities_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scenarios_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "migration_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "tracked_total",
+        "read",
+        "python_analyzed",
+        "unknown_by_reason",
+        "external_consumers",
+        "dynamic_import_completeness"
+      ],
+      "properties": {
+        "tracked_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "python_analyzed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown_by_reason": {
+          "type": "object"
+        },
+        "external_consumers": {
+          "const": "NOT_EVALUATED"
+        },
+        "dynamic_import_completeness": {
+          "const": "NOT_EVALUATED"
+        }
+      }
+    },
+    "architecture_signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "signal_id",
+          "family",
+          "measurement",
+          "source_witnesses",
+          "derivation_rule",
+          "benign_counterhypothesis",
+          "evidence_class"
+        ],
+        "properties": {
+          "signal_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "family": {
+            "type": "string"
+          },
+          "measurement": {
+            "type": "object",
+            "required": [
+              "numerator",
+              "denominator",
+              "ratio"
+            ]
+          },
+          "source_witnesses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "source_path",
+                "source_sha256",
+                "line"
+              ],
+              "properties": {
+                "source_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "derivation_rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "benign_counterhypothesis": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "const": "PROXY_INFERENCE"
+          }
+        }
+      }
+    },
+    "question_opportunities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "opportunity_id",
+          "originating_signal_ids",
+          "candidate_question",
+          "source_witnesses",
+          "benign_counterhypothesis"
+        ],
+        "properties": {
+          "opportunity_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "originating_signal_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "candidate_question": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_witnesses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "source_path",
+                "source_sha256",
+                "line"
+              ],
+              "properties": {
+                "source_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "benign_counterhypothesis": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scenario_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "opportunity_id",
+          "originating_signal_ids",
+          "baseline",
+          "candidate",
+          "denominators",
+          "migration_id",
+          "decision_evidence",
+          "source_witnesses",
+          "counterhypothesis"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "opportunity_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "originating_signal_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "baseline": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cross_boundary_pairs",
+              "static_cycles",
+              "reverse_change_surface",
+              "interface_burden",
+              "migration_sites"
+            ],
+            "properties": {
+              "cross_boundary_pairs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "static_cycles": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reverse_change_surface": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "interface_burden": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "migration_sites": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "candidate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cross_boundary_pairs",
+              "static_cycles",
+              "reverse_change_surface",
+              "interface_burden",
+              "migration_sites"
+            ],
+            "properties": {
+              "cross_boundary_pairs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "static_cycles": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reverse_change_surface": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "interface_burden": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "migration_sites": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "denominators": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tracked_files",
+              "analyzed_modules",
+              "resolved_pairs"
+            ],
+            "properties": {
+              "tracked_files": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "analyzed_modules": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "resolved_pairs": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "migration_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "decision_evidence": {
+            "type": "object",
+            "required": [
+              "decision",
+              "reasons",
+              "comparable",
+              "metric_delta",
+              "hard_violations",
+              "critical_unknowns",
+              "relationship_changes_verified",
+              "migration_risk",
+              "evidence_class",
+              "human_review_question",
+              "limitations"
+            ],
+            "properties": {
+              "decision": {
+                "enum": [
+                  "PREFER",
+                  "KEEP",
+                  "REVIEW_REQUIRED",
+                  "INSUFFICIENT_EVIDENCE"
+                ]
+              },
+              "reasons": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable": {
+                "type": "boolean"
+              },
+              "metric_delta": {
+                "type": "object"
+              },
+              "hard_violations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "critical_unknowns": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "relationship_changes_verified": {
+                "type": "boolean"
+              },
+              "migration_risk": {
+                "enum": [
+                  "NONE",
+                  "MITIGATED",
+                  "LOW",
+                  "MEDIUM",
+                  "HIGH",
+                  "BLOCKED"
+                ]
+              },
+              "evidence_class": {
+                "const": "PROXY_INFERENCE"
+              },
+              "human_review_question": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "limitations": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "source_witnesses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "source_path",
+                "source_sha256",
+                "line"
+              ],
+              "properties": {
+                "source_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "counterhypothesis": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "rejected_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "opportunity_id",
+          "reason"
+        ],
+        "properties": {
+          "opportunity_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_sha",
+        "derivation",
+        "evidence_classes"
+      ],
+      "properties": {
+        "snapshot_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "derivation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_classes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "OBSERVED",
+              "DECLARED_POLICY",
+              "PROXY_INFERENCE",
+              "HUMAN_REVIEW"
+            ]
+          }
+        }
+      }
+    },
+    "reviewer_decisions": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "decision": {
+      "const": "NOT_EVALUATED"
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "assessment_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
