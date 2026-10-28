@@ -92,6 +92,12 @@ def triage_cross_role_concentration(
             expected_witnesses = {
                 _witness_key(w) for p in cross for w in p["witnesses"]
             }
+            metric_witnesses = {
+                _witness_key(w): w for p in cross for w in p["witnesses"]
+            }
+            if any(metric_witnesses.get(_witness_key(w)) != w
+                   for w in observed):
+                raise ArchitecturePolicyTriageError("forged or stale source witness")
             if (not cross
                     or signal["measurement"]["numerator"] != len(cross)
                     or signal["measurement"]["denominator"] != len(outgoing)
