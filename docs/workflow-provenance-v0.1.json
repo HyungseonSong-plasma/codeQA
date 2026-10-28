@@ -9,6 +9,10 @@
       "blob_sha": "3a115ab5ee1c8764ab9d3b430abee99b86c3bf86"
     },
     {
+      "path": ".github/workflows/architecture-metrics.yml",
+      "blob_sha": "dceefd2b2d7d8d3eec0a6d71f4e68aa72f39f121"
+    },
+    {
       "path": ".github/workflows/layout.yml",
       "blob_sha": "19bb64efe07ac6974cc1f965ebf1ffb7fb4635f2"
     },
