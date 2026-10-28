@@ -167,6 +167,15 @@ def generate_virtual_layout_scenarios(
             reason = "CYCLIC_OR_CHAINED_MAPPING"
         elif any(a not in modules for a in mapping):
             reason = "UNANALYZED_MOVED_MODULE"
+        elif any(
+            a not in {
+                p for sid in question["originating_signal_ids"]
+                for w in signals[sid]["source_witnesses"]
+                for p in (w["source_path"], w["target_path"])
+            }
+            for a in mapping
+        ):
+            reason = "MAPPING_SOURCE_NOT_IN_ORIGINATING_SIGNAL"
         if reason:
             rejected.append({
                 "opportunity_id": qid, "originating_signal_ids":
