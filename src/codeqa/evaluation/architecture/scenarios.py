@@ -177,10 +177,42 @@ def generate_virtual_layout_scenarios(
         ):
             reason = "MAPPING_SOURCE_NOT_IN_ORIGINATING_SIGNAL"
         if reason:
-            rejected.append({
+            rejection = {
                 "opportunity_id": qid, "originating_signal_ids":
                 question["originating_signal_ids"], "reason": reason,
-            })
+            }
+            if reason == "TARGET_COLLISION":
+                # Preserve the exact source/target and file-hash evidence.
+                # Never invent a different destination to evade this guard.
+                collision_witnesses: list[dict[str, Any]] = []
+                for source, destination in sorted(mapping.items()):
+                    others = sorted(
+                        other for other, target in mapping.items()
+                        if other != source and target == destination
+                    )
+                    common = {
+                        "source_path": source,
+                        "proposed_target_path": destination,
+                        "source_sha256": files[source]["source_sha256"],
+                    }
+                    if others:
+                        collision_witnesses.append({
+                            **common,
+                            "collision_kind": "DUPLICATE_DESTINATION",
+                            "conflicting_sources": others,
+                        })
+                    if destination in files and destination not in mapping:
+                        collision_witnesses.append({
+                            **common,
+                            "collision_kind": "OCCUPIED_TARGET",
+                            "occupied_target_sha256":
+                                files[destination]["source_sha256"],
+                        })
+                rejection["collision_witnesses"] = sorted(
+                    collision_witnesses,
+                    key=lambda w: (w["source_path"], w["collision_kind"]),
+                )
+            rejected.append(rejection)
             continue
 
         remap = dict(sorted(mapping.items()))

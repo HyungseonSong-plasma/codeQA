@@ -305,12 +305,107 @@
                 "target_role"
               ]
             }
+          },
+          "collision_witnesses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proposed_target_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "collision_kind": {
+                  "enum": [
+                    "DUPLICATE_DESTINATION",
+                    "OCCUPIED_TARGET"
+                  ]
+                },
+                "conflicting_sources": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "occupied_target_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "source_path",
+                "proposed_target_path",
+                "source_sha256",
+                "collision_kind"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "collision_kind": {
+                        "const": "DUPLICATE_DESTINATION"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "conflicting_sources"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "collision_kind": {
+                        "const": "OCCUPIED_TARGET"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "occupied_target_sha256"
+                    ]
+                  }
+                }
+              ]
+            }
           }
         },
         "required": [
           "opportunity_id",
           "originating_signal_ids",
           "reason"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "reason": {
+                  "const": "TARGET_COLLISION"
+                }
+              },
+              "required": [
+                "reason"
+              ]
+            },
+            "then": {
+              "required": [
+                "collision_witnesses"
+              ]
+            }
+          }
         ]
       }
     },
