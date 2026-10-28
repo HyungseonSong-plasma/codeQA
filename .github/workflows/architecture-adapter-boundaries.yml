@@ -1,0 +1,59 @@
+name: Architecture Adapter Boundaries B6 (exact HEAD)
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/architecture/**'
+      - 'profiles/architecture-adapter-boundaries-v0.1.json'
+      - 'contracts/qa/architecture-adapter-boundaries-v0.1.schema.json'
+      - 'tests/test_architecture_adapter_boundaries_v01.py'
+      - 'docs/architecture-adapter-boundaries-v0.1.md'
+      - '.github/scripts/architecture_adapter_boundaries_audit.py'
+      - '.github/workflows/architecture-adapter-boundaries.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adapter-boundaries:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: python -m pip install -e .
+      - name: Test generic and adversarial B6 boundaries
+        run: python -m unittest discover -s tests -p 'test_architecture_adapter_boundaries_v01.py' -v
+      - name: Generate exact-head B1 B2 B6 report
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python .github/scripts/architecture_inventory_audit.py --output architecture-inventory.json
+          python .github/scripts/architecture_metrics_audit.py --inventory architecture-inventory.json --output architecture-metrics.json
+          python .github/scripts/architecture_adapter_boundaries_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --output architecture-adapter-boundaries.json
+          python - <<'PY'
+          import json
+          import os
+          report = json.load(open("architecture-adapter-boundaries.json", encoding="utf-8"))
+          assert report["snapshot_sha"] == os.environ["EXPECTED_HEAD"]
+          assert report["decision"] == "NOT_EVALUATED"
+          assert report["evidence_status"] == "INCOMPLETE"
+          assert "EXTERNAL_CONSUMERS_NOT_EVALUATED" in report["unknowns"]
+          assert report["candidates"][0]["layout"] == "KEEP"
+          PY
+      - name: Upload B6 source-backed boundary evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-adapter-boundaries-b6
+          path: architecture-adapter-boundaries.json
+          if-no-files-found: error
