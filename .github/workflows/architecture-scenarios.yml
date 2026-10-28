@@ -1,0 +1,59 @@
+name: Architecture Scenarios B4 (exact HEAD)
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/architecture/**'
+      - 'src/codeqa/adapters/python_dependencies.py'
+      - 'contracts/qa/architecture-scenarios-v0.1.schema.json'
+      - 'tests/test_architecture_scenarios_v01.py'
+      - 'docs/architecture-scenarios-v0.1.md'
+      - '.github/scripts/architecture_scenarios_audit.py'
+      - '.github/workflows/architecture-scenarios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: python -m pip install -e .
+      - name: Validate B4 source-triggered and adversarial tests
+        run: python -m unittest discover -s tests -p 'test_architecture_scenarios_v01.py' -v
+      - name: Generate same-head B1 B2 B3 B4 evidence
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python .github/scripts/architecture_inventory_audit.py --output architecture-inventory.json
+          python .github/scripts/architecture_metrics_audit.py --inventory architecture-inventory.json --output architecture-metrics.json
+          python .github/scripts/architecture_opportunities_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --output architecture-opportunities.json
+          python .github/scripts/architecture_scenarios_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --opportunities architecture-opportunities.json --output architecture-scenarios.json
+          python - <<'PY'
+          import json
+          import os
+          report = json.load(open("architecture-scenarios.json", encoding="utf-8"))
+          assert report["snapshot_sha"] == os.environ["EXPECTED_HEAD"]
+          assert report["decision"] == "NOT_EVALUATED"
+          assert report["evidence_status"] != "PASS"
+          assert all(c["measured_proxy_delta"]["resolved_static_pairs"] == 0 for c in report["candidates"])
+          assert all(c["measured_proxy_delta"]["static_cycles"] == 0 for c in report["candidates"])
+          PY
+      - name: Upload B4 virtual scenarios
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-scenarios-b4
+          path: architecture-scenarios.json
+          if-no-files-found: error
