@@ -174,12 +174,12 @@ class TestBehaviorCandidateTests(unittest.TestCase):
 
     def test_import_inside_one_test_does_not_authenticate_sibling(self):
         text = (
-            "def test_first():\\n"
-            "    from orchard.sky.view import view\\n"
-            "    assert view() is not None\\n"
-            "def test_second():\\n"
-            "    view()\\n"
-            "    assert True\\n"
+            "def test_first():\n"
+            "    from orchard.sky.view import view\n"
+            "    assert view() is not None\n"
+            "def test_second():\n"
+            "    view()\n"
+            "    assert True\n"
         )
         report = census_test_behavior_candidates(*reports(text, import_line=2))
         self.assertEqual(report["candidate_test_functions_across_edges"], 2)
@@ -193,10 +193,10 @@ class TestBehaviorCandidateTests(unittest.TestCase):
 
     def test_generator_call_is_not_eager_test_witness(self):
         text = (
-            "from orchard.sky.view import view\\n"
-            "def test_lazy():\\n"
-            "    items = (view() for _ in range(1))\\n"
-            "    assert items is not None\\n"
+            "from orchard.sky.view import view\n"
+            "def test_lazy():\n"
+            "    items = (view() for _ in range(1))\n"
+            "    assert items is not None\n"
         )
         report = census_test_behavior_candidates(*reports(text))
         self.assertEqual(report["candidate_test_functions_across_edges"], 0)
@@ -204,20 +204,20 @@ class TestBehaviorCandidateTests(unittest.TestCase):
 
     def test_nested_test_definition_is_not_independent_execution(self):
         text = (
-            "from orchard.sky.view import view\\n"
-            "def helper():\\n"
-            "    def test_nested():\\n"
-            "        assert view() is not None\\n"
+            "from orchard.sky.view import view\n"
+            "def helper():\n"
+            "    def test_nested():\n"
+            "        assert view() is not None\n"
         )
         report = census_test_behavior_candidates(*reports(text))
         self.assertEqual(report["candidate_test_functions_across_edges"], 0)
 
     def test_class_namespace_import_is_not_module_binding(self):
         text = (
-            "class TestExample:\\n"
-            "    from orchard.sky.view import view\\n"
-            "    def test_method(self):\\n"
-            "        assert view() is not None\\n"
+            "class TestExample:\n"
+            "    from orchard.sky.view import view\n"
+            "    def test_method(self):\n"
+            "        assert view() is not None\n"
         )
         report = census_test_behavior_candidates(*reports(text, import_line=2))
         self.assertEqual(report["candidate_test_functions_across_edges"], 0)
