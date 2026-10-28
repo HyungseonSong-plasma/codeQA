@@ -102,6 +102,15 @@ class ArchitecturePolicyTriageTests(unittest.TestCase):
         }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         with self.assertRaises(ArchitecturePolicyTriageError):
             triage_cross_role_concentration(inventory, metrics, tampered, policy)
+        forged = deepcopy(opportunities)
+        concentration = next(s for s in forged["architecture_signals"]
+                             if s["family"] == "CROSS_BOUNDARY_CONCENTRATION")
+        concentration["source_witnesses"][0]["source_sha256"] = "0" * 64
+        forged["opportunities_id"] = sha256(json.dumps({
+            k: v for k, v in forged.items() if k != "opportunities_id"
+        }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        with self.assertRaises(ArchitecturePolicyTriageError):
+            triage_cross_role_concentration(inventory, metrics, forged, policy)
 
     def test_real_codeqa_pipeline_policy_allowed_is_not_keep_verdict(self):
         reader = GitReader(ROOT)
