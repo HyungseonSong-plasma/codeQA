@@ -1,0 +1,69 @@
+name: Architecture Self-Diagnostic B8 (exact HEAD)
+
+on:
+  pull_request:
+    paths:
+      - 'src/codeqa/evaluation/architecture/**'
+      - 'contracts/qa/architecture-self-diagnostic-v0.1.schema.json'
+      - 'tests/test_architecture_self_diagnostic_v01.py'
+      - 'docs/architecture-self-diagnostic-v0.1.md'
+      - '.github/scripts/architecture_self_diagnostic_e2e.py'
+      - '.github/workflows/architecture-self-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: python -m pip install -e .
+      - name: Independent E2E and adversarial regression
+        run: python -m unittest discover -s tests -p 'test_architecture_self_diagnostic_v01.py' -v
+      - name: Run real unprompted codeQA source self-diagnostic
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python .github/scripts/architecture_self_diagnostic_e2e.py --output-dir architecture-e2e
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          p = Path("architecture-e2e")
+          signals = json.loads((p / "architecture-signals.json").read_text())
+          questions = json.loads((p / "question-opportunities.json").read_text())
+          assessment = json.loads((p / "architecture-assessment.json").read_text())
+          for r in (signals, questions, assessment):
+              assert r["source_identity"]["snapshot_sha"] == os.environ["EXPECTED_HEAD"]
+              assert r["decision"] == "NOT_EVALUATED"
+          assert questions["assessment_id"] == assessment["assessment_id"]
+          assert signals["assessment_id"] == assessment["assessment_id"]
+          assert len(questions["items"]) == len(assessment["question_opportunities"])
+          assert all("KEEP" in q["alternatives"] for q in questions["items"])
+          assert all(s["decision_evidence"]["decision"] != "PREFER"
+                     for s in assessment["scenario_assessments"])
+          PY
+          git diff --exit-code
+      - name: Upload exact-head B8 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-self-diagnostic-b8
+          path: |
+            architecture-e2e/architecture-signals.json
+            architecture-e2e/question-opportunities.json
+            architecture-e2e/architecture-assessment.json
+            architecture-e2e/architecture-self-diagnostic.md
+          if-no-files-found: error
