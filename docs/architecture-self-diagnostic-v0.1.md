@@ -37,3 +37,11 @@ zero questions. No source migration occurs. A later actual cleanup requires a
 separately reviewed PR, compatible tests and a same-policy/scope rerun comparing
 before and after evidence. If no safe virtual candidate exists, do not invent
 one or call the resulting recommendation PASS.
+
+## Rejected candidate provenance (#184)
+
+B4 `TARGET_COLLISION` rejections now preserve exact source/destination paths,
+source SHA-256 and any existing target SHA-256. The B8 human report renders
+those witnesses. This improves reproducibility of the *rejection*; it does not
+turn a rejected move into a viable candidate or authorize any source migration.
+
