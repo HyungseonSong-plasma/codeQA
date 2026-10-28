@@ -37,6 +37,54 @@ def _test_body_nodes(node: ast.FunctionDef | ast.AsyncFunctionDef):
         stack.extend(reversed(list(ast.iter_child_nodes(child))))
 
 
+def _shadowed_import_names(
+    node: ast.FunctionDef | ast.AsyncFunctionDef, import_lines: set[int],
+) -> set[str]:
+    """Conservatively reject imported aliases rebound in the test's own scope.
+
+    Python treats assignment targets as local throughout a function, including
+    targets written after a call. Nested definitions bind their names in the
+    enclosing scope but their bodies are not inspected.
+    """
+    args = node.args
+    names = {arg.arg for arg in (*args.posonlyargs, *args.args, *args.kwonlyargs)}
+    if args.vararg:
+        names.add(args.vararg.arg)
+    if args.kwarg:
+        names.add(args.kwarg.arg)
+    stack = list(reversed(node.body))
+    while stack:
+        item = stack.pop()
+        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(item.name)
+            continue
+        if isinstance(item, (ast.Lambda, ast.GeneratorExp)):
+            continue
+        if isinstance(item, ast.Name) and isinstance(item.ctx, (ast.Store, ast.Del)):
+            names.add(item.id)
+        elif isinstance(item, ast.ExceptHandler) and item.name:
+            names.add(item.name)
+        elif isinstance(item, (ast.Import, ast.ImportFrom)) and item.lineno not in import_lines:
+            names.update(
+                alias.asname or alias.name.split(".")[0]
+                for alias in item.names if alias.name != "*"
+            )
+        stack.extend(reversed(list(ast.iter_child_nodes(item))))
+    return names
+
+
+def _eager_assertion_nodes(root: ast.AST):
+    """Do not count deferred lambda/generator bodies as executed operands."""
+    stack = [root]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, (ast.Lambda, ast.GeneratorExp,
+                             ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        yield item
+        stack.extend(reversed(list(ast.iter_child_nodes(item))))
+
+
 def _assertion_operand_pairs(
     nodes: list[ast.AST], aliases: set[str],
 ) -> list[dict[str, int]]:
@@ -50,7 +98,7 @@ def _assertion_operand_pairs(
               and node.func.attr.startswith("assert") and _root_name(node.func) == "self"):
             operands = [*node.args, *(kw.value for kw in node.keywords)]
         for operand in operands:
-            for call in ast.walk(operand):
+            for call in _eager_assertion_nodes(operand):
                 if isinstance(call, ast.Call) and _root_name(call.func) in aliases:
                     pairs.add((call.lineno, node.lineno))
     return [
@@ -79,12 +127,15 @@ def _candidate_sites(text: str, import_lines: set[int]) -> tuple[list[dict[str, 
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or not node.name.startswith("test_"):
             continue
+        active_aliases = aliases - _shadowed_import_names(node, import_lines)
+        if not active_aliases:
+            continue
         calls: set[int] = set()
         assertions: set[int] = set()
         body_nodes = list(_test_body_nodes(node))
         for item in body_nodes:
             if isinstance(item, ast.Call):
-                if _root_name(item.func) in aliases:
+                if _root_name(item.func) in active_aliases:
                     calls.add(item.lineno)
                 if (isinstance(item.func, ast.Attribute)
                         and item.func.attr.startswith("assert")
@@ -98,7 +149,7 @@ def _candidate_sites(text: str, import_lines: set[int]) -> tuple[list[dict[str, 
                 "test_function_line": node.lineno,
                 "candidate_call_lines": sorted(calls),
                 "assertion_lines": sorted(assertions),
-                "assertion_operand_pairs": _assertion_operand_pairs(body_nodes, aliases),
+                "assertion_operand_pairs": _assertion_operand_pairs(body_nodes, active_aliases),
                 "evidence_class": "STATIC_CANDIDATE_NOT_BEHAVIORAL_COVERAGE",
             })
     return sorted(results, key=lambda x: (x["test_function_line"], x["test_function"])), "PARSED"
@@ -206,7 +257,8 @@ def census_test_behavior_candidates(
             "decision": "NOT_EVALUATED",
             "limitations": [
                 "test import, call and assertion in one function are static proximity only",
-                "assertion-operand call sites are syntactic only; mocks, shadowing and runtime execution are unknown",
+                "assertion-operand call sites are syntactic only; mocks and runtime execution are unknown",
+                "locally rebound import aliases and deferred lambda/generator bodies are conservatively excluded",
                 "test assertions may not inspect the imported call result or downstream edge",
                 "module import may be indirect, mocked, shadowed, or never executed",
                 "no candidate does not establish absent behavioral coverage",

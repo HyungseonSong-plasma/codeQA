@@ -124,6 +124,54 @@ class TestBehaviorCandidateTests(unittest.TestCase):
                         {"call_line": 3, "assertion_line": 3},
                     ])
 
+    def test_locally_rebound_import_is_not_counted_as_imported_behavior(self):
+        for binding in (
+            "    view = lambda: 1\n",
+            "    def view():\n        return 1\n",
+            "    view = 1\n",
+        ):
+            with self.subTest(binding=binding):
+                text = (
+                    "from orchard.sky.view import view\n"
+                    "def test_rebound():\n"
+                    + binding
+                    + "    assert view() == 1\n"
+                )
+                report = census_test_behavior_candidates(*reports(text))
+                self.assertEqual(report["candidate_test_functions_across_edges"], 0)
+                self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 0)
+                self.assertEqual(report["decision"], "NOT_EVALUATED")
+
+    def test_import_shadowed_by_parameter_or_later_assignment(self):
+        for text in (
+            "from orchard.sky.view import view\n"
+            "def test_parameter(view):\n    assert view() is not None\n",
+            "from orchard.sky.view import view\n"
+            "def test_later():\n    assert view() is not None\n    view = 2\n",
+        ):
+            with self.subTest(text=text):
+                report = census_test_behavior_candidates(*reports(text))
+                self.assertEqual(report["candidate_test_functions_across_edges"], 0)
+
+    def test_deferred_assertion_lambda_and_generator_are_not_operand_witnesses(self):
+        for expression in ("(lambda: view())", "(view() for _ in range(1))"):
+            with self.subTest(expression=expression):
+                text = (
+                    "from orchard.sky.view import view\n"
+                    "def test_deferred():\n"
+                    "    view()\n"
+                    "    assert " + expression + "\n"
+                )
+                report = census_test_behavior_candidates(*reports(text))
+                self.assertEqual(report["candidate_test_functions_across_edges"], 2)
+                self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 0)
+                self.assertTrue(all(
+                    not candidate["assertion_operand_pairs"]
+                    for edge in report["edges"]
+                    for site in edge["candidate_test_paths"]
+                    for candidate in site["candidate_tests"]
+                ))
+
     def test_nested_helper_does_not_create_test_behavior_candidate(self):
         text = (
             "from orchard.sky.view import view\n"
