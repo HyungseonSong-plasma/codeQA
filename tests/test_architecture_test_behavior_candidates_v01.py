@@ -136,7 +136,7 @@ class TestBehaviorCandidateTests(unittest.TestCase):
                     "def test_rebound():\n"
                     + binding
                     + "    assert view() == 1\n"
-                ).replace("\\\n", "\n")
+                )
                 report = census_test_behavior_candidates(*reports(text))
                 self.assertEqual(report["candidate_test_functions_across_edges"], 0)
                 self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 0)
