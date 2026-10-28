@@ -127,9 +127,46 @@ class ArchitectureScenarioTests(unittest.TestCase):
         self.assertEqual(compare(edges=CONCENTRATED, candidate_mappings={
             qid: {"src/orchard/sky/view.py": "src/orchard/sky/view.py"}
         })["rejected"][0]["reason"], "NO_OP_MAPPING")
-        self.assertEqual(compare(edges=CONCENTRATED, candidate_mappings={
+        collision = compare(edges=CONCENTRATED, candidate_mappings={
             qid: {"src/orchard/sky/view.py": "src/orchard/earth/model.py"}
-        })["rejected"][0]["reason"], "TARGET_COLLISION")
+        })
+        self.assertEqual(collision["rejected"][0]["reason"], "TARGET_COLLISION")
+        self.assertEqual(collision["rejected"][0]["collision_witnesses"], [{
+            "source_path": "src/orchard/sky/view.py",
+            "proposed_target_path": "src/orchard/earth/model.py",
+            "source_sha256": sha256(SOURCES["src/orchard/sky/view.py"].encode()).hexdigest(),
+            "collision_kind": "OCCUPIED_TARGET",
+            "occupied_target_sha256":
+                sha256(SOURCES["src/orchard/earth/model.py"].encode()).hexdigest(),
+        }])
+        schema = json.loads(
+            (ROOT / "contracts/qa/architecture-scenarios-v0.1.schema.json").read_text()
+        )
+        Draft202012Validator(schema).validate(collision)
+        tampered = deepcopy(collision)
+        del tampered["rejected"][0]["collision_witnesses"]
+        self.assertTrue(list(Draft202012Validator(schema).iter_errors(tampered)))
+
+    def test_duplicate_target_collision_has_all_source_witnesses(self):
+        _, _, opportunities, _ = reports(edges=CONCENTRATED)
+        qid = opportunities["question_opportunities"][0]["opportunity_id"]
+        report = compare(edges=CONCENTRATED, candidate_mappings={qid: {
+            "src/orchard/sky/view.py": "src/orchard/rain/new.py",
+            "src/orchard/earth/model.py": "src/orchard/rain/new.py",
+        }})
+        rejected = report["rejected"][0]
+        self.assertEqual(rejected["reason"], "TARGET_COLLISION")
+        self.assertEqual(len(rejected["collision_witnesses"]), 2)
+        self.assertEqual({w["source_path"] for w in rejected["collision_witnesses"]},
+                         {"src/orchard/sky/view.py", "src/orchard/earth/model.py"})
+        self.assertTrue(all(w["collision_kind"] == "DUPLICATE_DESTINATION"
+                            and len(w["conflicting_sources"]) == 1
+                            and w["proposed_target_path"] == "src/orchard/rain/new.py"
+                            for w in rejected["collision_witnesses"]))
+        schema = json.loads(
+            (ROOT / "contracts/qa/architecture-scenarios-v0.1.schema.json").read_text()
+        )
+        Draft202012Validator(schema).validate(report)
 
     def test_invalid_paths_frozen_root_unclassified_and_chained_moves(self):
         _, _, opportunities, _ = reports(edges=CONCENTRATED)
