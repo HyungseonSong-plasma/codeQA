@@ -115,6 +115,27 @@ class SelfDiagnosticE2ETests(unittest.TestCase):
         with self.assertRaises(SelfDiagnosticEvidenceError):
             project_self_diagnostic(assembled(), changed)
 
+    def test_rejected_collision_paths_reach_human_report(self):
+        inv, metrics, opportunities, policy = reports(edges=CONCENTRATED)
+        qid = opportunities["question_opportunities"][0]["opportunity_id"]
+        scenarios = generate_virtual_layout_scenarios(
+            inv, metrics, opportunities, policy,
+            candidate_mappings={qid: {
+                "src/orchard/sky/view.py": "src/orchard/earth/model.py"
+            }},
+        )
+        migration = assess_architecture_migration(inv, scenarios, SOURCES)
+        assessment = assemble_architecture_advisory(
+            inv, metrics, opportunities, scenarios, migration
+        )
+        summary = project_self_diagnostic(assessment, inv)[2]
+        self.assertIn(
+            "Collision (OCCUPIED_TARGET): src/orchard/sky/view.py"
+            " -> src/orchard/earth/model.py", summary
+        )
+        self.assertIn("Existing target sha256:", summary)
+        self.assertIn("Overall decision: NOT_EVALUATED", summary)
+
     def test_deterministic_projections_and_schema(self):
         inv, _, _, _ = reports(edges=CONCENTRATED)
         a = project_self_diagnostic(assembled(), inv)
