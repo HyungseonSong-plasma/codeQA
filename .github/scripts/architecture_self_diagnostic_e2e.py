@@ -17,6 +17,9 @@ from codeqa.evaluation.architecture.policy_triage import (
     render_policy_triage_markdown, render_policy_candidate_decisions,
     triage_cross_role_concentration,
 )
+from codeqa.evaluation.architecture.internal_consumers import (
+    census_internal_consumers, render_internal_consumers_markdown,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / ".github" / "scripts"
@@ -73,13 +76,15 @@ def main() -> None:
                 "--summary", str(Path(temp) / "b7.md"))
         inventory, assessment = read(Path(p["inventory"])), read(Path(p["assessment"]))
         role_policy = read(ROOT / "profiles/semantic-directory-roles-v0.1.json")
+        metrics = read(Path(p["metrics"]))
         triage = triage_cross_role_concentration(
-            inventory, read(Path(p["metrics"])),
-            read(Path(p["opportunities"])), role_policy,
+            inventory, metrics, read(Path(p["opportunities"])), role_policy,
         )
+        consumers = census_internal_consumers(inventory, metrics, triage)
         signals, questions, summary = project_self_diagnostic(assessment, inventory)
         summary += "\n" + render_policy_triage_markdown(triage)
         summary += "\n" + render_policy_candidate_decisions(triage, assessment)
+        summary += "\n" + render_internal_consumers_markdown(consumers)
         schema = read(ROOT / "contracts/qa/architecture-self-diagnostic-v0.1.schema.json")
         Draft202012Validator.check_schema(schema)
         for projection in (signals, questions):
@@ -87,10 +92,12 @@ def main() -> None:
         if (assessment["source_identity"]["snapshot_sha"] != head
                 or signals["source_identity"]["snapshot_sha"] != head
                 or questions["source_identity"]["snapshot_sha"] != head
-                or triage["source_identity"]["snapshot_sha"] != head):
+                or triage["source_identity"]["snapshot_sha"] != head
+                or consumers["source_identity"]["snapshot_sha"] != head):
             raise ValueError("B8 source identity drift")
         write(output / "architecture-signals.json", signals)
         write(output / "question-opportunities.json", questions)
+        write(output / "architecture-internal-consumers.json", consumers)
         shutil.copyfile(p["assessment"], output / "architecture-assessment.json")
         (output / "architecture-self-diagnostic.md").write_text(summary, encoding="utf-8")
     if git("status", "--porcelain", "--untracked-files=no") != before:
