@@ -26,6 +26,10 @@ from codeqa.evaluation.architecture.package_surface import (
 from codeqa.evaluation.architecture.edge_responsibility import (
     census_edge_responsibility, render_edge_responsibility_markdown,
 )
+from codeqa.infrastructure.git import GitReader
+from codeqa.evaluation.architecture.test_behavior_candidates import (
+    census_test_behavior_candidates, render_test_behavior_candidates_markdown,
+)
 from codeqa.evaluation.architecture.bounded_disposition import (
     assess_bounded_disposition, render_bounded_disposition_markdown,
 )
@@ -96,6 +100,17 @@ def main() -> None:
         responsibility = census_edge_responsibility(
             inventory, metrics, triage, consumers, role_policy,
         )
+        # Read only test blobs already witnessed by B2/B3/B8 at the same HEAD.
+        test_paths = sorted({
+            witness["source_path"]
+            for edge in responsibility["edges"]
+            for witness in edge["known_test_path_importers"]
+        })
+        reader = GitReader(ROOT)
+        test_sources = {path: reader.read_file(head, path) for path in test_paths}
+        test_candidates = census_test_behavior_candidates(
+            inventory, responsibility, test_sources,
+        )
         disposition = assess_bounded_disposition(
             inventory, triage, responsibility, assessment,
         )
@@ -105,6 +120,7 @@ def main() -> None:
         summary += "\n" + render_internal_consumers_markdown(consumers)
         summary += "\n" + render_package_surface_markdown(package_surface)
         summary += "\n" + render_edge_responsibility_markdown(responsibility)
+        summary += "\n" + render_test_behavior_candidates_markdown(test_candidates)
         summary += "\n" + render_bounded_disposition_markdown(disposition)
         schema = read(ROOT / "contracts/qa/architecture-self-diagnostic-v0.1.schema.json")
         Draft202012Validator.check_schema(schema)
@@ -117,6 +133,7 @@ def main() -> None:
                 or consumers["source_identity"]["snapshot_sha"] != head
                 or package_surface["source_identity"]["snapshot_sha"] != head
                 or responsibility["source_identity"]["snapshot_sha"] != head
+                or test_candidates["source_identity"]["snapshot_sha"] != head
                 or disposition["source_identity"]["snapshot_sha"] != head):
             raise ValueError("B8 source identity drift")
         write(output / "architecture-signals.json", signals)
@@ -124,6 +141,7 @@ def main() -> None:
         write(output / "architecture-internal-consumers.json", consumers)
         write(output / "architecture-package-surface.json", package_surface)
         write(output / "architecture-edge-responsibility.json", responsibility)
+        write(output / "architecture-test-behavior-candidates.json", test_candidates)
         write(output / "architecture-bounded-disposition.json", disposition)
         shutil.copyfile(p["assessment"], output / "architecture-assessment.json")
         (output / "architecture-self-diagnostic.md").write_text(summary, encoding="utf-8")
