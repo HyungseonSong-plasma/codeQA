@@ -166,7 +166,11 @@ def assess_adapter_boundaries(
               if unverified else []),
         ]))
         candidates = [{"layout": "KEEP", "status": "BASELINE", "decision": "NOT_EVALUATED"}]
-        if signal and len(families) >= 2:
+        implemented_families = {
+            f["family"] for f in families
+            if f["capability_status"] in ("SUPPORTED", "PARTIAL")
+        }
+        if signal and len(implemented_families) >= 2:
             candidates.append({
                 "layout": "GROUP_BY_DECLARED_LANGUAGE_FAMILY",
                 "status": "REVIEW_CANDIDATE",
