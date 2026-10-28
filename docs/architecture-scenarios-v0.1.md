@@ -18,6 +18,21 @@ Known forbidden direction introduced by the candidate is a hard rejection. Other
 
 The separate `candidate_mappings` parameter permits an explicit source-triggered comparison, keyed by **real B3 opportunity IDs**. It does not inject arbitrary new questions into default discovery.
 
+## Exact collision provenance (follow-up #184)
+
+When a proposed mapping collides with an existing source path or another
+proposed destination, B4 rejects it with `TARGET_COLLISION` and emits
+`collision_witnesses`. Each witness binds the actual source path and
+proposed target path to the source SHA-256. An occupied target additionally
+records its own SHA-256; duplicate destinations record the other competing
+source paths. These are deterministic, read-only path-identity facts, **not**
+evidence that renaming to a different path would be safe or beneficial.
+
+B8 carries these rejection witnesses into its human report. The default
+automatic mapping still selects the same candidate and does not silently
+invent an alternative destination. Static ownership intent, external imports,
+public API compatibility and safe cleanup remain `NOT_EVALUATED`.
+
 ## Verification
 
 `tests/test_architecture_scenarios_v01.py` covers healthy zero-scenario, favorable and unfavorable *role proxy* deltas, no-op/collision/invalid/root/chain rejection, new forbidden direction, cycle non-solution, renamed-isomorphic fixtures, report tampering, schema validation, immutability and exact-head real codeQA self-diagnostic. The CI audit reuses B1→B2→B3 exact-head artifacts and validates B4's versioned JSON Schema. No production package location or public import is changed.
