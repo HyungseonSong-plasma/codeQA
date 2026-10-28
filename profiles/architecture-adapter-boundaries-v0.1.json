@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "adapter_scope": "src/codeqa/adapters",
+  "families": [
+    {
+      "family": "python",
+      "module_paths": [
+        "src/codeqa/adapters/python.py",
+        "src/codeqa/adapters/python_dependencies.py",
+        "src/codeqa/adapters/python_naming.py",
+        "src/codeqa/adapters/python_snapshot.py"
+      ],
+      "capability_status": "PARTIAL",
+      "parser_provenance": "VERIFIED"
+    },
+    {
+      "family": "rust",
+      "module_paths": [
+        "src/codeqa/adapters/rust_parser_evidence.py"
+      ],
+      "capability_status": "NOT_EVALUATED",
+      "parser_provenance": "NOT_EVALUATED"
+    },
+    {
+      "family": "cpp_family",
+      "module_paths": [
+        "src/codeqa/adapters/cpp_parser_evidence.py"
+      ],
+      "capability_status": "NOT_EVALUATED",
+      "parser_provenance": "NOT_EVALUATED"
+    }
+  ],
+  "shared_paths": [
+    "src/codeqa/adapters/__init__.py",
+    "src/codeqa/adapters/capability.py",
+    "src/codeqa/adapters/lexical.py"
+  ],
+  "external_consumers": "NOT_EVALUATED",
+  "distribution_compatibility": "NOT_EVALUATED",
+  "provenance_notes": [
+    "Source membership is an owner-declared inventory, not a parser capability claim.",
+    "Rust/C++/MOOSE compiler and runtime coverage is not established.",
+    "Unclassified adapter modules remain visible rather than inferred by name."
+  ]
+}
