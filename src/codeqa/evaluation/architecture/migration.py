@@ -41,7 +41,7 @@ def _relative(package: str, level: int, module: str | None) -> str | None:
     if level > len(parts):
         return None
     prefix = parts[:len(parts) - level + 1]
-    return ".".join([*prefix, *module.split(".") if module else []])
+    return ".".join(prefix + (module.split(".") if module else []))
 
 
 def _record(path: str, line: int, kind: str, detail: str, digest: str,
