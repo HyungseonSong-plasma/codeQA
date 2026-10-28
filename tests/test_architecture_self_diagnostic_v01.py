@@ -1,0 +1,133 @@
+"""B8 independent unprompted, renamed, no-signal and source-binding regressions."""
+from __future__ import annotations
+
+from copy import deepcopy
+from hashlib import sha256
+import json
+from pathlib import Path
+import unittest
+
+from jsonschema import Draft202012Validator
+from codeqa.core.dependency import DependencyGraph, StaticDependency
+from codeqa.evaluation.architecture.assessment import assemble_architecture_advisory
+from codeqa.evaluation.architecture.inventory import analyze_architecture_inventory
+from codeqa.evaluation.architecture.metrics import analyze_architecture_metrics
+from codeqa.evaluation.architecture.opportunities import discover_architecture_opportunities
+from codeqa.evaluation.architecture.scenarios import generate_virtual_layout_scenarios
+from codeqa.evaluation.architecture.migration import assess_architecture_migration
+from codeqa.evaluation.architecture.self_diagnostic import (
+    SelfDiagnosticEvidenceError, project_self_diagnostic,
+)
+from test_architecture_assessment_v01 import assembled
+from test_architecture_scenarios_v01 import (
+    CONCENTRATED, POLICY, PROFILE, SHA, SOURCES, edge, reports,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def seal(report):
+    report["assessment_id"] = sha256(json.dumps(
+        {k: v for k, v in report.items() if k != "assessment_id"},
+        sort_keys=True, separators=(",", ":"),
+    ).encode()).hexdigest()
+    return report
+
+
+def renamed_concentration():
+    sources = {p.replace("orchard", "woodland"): v.replace("orchard", "woodland")
+               for p, v in SOURCES.items()}
+    policy = deepcopy(POLICY)
+    policy["scope"] = "src/woodland"
+    edges = tuple(StaticDependency(
+        e.source_path.replace("orchard", "woodland"),
+        e.target_path.replace("orchard", "woodland"), e.line,
+        e.expression.replace("orchard", "woodland"), e.execution,
+    ) for e in CONCENTRATED)
+    inv = analyze_architecture_inventory(SHA, sources, sources, policy)
+    graph = DependencyGraph(SHA, tuple(sorted(sources)), (), edges, ())
+    metrics = analyze_architecture_metrics(inv, graph, policy, PROFILE)
+    opp = discover_architecture_opportunities(inv, metrics)
+    scenarios = generate_virtual_layout_scenarios(inv, metrics, opp, policy)
+    migration = assess_architecture_migration(inv, scenarios, sources)
+    return inv, assemble_architecture_advisory(inv, metrics, opp, scenarios, migration)
+
+
+class SelfDiagnosticE2ETests(unittest.TestCase):
+    def test_no_signal_yields_zero_questions_not_pass(self):
+        inv, _, _, _ = reports(edges=())
+        signals, questions, human = project_self_diagnostic(assembled(edges=()), inv)
+        self.assertEqual(signals["items"], [])
+        self.assertEqual(questions["items"], [])
+        self.assertEqual(questions["decision"], "NOT_EVALUATED")
+        self.assertIn("zero questions is valid", human)
+        self.assertNotIn("PREFER", human)
+
+    def test_independent_structural_problems_generate_different_questions(self):
+        inv, _, _, _ = reports(edges=CONCENTRATED)
+        concentration = project_self_diagnostic(assembled(), inv)
+        cycle_edges = (edge("sky/view", "sky/other"), edge("sky/other", "sky/view"))
+        inv2, _, _, _ = reports(edges=cycle_edges)
+        cycle = project_self_diagnostic(assembled(edges=cycle_edges), inv2)
+        self.assertEqual(concentration[0]["items"][0]["family"],
+                         "CROSS_BOUNDARY_CONCENTRATION")
+        self.assertEqual(cycle[0]["items"][0]["family"], "STATIC_IMPORT_CYCLE")
+        self.assertNotEqual(concentration[1]["items"][0]["opportunity_id"],
+                            cycle[1]["items"][0]["opportunity_id"])
+        self.assertIn("KEEP", concentration[2])
+        self.assertIn("Benign alternative:", cycle[2])
+
+    def test_renamed_package_has_equivalent_discovery_not_seeded_name(self):
+        inv, result = renamed_concentration()
+        signals, questions, human = project_self_diagnostic(result, inv)
+        self.assertEqual(len(questions["items"]), 1)
+        self.assertEqual(signals["items"][0]["family"], "CROSS_BOUNDARY_CONCENTRATION")
+        self.assertIn("woodland", human)
+        self.assertNotIn("Should Naming", human)
+
+    def test_deceptive_naming_class_without_relationships_no_question(self):
+        sources = {**SOURCES, "src/orchard/earth/naming.py":
+                   "class AdapterNamingService: pass\\n"}
+        inv, _, _, _ = reports(sources=sources, edges=())
+        assessment = assembled(edges=(), sources=sources)
+        self.assertEqual(project_self_diagnostic(assessment, inv)[1]["items"], [])
+
+    def test_reject_forged_source_witness_even_with_resealed_report(self):
+        inv, _, _, _ = reports(edges=CONCENTRATED)
+        forged = deepcopy(assembled())
+        forged["architecture_signals"][0]["source_witnesses"][0]["source_sha256"] = "0" * 64
+        seal(forged)
+        with self.assertRaises(SelfDiagnosticEvidenceError):
+            project_self_diagnostic(forged, inv)
+
+    def test_reject_orphan_question_even_with_resealed_report(self):
+        inv, _, _, _ = reports(edges=CONCENTRATED)
+        forged = deepcopy(assembled())
+        forged["question_opportunities"][0]["originating_signal_ids"] = ["orphan"]
+        seal(forged)
+        with self.assertRaises(SelfDiagnosticEvidenceError):
+            project_self_diagnostic(forged, inv)
+
+    def test_reject_mismatched_source_identity(self):
+        inv, _, _, _ = reports(edges=CONCENTRATED)
+        changed = deepcopy(inv)
+        changed["source_identity"]["repository_commit_sha"] = "f" * 40
+        with self.assertRaises(SelfDiagnosticEvidenceError):
+            project_self_diagnostic(assembled(), changed)
+
+    def test_deterministic_projections_and_schema(self):
+        inv, _, _, _ = reports(edges=CONCENTRATED)
+        a = project_self_diagnostic(assembled(), inv)
+        b = project_self_diagnostic(assembled(), inv)
+        self.assertEqual(a, b)
+        schema = json.loads((ROOT / "contracts/qa/architecture-self-diagnostic-v0.1.schema.json")
+                            .read_text(encoding="utf-8"))
+        Draft202012Validator.check_schema(schema)
+        for report in a[:2]:
+            Draft202012Validator(schema).validate(report)
+            self.assertEqual(report["source_identity"]["snapshot_sha"], SHA)
+            self.assertNotEqual(report["decision"], "PASS")
+
+
+if __name__ == "__main__":
+    unittest.main()
