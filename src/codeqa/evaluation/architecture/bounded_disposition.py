@@ -98,7 +98,7 @@ def assess_bounded_disposition(
                         if s["opportunity_id"] == qid]
             if len({s["scenario_id"] for s in compared}) != len(compared):
                 raise BoundedDispositionError("duplicate compared candidate")
-            if len({(s["opportunity_id"], s["reason"]) for s in rejected}) != len(rejected):
+            if len({json.dumps(s, sort_keys=True) for s in rejected}) != len(rejected):
                 raise BoundedDispositionError("duplicate rejected candidate")
             if not compared and not rejected:
                 # A signal without any scenario is not a proven KEEP decision.
