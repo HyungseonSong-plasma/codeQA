@@ -1,6 +1,6 @@
 """Read-only pinned Git source selection for #91 Python AST coverage.
 
-Pipeline owns Git access + composition; core only computes pure evidence.
+Infrastructure owns Git subprocess access; pipeline composes pinned evidence.
 """
 from __future__ import annotations
 
