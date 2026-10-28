@@ -9,6 +9,10 @@
       "blob_sha": "da6093b1babf62cd081d897bb385af6454121b05"
     },
     {
+      "path": ".github/workflows/architecture-assessment.yml",
+      "blob_sha": "f9e9f448d5394f716b0ccf926a537cf1bfe209c7"
+    },
+    {
       "path": ".github/workflows/architecture-inventory.yml",
       "blob_sha": "3a115ab5ee1c8764ab9d3b430abee99b86c3bf86"
     },
