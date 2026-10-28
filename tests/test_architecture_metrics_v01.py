@@ -176,7 +176,8 @@ class ArchitectureMetricsTests(unittest.TestCase):
                          ["NON_PYTHON_PARSER_NOT_EVALUATED"], 1)
 
     def test_isomorphic_renamed_repository_keeps_normalized_metrics(self):
-        renamed = {path.replace("garden", "forest"): src for path, src in SOURCES.items()}
+        renamed = {path.replace("garden", "forest"): src.replace("garden", "forest")
+                   for path, src in SOURCES.items()}
         policy = deepcopy(POLICY)
         policy["scope"] = "src/forest"
         edges = tuple(StaticDependency(
@@ -208,6 +209,16 @@ class ArchitectureMetricsTests(unittest.TestCase):
         bad["coverage"]["tracked_total"] = 1
         with self.assertRaises(ArchitectureMetricsError):
             analyze_architecture_metrics(bad, graph, policy, PROFILE)
+        bad = deepcopy(inventory)
+        bad["files"][0]["declared_role"] = "soil"
+        with self.assertRaises(ArchitectureMetricsError):
+            analyze_architecture_metrics(bad, graph, policy, PROFILE)
+        self_import = StaticDependency(
+            "src/garden/leaf/view.py", "src/garden/leaf/view.py", 1,
+            "import garden.leaf.view", "top_level",
+        )
+        with self.assertRaises(ArchitectureMetricsError):
+            self.evaluate(edges=(*EDGES, self_import))
         forged = StaticDependency("src/garden/leaf/view.py", "outside.py", 99,
                                   "import nonexistent", "top_level")
         with self.assertRaises(ArchitectureMetricsError):
