@@ -69,7 +69,8 @@
         "metrics_id",
         "opportunities_id",
         "scenarios_id",
-        "migration_id"
+        "migration_id",
+        "adapter_boundary_id"
       ],
       "properties": {
         "inventory_id": {
@@ -90,6 +91,13 @@
         },
         "migration_id": {
           "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "adapter_boundary_id": {
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[0-9a-f]{64}$"
         }
       }
