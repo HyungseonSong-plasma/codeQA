@@ -40,9 +40,10 @@ jobs:
           python .github/scripts/architecture_inventory_audit.py --output architecture-inventory.json
           python .github/scripts/architecture_metrics_audit.py --inventory architecture-inventory.json --output architecture-metrics.json
           python .github/scripts/architecture_opportunities_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --output architecture-opportunities.json
+          python .github/scripts/architecture_adapter_boundaries_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --output architecture-adapter-boundaries.json
           python .github/scripts/architecture_scenarios_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --opportunities architecture-opportunities.json --output architecture-scenarios.json
           python .github/scripts/architecture_migration_audit.py --inventory architecture-inventory.json --scenarios architecture-scenarios.json --output architecture-migration.json
-          python .github/scripts/architecture_assessment_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --opportunities architecture-opportunities.json --scenarios architecture-scenarios.json --migration architecture-migration.json --output architecture-assessment.json --summary architecture-assessment.md
+          python .github/scripts/architecture_assessment_audit.py --inventory architecture-inventory.json --metrics architecture-metrics.json --opportunities architecture-opportunities.json --scenarios architecture-scenarios.json --migration architecture-migration.json --adapter-boundaries architecture-adapter-boundaries.json --output architecture-assessment.json --summary architecture-assessment.md
           python - <<'PY'
           import json
           import os
