@@ -38,6 +38,20 @@
       "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
     },
     {
+      "path": ".github/workflows/architecture-migration.yml",
+      "category": "conformance",
+      "owner": "codeQA source/conformance",
+      "trigger_events": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 1,
+      "artifact_authority": "SCOPED_CI_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
       "path": ".github/workflows/architecture-opportunities.yml",
       "category": "conformance",
       "owner": "codeQA source/conformance",
