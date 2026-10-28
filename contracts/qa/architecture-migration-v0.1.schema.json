@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "codeQA Architecture Migration Impact v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "inventory_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "scenarios_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "path_mapping": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "from",
+                "to",
+                "source_sha256"
+              ]
+            }
+          },
+          "observed_sites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "expression": {
+                  "type": "string"
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "old_module": {
+                  "type": "string"
+                },
+                "proposed_module": {
+                  "type": "string"
+                },
+                "rewrite_status": {
+                  "const": "REVIEW_REQUIRED"
+                },
+                "evidence_class": {
+                  "const": "SOURCE_STATIC_WITNESS"
+                }
+              },
+              "required": [
+                "path",
+                "line",
+                "kind",
+                "expression",
+                "source_sha256",
+                "old_module",
+                "proposed_module",
+                "rewrite_status",
+                "evidence_class"
+              ]
+            }
+          },
+          "observed_site_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "affected_file_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "moved_file_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "initializer_export_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "namespace_collisions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cost_band": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "BLOCKED"
+            ]
+          },
+          "cost_basis": {
+            "type": "object",
+            "required": [
+              "static_and_text_reference_sites",
+              "moved_files",
+              "unresolved_risk_flag_count",
+              "band_rules"
+            ]
+          },
+          "compatibility_status": {
+            "enum": [
+              "NOT_EVALUATED",
+              "BLOCKED"
+            ]
+          },
+          "confidence": {
+            "enum": [
+              "STATIC_PARTIAL",
+              "INSUFFICIENT_EVIDENCE"
+            ]
+          },
+          "unknowns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "compatibility_options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "scenario_id",
+          "path_mapping",
+          "observed_sites",
+          "observed_site_count",
+          "affected_file_count",
+          "moved_file_count",
+          "initializer_export_paths",
+          "namespace_collisions",
+          "cost_band",
+          "cost_basis",
+          "compatibility_status",
+          "confidence",
+          "unknowns",
+          "compatibility_options"
+        ]
+      }
+    },
+    "rejected_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "source_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "read_source_texts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_read_source_texts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "python_parse_failures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "read_source_texts",
+        "missing_read_source_texts",
+        "python_parse_failures"
+      ]
+    },
+    "decision": {
+      "const": "NOT_EVALUATED"
+    },
+    "evidence_status": {
+      "const": "INCOMPLETE"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "migration_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "snapshot_sha",
+    "inventory_id",
+    "scenarios_id",
+    "candidates",
+    "rejected_scenarios",
+    "source_coverage",
+    "decision",
+    "evidence_status",
+    "limitations",
+    "migration_id"
+  ]
+}
