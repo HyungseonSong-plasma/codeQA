@@ -176,5 +176,15 @@ class AdapterBoundaryTests(unittest.TestCase):
             assess_adapter_boundaries(inv, bad, declaration())
 
 
+    def test_unsupported_future_language_cannot_trigger_grouping(self):
+        inv, metrics = reports((edge("a", "b"), edge("a", "c")))
+        declared = declaration()
+        declared["families"][1]["capability_status"] = "NOT_EVALUATED"
+        result = assess_adapter_boundaries(inv, metrics, declared)
+        self.assertEqual(len(result["architecture_signals"]), 1)
+        self.assertEqual([c["layout"] for c in result["candidates"]], ["KEEP"])
+        self.assertIn("PARSER_PROVENANCE_NOT_EVALUATED", result["unknowns"])
+
+
 if __name__ == "__main__":
     unittest.main()
