@@ -13,6 +13,9 @@ import tempfile
 
 from jsonschema import Draft202012Validator
 from codeqa.evaluation.architecture.self_diagnostic import project_self_diagnostic
+from codeqa.evaluation.architecture.policy_triage import (
+    render_policy_triage_markdown, triage_cross_role_concentration,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / ".github" / "scripts"
@@ -68,14 +71,21 @@ def main() -> None:
                 "--adapter-boundaries", p["adapter"], "--output", p["assessment"],
                 "--summary", str(Path(temp) / "b7.md"))
         inventory, assessment = read(Path(p["inventory"])), read(Path(p["assessment"]))
+        role_policy = read(ROOT / "profiles/semantic-directory-roles-v0.1.json")
+        triage = triage_cross_role_concentration(
+            inventory, read(Path(p["metrics"])),
+            read(Path(p["opportunities"])), role_policy,
+        )
         signals, questions, summary = project_self_diagnostic(assessment, inventory)
+        summary += "\n" + render_policy_triage_markdown(triage)
         schema = read(ROOT / "contracts/qa/architecture-self-diagnostic-v0.1.schema.json")
         Draft202012Validator.check_schema(schema)
         for projection in (signals, questions):
             Draft202012Validator(schema).validate(projection)
         if (assessment["source_identity"]["snapshot_sha"] != head
                 or signals["source_identity"]["snapshot_sha"] != head
-                or questions["source_identity"]["snapshot_sha"] != head):
+                or questions["source_identity"]["snapshot_sha"] != head
+                or triage["source_identity"]["snapshot_sha"] != head):
             raise ValueError("B8 source identity drift")
         write(output / "architecture-signals.json", signals)
         write(output / "question-opportunities.json", questions)
