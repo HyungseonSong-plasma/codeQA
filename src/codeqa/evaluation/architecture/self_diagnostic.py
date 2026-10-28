@@ -119,6 +119,23 @@ def project_self_diagnostic(
             ])
         for rejected in assessment["rejected_scenarios"]:
             lines.append("- Rejected candidate: " + rejected["reason"])
+            for witness in rejected.get("collision_witnesses", []):
+                lines.append(
+                    "  - Collision (" + witness["collision_kind"] + "): "
+                    + witness["source_path"] + " -> "
+                    + witness["proposed_target_path"]
+                    + " [source_sha256=" + witness["source_sha256"] + "]"
+                )
+                if "occupied_target_sha256" in witness:
+                    lines.append(
+                        "    - Existing target sha256: "
+                        + witness["occupied_target_sha256"]
+                    )
+                if "conflicting_sources" in witness:
+                    lines.append(
+                        "    - Conflicting sources: "
+                        + ", ".join(witness["conflicting_sources"])
+                    )
         lines.extend([
             "", "## Coverage and unverified evidence",
             *("- " + u for u in unknowns),
