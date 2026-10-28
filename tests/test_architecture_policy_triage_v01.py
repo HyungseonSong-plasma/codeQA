@@ -12,14 +12,18 @@ from codeqa.adapters.python_dependencies import extract_python_dependencies
 from codeqa.evaluation.architecture.inventory import analyze_architecture_inventory
 from codeqa.evaluation.architecture.metrics import analyze_architecture_metrics
 from codeqa.evaluation.architecture.opportunities import discover_architecture_opportunities
+from codeqa.evaluation.architecture.assessment import assemble_architecture_advisory
+from codeqa.evaluation.architecture.migration import assess_architecture_migration
+from codeqa.evaluation.architecture.scenarios import generate_virtual_layout_scenarios
 from codeqa.evaluation.architecture.policy_triage import (
     ArchitecturePolicyTriageError,
     render_policy_triage_markdown,
+    render_policy_candidate_decisions,
     triage_cross_role_concentration,
 )
 from codeqa.infrastructure.git import GitReader
 from test_architecture_opportunities_v01 import (
-    POLICY, PROFILE, edge, make_report,
+    POLICY, PROFILE, SOURCES, edge, make_report,
 )
 
 
@@ -142,6 +146,77 @@ class ArchitecturePolicyTriageTests(unittest.TestCase):
         ))
         self.assertEqual(triage["source_identity"]["snapshot_sha"], head)
         self.assertEqual(triage["decision"], "NOT_EVALUATED")
+
+
+    def _assessment_for(self, inv, metrics, opportunities, policy, mappings=None):
+        scenarios = generate_virtual_layout_scenarios(
+            inv, metrics, opportunities, policy, candidate_mappings=mappings
+        )
+        migration = assess_architecture_migration(inv, scenarios, SOURCES)
+        return assemble_architecture_advisory(
+            inv, metrics, opportunities, scenarios, migration
+        )
+
+    def test_collision_keep_is_scoped_to_rejected_mapping_not_architecture(self):
+        inv, metrics, opportunities, policy = reports()
+        qid = opportunities["question_opportunities"][0]["opportunity_id"]
+        assessment = self._assessment_for(
+            inv, metrics, opportunities, policy,
+            {qid: {"src/orchard/sky/view.py": "src/orchard/earth/model.py"}},
+        )
+        triage = triage_cross_role_concentration(
+            inv, metrics, opportunities, policy
+        )
+        report = render_policy_candidate_decisions(triage, assessment)
+        self.assertIn("KEEP rejected mapping only: TARGET_COLLISION", report)
+        self.assertIn(
+            "src/orchard/sky/view.py -> src/orchard/earth/model.py", report
+        )
+        self.assertIn("no-move is the safe current action", report)
+        self.assertIn("not a global KEEP/PASS verdict", report)
+        self.assertIn("External consumers and", report)
+        self.assertIn("semantic ownership: NOT_EVALUATED", report)
+
+    def test_viable_scenario_preserves_b7_unknown_and_denominators(self):
+        inv, metrics, opportunities, policy = reports()
+        assessment = self._assessment_for(
+            inv, metrics, opportunities, policy
+        )
+        triage = triage_cross_role_concentration(
+            inv, metrics, opportunities, policy
+        )
+        self.assertTrue(assessment["scenario_assessments"])
+        report = render_policy_candidate_decisions(triage, assessment)
+        decision = assessment["scenario_assessments"][0]["decision_evidence"]
+        self.assertIn("Compared scenario", report)
+        self.assertIn(decision["decision"], report)
+        self.assertIn("matched denominators=True", report)
+        self.assertIn("EXTERNAL_CONSUMERS_NOT_EVALUATED", report)
+        self.assertNotIn("KEEP rejected mapping only", report)
+
+    def test_zero_signal_and_mismatched_provenance_fail_closed(self):
+        inv, metrics, opportunities, policy = reports(edges=())
+        triage = triage_cross_role_concentration(
+            inv, metrics, opportunities, policy
+        )
+        assessment = self._assessment_for(
+            inv, metrics, opportunities, policy
+        )
+        report = render_policy_candidate_decisions(triage, assessment)
+        self.assertIn("zero questions is valid, not PASS", report)
+        self.assertNotIn("KEEP rejected mapping only", report)
+        changed = deepcopy(assessment)
+        changed["source_identity"]["snapshot_sha"] = "f" * 40
+        changed["assessment_id"] = sha256(json.dumps({
+            k: v for k, v in changed.items() if k != "assessment_id"
+        }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        with self.assertRaises(ArchitecturePolicyTriageError):
+            render_policy_candidate_decisions(triage, changed)
+        tampered = deepcopy(triage)
+        tampered["signal_triage"].append({"signal_id": "fake"})
+        with self.assertRaises(ArchitecturePolicyTriageError):
+            render_policy_candidate_decisions(tampered, assessment)
+
 
 
 if __name__ == "__main__":

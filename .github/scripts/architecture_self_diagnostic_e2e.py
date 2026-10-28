@@ -14,7 +14,8 @@ import tempfile
 from jsonschema import Draft202012Validator
 from codeqa.evaluation.architecture.self_diagnostic import project_self_diagnostic
 from codeqa.evaluation.architecture.policy_triage import (
-    render_policy_triage_markdown, triage_cross_role_concentration,
+    render_policy_triage_markdown, render_policy_candidate_decisions,
+    triage_cross_role_concentration,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -78,6 +79,7 @@ def main() -> None:
         )
         signals, questions, summary = project_self_diagnostic(assessment, inventory)
         summary += "\n" + render_policy_triage_markdown(triage)
+        summary += "\n" + render_policy_candidate_decisions(triage, assessment)
         schema = read(ROOT / "contracts/qa/architecture-self-diagnostic-v0.1.schema.json")
         Draft202012Validator.check_schema(schema)
         for projection in (signals, questions):
