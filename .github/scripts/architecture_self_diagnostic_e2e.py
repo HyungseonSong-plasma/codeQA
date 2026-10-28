@@ -26,6 +26,9 @@ from codeqa.evaluation.architecture.package_surface import (
 from codeqa.evaluation.architecture.edge_responsibility import (
     census_edge_responsibility, render_edge_responsibility_markdown,
 )
+from codeqa.evaluation.architecture.bounded_disposition import (
+    assess_bounded_disposition, render_bounded_disposition_markdown,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / ".github" / "scripts"
@@ -93,12 +96,16 @@ def main() -> None:
         responsibility = census_edge_responsibility(
             inventory, metrics, triage, consumers, role_policy,
         )
+        disposition = assess_bounded_disposition(
+            inventory, triage, responsibility, assessment,
+        )
         signals, questions, summary = project_self_diagnostic(assessment, inventory)
         summary += "\n" + render_policy_triage_markdown(triage)
         summary += "\n" + render_policy_candidate_decisions(triage, assessment)
         summary += "\n" + render_internal_consumers_markdown(consumers)
         summary += "\n" + render_package_surface_markdown(package_surface)
         summary += "\n" + render_edge_responsibility_markdown(responsibility)
+        summary += "\n" + render_bounded_disposition_markdown(disposition)
         schema = read(ROOT / "contracts/qa/architecture-self-diagnostic-v0.1.schema.json")
         Draft202012Validator.check_schema(schema)
         for projection in (signals, questions):
@@ -109,13 +116,15 @@ def main() -> None:
                 or triage["source_identity"]["snapshot_sha"] != head
                 or consumers["source_identity"]["snapshot_sha"] != head
                 or package_surface["source_identity"]["snapshot_sha"] != head
-                or responsibility["source_identity"]["snapshot_sha"] != head):
+                or responsibility["source_identity"]["snapshot_sha"] != head
+                or disposition["source_identity"]["snapshot_sha"] != head):
             raise ValueError("B8 source identity drift")
         write(output / "architecture-signals.json", signals)
         write(output / "question-opportunities.json", questions)
         write(output / "architecture-internal-consumers.json", consumers)
         write(output / "architecture-package-surface.json", package_surface)
         write(output / "architecture-edge-responsibility.json", responsibility)
+        write(output / "architecture-bounded-disposition.json", disposition)
         shutil.copyfile(p["assessment"], output / "architecture-assessment.json")
         (output / "architecture-self-diagnostic.md").write_text(summary, encoding="utf-8")
     if git("status", "--porcelain", "--untracked-files=no") != before:
