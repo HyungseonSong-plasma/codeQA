@@ -98,7 +98,7 @@ def assess_bounded_disposition(
                         if s["opportunity_id"] == qid]
             if len({s["scenario_id"] for s in compared}) != len(compared):
                 raise BoundedDispositionError("duplicate compared candidate")
-            if len({s["scenario_id"] for s in rejected}) != len(rejected):
+            if len({(s["opportunity_id"], s["reason"]) for s in rejected}) != len(rejected):
                 raise BoundedDispositionError("duplicate rejected candidate")
             if not compared and not rejected:
                 # A signal without any scenario is not a proven KEEP decision.
@@ -147,7 +147,7 @@ def assess_bounded_disposition(
                     for c in compared
                 ],
                 "rejected_candidates": [
-                    {"scenario_id": c["scenario_id"], "reason": c["reason"]}
+                    {"opportunity_id": c["opportunity_id"], "reason": c["reason"]}
                     for c in rejected
                 ],
                 "collision_witnesses": rejected_witnesses,
@@ -213,7 +213,7 @@ def render_bounded_disposition_markdown(report: Mapping[str, Any]) -> str:
                 )
             for rejected in item["rejected_candidates"]:
                 lines.append(
-                    "  - Rejected " + rejected["scenario_id"] + ": " + rejected["reason"]
+                    "  - Rejected opportunity " + rejected["opportunity_id"] + ": " + rejected["reason"]
                 )
             for witness in item["collision_witnesses"]:
                 lines.append(
