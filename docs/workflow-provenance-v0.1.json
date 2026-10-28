@@ -13,6 +13,10 @@
       "blob_sha": "dceefd2b2d7d8d3eec0a6d71f4e68aa72f39f121"
     },
     {
+      "path": ".github/workflows/architecture-migration.yml",
+      "blob_sha": "5377f2a26a9b143d57e521aa0df95fed23da5f78"
+    },
+    {
       "path": ".github/workflows/architecture-opportunities.yml",
       "blob_sha": "32c5432d94c01fdece35deb5e195f1cba22ab1ea"
     },
