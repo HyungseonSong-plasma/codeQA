@@ -62,6 +62,7 @@ class MigrationImpactTests(unittest.TestCase):
         kinds = {site["kind"] for site in impact["observed_sites"]}
         self.assertTrue({
             "STATIC_IMPORT", "ALIASED_IMPORT", "ALIASED_FROM_IMPORT",
+            "STAR_IMPORT",
             "FROM_IMPORT", "RELATIVE_IMPORT", "DYNAMIC_IMPORT_LITERAL",
             "PACKAGING_REFERENCE", "CONFIG_OR_DOC_REFERENCE",
             "TEST_OR_SCRIPT_REFERENCE",
@@ -69,6 +70,7 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertIn("EXTERNAL_CONSUMERS_UNOBSERVED", impact["unknowns"])
         self.assertIn("DYNAMIC_IMPORT_TARGET_UNKNOWN", impact["unknowns"])
         self.assertIn("CLI_ENTRYPOINT_REVIEW", impact["unknowns"])
+        self.assertIn("STAR_IMPORT_REVIEW", impact["unknowns"])
         self.assertIn("INIT_REEXPORT_REVIEW", impact["unknowns"])
         self.assertIn("src/orchard/sky/__init__.py", impact["initializer_export_paths"])
         self.assertGreater(impact["observed_site_count"], 5)
