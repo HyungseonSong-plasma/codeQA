@@ -68,8 +68,16 @@ def analyze_architecture_metrics(
         ):
             raise ArchitectureMetricsError("incompatible snapshot or role-policy identity")
         by_path = {item["path"]: item for item in items}
-        if len(by_path) != len(items) or coverage["tracked_total"] != len(items):
-            raise ArchitectureMetricsError("inventory tracked-file denominator mismatch")
+        if (
+            len(by_path) != len(items)
+            or coverage["tracked_total"] != len(items)
+            or inventory["inventory_id"] != _digest({
+                key: value for key, value in inventory.items() if key != "inventory_id"
+            })
+        ):
+            raise ArchitectureMetricsError("inventory identity or denominator mismatch")
+        if any(edge.source_path == edge.target_path for edge in dependencies.edges):
+            raise ArchitectureMetricsError("self-import is outside directed pair denominator")
         if sum(item["read_state"] == "READ" for item in items) != coverage["read"]:
             raise ArchitectureMetricsError("inventory read-file denominator mismatch")
         if any(
