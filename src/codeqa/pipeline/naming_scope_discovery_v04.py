@@ -11,13 +11,12 @@ from collections.abc import Mapping
 from hashlib import sha1, sha256
 from pathlib import Path
 import re
-import subprocess
 from typing import Any
 
 from codeqa.core.naming_scope_discovery_v04 import (
     ScopeDiscoveryError, scan_explicit_spellings,
 )
-from codeqa.infrastructure.git import GitReader
+from codeqa.infrastructure.git import GitReadError, GitReader
 
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _TARGETS = ("time_step", "timestep", "node_id", "nodeid")
@@ -33,38 +32,29 @@ class ScopeEvidenceError(ValueError):
     """Incomplete tracked corpus, mismatched bytes or untrusted policy claims."""
 
 
-def _git(root: Path, *args: str) -> bytes:
-    result = subprocess.run(("git", *args), cwd=root, capture_output=True,
-                            check=False, timeout=25)
-    if result.returncode != 0:
-        raise ScopeEvidenceError("cannot verify immutable Git tree")
-    return result.stdout
-
-
 def _tree_manifest(root: Path, commit: str) -> tuple[str, dict[str, str]]:
-    tree = _git(root, "rev-parse", f"{commit}^{{tree}}").decode("ascii").strip()
+    """Verify the immutable Git tree through the sole subprocess adapter."""
+    try:
+        reader = GitReader(root)
+        tree = reader.tree_sha(commit)
+        entries = reader.tree_entries(commit, "src/codeqa")
+    except GitReadError as exc:
+        raise ScopeEvidenceError("cannot verify immutable Git tree") from exc
     if not _SHA40.fullmatch(tree):
         raise ScopeEvidenceError("invalid pinned Git tree identity")
-    result = _git(root, "ls-tree", "-r", "-z", commit, "--", "src/codeqa")
     selected: dict[str, str] = {}
-    for entry in result.split(b"\0"):
-        if not entry:
-            continue
-        try:
-            metadata, path_bytes = entry.split(b"\t", 1)
-            mode, objkind, digest = metadata.decode("ascii").split(" ")
-            path = path_bytes.decode("utf-8")
-        except (ValueError, UnicodeDecodeError) as exc:
-            raise ScopeEvidenceError("invalid Git tree entry") from exc
+    for entry in entries:
+        path = entry.path
         if path.startswith("src/codeqa/") and path.endswith(".py"):
-            if (objkind != "blob" or mode not in ("100644", "100755")
-                    or not _SHA40.fullmatch(digest) or path in selected):
+            if (entry.object_type != "blob"
+                    or entry.mode not in ("100644", "100755")
+                    or not _SHA40.fullmatch(entry.object_sha)
+                    or path in selected):
                 raise ScopeEvidenceError("unsupported/duplicate selected Git path")
-            selected[path] = digest
+            selected[path] = entry.object_sha
     if not selected:
         raise ScopeEvidenceError("no selected Python source in pinned Git tree")
     return tree, selected
-
 
 def discover_pinned_semantic_scope(
     root: Path, manifest: Mapping[str, Any],
