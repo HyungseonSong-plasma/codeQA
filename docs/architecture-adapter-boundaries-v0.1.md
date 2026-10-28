@@ -12,7 +12,7 @@
 
 For B2-observed Python static import pairs touching the adapter scope, B6 counts `WITHIN_FAMILY`, `CROSS_FAMILY`, `SHARED_UTILITY`, `UNCLASSIFIED` and `EXTERNAL_BOUNDARY`. Cross-family pressure is only a **question signal** when at least two witnessed cross-family directed pairs form at least 20% of observed adapter-internal pairs. The report includes source path, SHA, line and benign counterhypothesis. No hardcoded family names affect scoring.
 
-`KEEP` is always the baseline. `GROUP_BY_DECLARED_LANGUAGE_FAMILY` is considered only when measured pressure exists across at least two declared families. A `SIBLING_DISTRIBUTION` alternative additionally requires independently declared verified packaging and external-consumer evidence. Even then B6 returns `NOT_EVALUATED`; B7 owns comparative dispositions and no automatic migration is permitted. Shared utility use alone, a healthy single-family package, missing parsers, or arbitrary language names do not force a split.
+`KEEP` is always the baseline. `GROUP_BY_DECLARED_LANGUAGE_FAMILY` is considered only when measured pressure exists across at least two declared families with supported/partial implementation evidence; unsupported future-language placeholders never justify a split. A `SIBLING_DISTRIBUTION` alternative additionally requires independently declared verified packaging and external-consumer evidence. Even then B6 returns `NOT_EVALUATED`; B7 owns comparative dispositions and no automatic migration is permitted. Shared utility use alone, a healthy single-family package, missing parsers, or arbitrary language names do not force a split.
 
 ## Missing evidence and negative cases
 
