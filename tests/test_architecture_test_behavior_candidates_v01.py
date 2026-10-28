@@ -66,9 +66,75 @@ class TestBehaviorCandidateTests(unittest.TestCase):
             candidate = edge["candidate_test_paths"][0]["candidate_tests"][0]
             self.assertEqual(candidate["candidate_call_lines"], [4])
             self.assertEqual(candidate["assertion_lines"], [5])
+            self.assertEqual(candidate["assertion_operand_pairs"], [])
             self.assertEqual(candidate["evidence_class"], "STATIC_CANDIDATE_NOT_BEHAVIORAL_COVERAGE")
             self.assertEqual(edge["behavioral_edge_coverage"], "NOT_EVALUATED")
         self.assertIn("candidate only", render_test_behavior_candidates_markdown(report))
+
+    def test_direct_assertion_operand_is_source_bound_but_not_coverage(self):
+        text = (
+            "from orchard.sky.view import view\n"
+            "def test_direct():\n"
+            "    assert view() is not None\n"
+        )
+        report = census_test_behavior_candidates(*reports(text))
+        self.assertEqual(report["candidate_test_functions_across_edges"], 2)
+        self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 2)
+        observed = [e for e in report["edges"] if e["source_path"].endswith("view.py")]
+        for edge in observed:
+            candidate = edge["candidate_test_paths"][0]["candidate_tests"][0]
+            self.assertEqual(candidate["assertion_operand_pairs"], [
+                {"call_line": 3, "assertion_line": 3},
+            ])
+            self.assertEqual(edge["behavioral_edge_coverage"], "NOT_EVALUATED")
+        self.assertIn("assertion-operand", render_test_behavior_candidates_markdown(report))
+
+    def test_unrelated_assertion_is_not_operand_evidence(self):
+        text = (
+            "from orchard.sky.view import view\n"
+            "def test_unrelated():\n"
+            "    view()\n"
+            "    assert True\n"
+        )
+        report = census_test_behavior_candidates(*reports(text))
+        self.assertEqual(report["candidate_test_functions_across_edges"], 2)
+        self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 0)
+        for edge in report["edges"]:
+            for site in edge["candidate_test_paths"]:
+                for candidate in site["candidate_tests"]:
+                    self.assertEqual(candidate["assertion_operand_pairs"], [])
+
+    def test_unittest_assertion_operand_and_nested_helper_isolation(self):
+        text = (
+            "from orchard.sky.view import view\n"
+            "def test_method(self):\n"
+            "    self.assertEqual(view(), 1)\n"
+            "    def helper():\n"
+            "        view()\n"
+            "        assert False\n"
+        )
+        report = census_test_behavior_candidates(*reports(text))
+        self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 2)
+        for edge in report["edges"]:
+            for site in edge["candidate_test_paths"]:
+                for candidate in site["candidate_tests"]:
+                    self.assertEqual(candidate["candidate_call_lines"], [3])
+                    self.assertEqual(candidate["assertion_lines"], [3])
+                    self.assertEqual(candidate["assertion_operand_pairs"], [
+                        {"call_line": 3, "assertion_line": 3},
+                    ])
+
+    def test_nested_helper_does_not_create_test_behavior_candidate(self):
+        text = (
+            "from orchard.sky.view import view\n"
+            "def test_nested():\n"
+            "    def helper():\n"
+            "        view()\n"
+            "    assert True\n"
+        )
+        report = census_test_behavior_candidates(*reports(text))
+        self.assertEqual(report["candidate_test_functions_across_edges"], 0)
+        self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 0)
 
     def test_import_without_call_or_assert_is_not_a_candidate(self):
         for text in (
