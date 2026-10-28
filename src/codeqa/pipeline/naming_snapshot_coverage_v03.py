@@ -1,18 +1,17 @@
 """Read-only pinned Git source selection for #91 Python AST coverage.
 
-Pipeline owns Git access + composition; core only computes pure evidence.
+Infrastructure owns Git subprocess access; pipeline composes pinned evidence.
 """
 from __future__ import annotations
 
 from hashlib import sha1, sha256
 from pathlib import Path
-import subprocess
 
 from codeqa.core.naming_snapshot_coverage_v03 import (
     NamingSnapshotCoverage, NamingSnapshotCoverageError, _PATH, _SHA,
     scan_selected_python,
 )
-from codeqa.infrastructure.git import GitReader
+from codeqa.infrastructure.git import GitReadError, GitReader
 
 
 def scan_pinned_git(root: Path, *, revision: str) -> NamingSnapshotCoverage:
@@ -25,29 +24,18 @@ def scan_pinned_git(root: Path, *, revision: str) -> NamingSnapshotCoverage:
         raise NamingSnapshotCoverageError("full lower-case commit SHA required")
     reader = GitReader(root)
     try:
-        result = subprocess.run(
-            ["git", "ls-tree", "-rz", revision, "--", "src/codeqa"],
-            cwd=reader.root, capture_output=True, check=False,
-        )
-    except OSError as exc:
-        raise NamingSnapshotCoverageError("git unavailable") from exc
-    if result.returncode != 0:
-        raise NamingSnapshotCoverageError("cannot independently read pinned tree")
+        entries = reader.tree_entries(revision, "src/codeqa")
+    except GitReadError as exc:
+        raise NamingSnapshotCoverageError("cannot independently read pinned tree") from exc
     sources: dict[str, bytes] = {}
     digests: dict[str, str] = {}
-    for record in result.stdout.split(b"\0"):
-        if not record:
-            continue
-        try:
-            metadata, path_raw = record.split(b"\t", 1)
-            mode, object_type, blob_raw = metadata.split(b" ", 2)
-            path = path_raw.decode("utf-8", errors="strict")
-            blob = blob_raw.decode("ascii", errors="strict")
-        except (ValueError, UnicodeDecodeError) as exc:
-            raise NamingSnapshotCoverageError("malformed tracked Git tree record") from exc
+    for entry in entries:
+        path = entry.path
+        blob = entry.object_sha
         if not path.endswith(".py"):
             continue
-        if (mode not in {b"100644", b"100755"} or object_type != b"blob"
+        if (entry.mode not in {"100644", "100755"}
+                or entry.object_type != "blob"
                 or not _PATH.fullmatch(path)
                 or any(c in {".", ".."} or c.endswith((".", " "))
                        for c in path.split("/"))

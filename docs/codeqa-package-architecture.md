@@ -75,6 +75,13 @@ A proper setuptools `src` package is now defined in `pyproject.toml`. Run
 The Core receives JSON Schema from its caller (e.g. through the outer Resource
 Registry); it never imports infrastructure or holds physical contract paths.
 
+Pinned Git tree identity and complete tree-entry enumeration are also owned by
+`infrastructure.git.GitReader.tree_sha/tree_entries`. Pipeline source-selection
+entrypoints consume the returned immutable tree evidence and retain their
+own file-type, blob-hash and manifest-denominator checks. This removes direct
+`git ls-tree`/`git rev-parse` subprocess calls from pipeline without changing
+the public Naming source-census entrypoints or authorizing GitHub mutation.
+
 Thresholds belong to the `mechanical_profile` logical resource in
 `profiles/`. Quality verdicts are currently internal report objects, not
 yet a stable, external Quality Contract.

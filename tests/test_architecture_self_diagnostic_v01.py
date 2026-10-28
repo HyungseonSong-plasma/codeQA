@@ -1,6 +1,7 @@
 """B8 independent unprompted, renamed, no-signal and source-binding regressions."""
 from __future__ import annotations
 
+import ast
 from copy import deepcopy
 from hashlib import sha256
 import json
@@ -54,6 +55,20 @@ def renamed_concentration():
 
 
 class SelfDiagnosticE2ETests(unittest.TestCase):
+    def test_pipeline_git_subprocess_is_infrastructure_owned(self):
+        """Repository self-audit: pipeline must not execute Git directly."""
+        offenders = []
+        for path in sorted((ROOT / "src/codeqa/pipeline").glob("*.py")):
+            tree = ast.parse(path.read_bytes(), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import) and any(
+                    alias.name == "subprocess" for alias in node.names
+                ):
+                    offenders.append((path.name, node.lineno))
+                if isinstance(node, ast.ImportFrom) and node.module == "subprocess":
+                    offenders.append((path.name, node.lineno))
+        self.assertEqual(offenders, [])
+
     def test_no_signal_yields_zero_questions_not_pass(self):
         inv, _, _, _ = reports(edges=())
         signals, questions, human = project_self_diagnostic(assembled(edges=()), inv)
