@@ -142,6 +142,8 @@ def assemble_architecture_advisory(
     opportunities: Mapping[str, Any],
     scenarios: Mapping[str, Any],
     migration: Mapping[str, Any],
+    *,
+    adapter_boundaries: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble evidence-first discovery, then compare only B3-triggered B4 candidates.
 
@@ -200,6 +202,61 @@ def assemble_architecture_advisory(
             raise ArchitectureAssessmentError("static edge denominator mismatch")
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise ArchitectureAssessmentError("untrustworthy B1--B5 architecture evidence") from exc
+
+    # B6 can contribute independently measured language-family pressure. Its
+    # generic evidence is not a preselected architecture question or a move.
+    adapter_signals: list[dict[str, Any]] = []
+    adapter_questions: list[dict[str, Any]] = []
+    if adapter_boundaries is not None:
+        try:
+            if (not isinstance(adapter_boundaries, Mapping)
+                    or not _authentic(adapter_boundaries, "boundary_id")
+                    or adapter_boundaries["schema_version"] != "0.1"
+                    or adapter_boundaries["snapshot_sha"] != sha
+                    or adapter_boundaries["inventory_id"] != inventory["inventory_id"]
+                    or adapter_boundaries["metrics_id"] != metrics["metrics_id"]
+                    or adapter_boundaries["decision"] != "NOT_EVALUATED"):
+                raise ArchitectureAssessmentError("B6 provenance mismatch")
+            for signal in adapter_boundaries["architecture_signals"]:
+                sid = signal["signal_id"]
+                witnesses = signal["source_witnesses"]
+                if (sid in signals or not witnesses
+                        or any(w["source_path"] not in {
+                            f["path"] for f in inventory["files"]
+                        } for w in witnesses)):
+                    raise ArchitectureAssessmentError("unbound B6 adapter signal")
+                normalized = {
+                    "signal_id": sid, "family": signal["family"],
+                    "scope_roles": [adapter_boundaries["adapter_scope"]],
+                    "measurement": signal["measurement"],
+                    "derivation_rule": signal["derivation_rule"],
+                    "source_witnesses": witnesses,
+                    "evidence_class": "PROXY_INFERENCE",
+                    "hypothesis": "Observed cross-family static imports may warrant a boundary review.",
+                    "benign_counterhypothesis": signal["benign_counterhypothesis"],
+                    "unknowns": adapter_boundaries["unknowns"],
+                }
+                qid = _digest({"signal_ids": [sid]})
+                if qid in questions:
+                    raise ArchitectureAssessmentError("duplicate B3/B6 opportunity")
+                adapter_signals.append(normalized)
+                adapter_questions.append({
+                    "opportunity_id": qid,
+                    "originating_signal_ids": [sid],
+                    "affected_roles": [adapter_boundaries["adapter_scope"]],
+                    "why_question_arises": normalized["hypothesis"],
+                    "candidate_question": (
+                        "Would a different declared language-family boundary reduce "
+                        "observed cross-family import pressure without breaking consumers?"
+                    ),
+                    "alternatives": [c["layout"] for c in adapter_boundaries["candidates"]],
+                    "source_witnesses": witnesses,
+                    "benign_counterhypothesis": signal["benign_counterhypothesis"],
+                    "unknowns": adapter_boundaries["unknowns"],
+                    "decision": "NOT_EVALUATED",
+                })
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
+            raise ArchitectureAssessmentError("untrustworthy B6 boundary evidence") from exc
 
     reverse_surface = sum(
         g["reverse_import_impact"]["potential_dependents"]
@@ -265,17 +322,19 @@ def assemble_architecture_advisory(
             "inventory_id": inventory["inventory_id"], "metrics_id": metrics["metrics_id"],
             "opportunities_id": opportunities["opportunities_id"],
             "scenarios_id": scenarios["scenarios_id"], "migration_id": migration["migration_id"],
+            "adapter_boundary_id": (adapter_boundaries["boundary_id"]
+                                    if adapter_boundaries is not None else None),
         },
         "coverage": metrics["coverage"],
-        "architecture_signals": opportunities["architecture_signals"],
-        "question_opportunities": opportunities["question_opportunities"],
+        "architecture_signals": opportunities["architecture_signals"] + adapter_signals,
+        "question_opportunities": opportunities["question_opportunities"] + adapter_questions,
         "scenario_assessments": assessments,
         "rejected_scenarios": scenarios["rejected"],
         "unknowns": sorted(set([*opportunities["unknowns"], *(
             "NO_VIABLE_VIRTUAL_CANDIDATE" for _ in scenarios["rejected"]
-        )])),
+        ), *(adapter_boundaries["unknowns"] if adapter_boundaries is not None else [])])),
         "provenance": {
-            "snapshot_sha": sha, "derivation": "B3 discovery; B4 virtual paths; B5 static impact",
+            "snapshot_sha": sha, "derivation": "B3/B6 independent signals; B4 virtual paths; B5 static impact",
             "evidence_classes": [
                 "OBSERVED", "DECLARED_POLICY", "PROXY_INFERENCE", "HUMAN_REVIEW"
             ],
