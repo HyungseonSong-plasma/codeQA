@@ -40,7 +40,10 @@ def evidence(*, pyproject=PYPROJECT, edges=CONCENTRATED):
             "tests/test_view.py", "src/orchard/sky/view.py", 1,
             "from orchard.sky.view import view", "top_level",
         ))
-    inventory, metrics = make_report(sources=sources, edges=edges)
+    inventory, metrics = make_report(
+        sources=sources, edges=edges,
+        analyzed=tuple(p for p in sources if p.endswith(".py")),
+    )
     opportunities = discover_architecture_opportunities(inventory, metrics)
     triage = triage_cross_role_concentration(
         inventory, metrics, opportunities, POLICY,
