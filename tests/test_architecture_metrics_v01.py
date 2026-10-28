@@ -8,6 +8,8 @@ from pathlib import Path
 import subprocess
 import unittest
 
+from jsonschema import Draft202012Validator
+
 from codeqa.core.dependency import DependencyGraph, StaticDependency, UnknownDependency
 from codeqa.evaluation.architecture.inventory import analyze_architecture_inventory
 from codeqa.evaluation.architecture.metrics import (
@@ -104,6 +106,24 @@ class ArchitectureMetricsTests(unittest.TestCase):
         self.assertEqual(left["status"], "EVIDENCE_ONLY")
         self.assertNotIn("questions", left)
         self.assertNotEqual(left["status"], "PASS")
+
+    def test_versioned_output_schema_and_negative_unknown_contract(self):
+        schema = json.loads(
+            (ROOT / "contracts/qa/architecture-metrics-v0.1.schema.json").read_text()
+        )
+        Draft202012Validator.check_schema(schema)
+        validator = Draft202012Validator(schema)
+        report = self.evaluate()
+        validator.validate(report)
+        forged = deepcopy(report)
+        forged["coverage"]["external_consumers"] = "PASS"
+        self.assertTrue(list(validator.iter_errors(forged)))
+        forged = deepcopy(report)
+        forged["groups"][0]["within_density_proxy"] = 2.0
+        self.assertTrue(list(validator.iter_errors(forged)))
+        forged = deepcopy(report)
+        forged["resolved_pairs"][0]["witnesses"][0]["source_sha256"] = "not-a-hash"
+        self.assertTrue(list(validator.iter_errors(forged)))
 
     def test_zero_denominator_is_null_not_perfect_cohesion(self):
         selected = {
