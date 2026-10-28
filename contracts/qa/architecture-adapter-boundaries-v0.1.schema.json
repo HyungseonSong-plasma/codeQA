@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "codeQA Architecture Adapter Boundary B6 v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_sha",
+    "inventory_id",
+    "metrics_id",
+    "declaration_sha256",
+    "adapter_scope",
+    "coverage",
+    "family_capabilities",
+    "static_pairs",
+    "measured_adapter_internal_pairs",
+    "architecture_signals",
+    "candidates",
+    "unknowns",
+    "evidence_status",
+    "decision",
+    "limitations",
+    "boundary_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "snapshot_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "inventory_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "metrics_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "declaration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "adapter_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "adapter_python_files",
+        "declared_family_files",
+        "shared_files",
+        "unclassified_paths",
+        "unverified_family_parsers",
+        "external_consumers",
+        "distribution_compatibility"
+      ],
+      "properties": {
+        "adapter_python_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "declared_family_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unclassified_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unverified_family_parsers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "external_consumers": {
+          "enum": [
+            "VERIFIED",
+            "NOT_EVALUATED"
+          ]
+        },
+        "distribution_compatibility": {
+          "enum": [
+            "VERIFIED",
+            "NOT_EVALUATED"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "family_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "family",
+          "module_count",
+          "capability_status",
+          "parser_provenance"
+        ],
+        "properties": {
+          "family": {
+            "type": "string"
+          },
+          "module_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "capability_status": {
+            "enum": [
+              "SUPPORTED",
+              "PARTIAL",
+              "NOT_EVALUATED"
+            ]
+          },
+          "parser_provenance": {
+            "enum": [
+              "VERIFIED",
+              "NOT_EVALUATED"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "static_pairs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "measured_adapter_internal_pairs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "architecture_signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "signal_id",
+          "family",
+          "measurement",
+          "source_witnesses",
+          "derivation_rule",
+          "benign_counterhypothesis",
+          "evidence_class"
+        ],
+        "properties": {
+          "signal_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "family": {
+            "const": "OBSERVED_CROSS_FAMILY_IMPORT_PRESSURE"
+          },
+          "measurement": {
+            "type": "object",
+            "required": [
+              "numerator",
+              "denominator",
+              "ratio"
+            ],
+            "properties": {
+              "numerator": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "denominator": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "ratio": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "source_witnesses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object"
+            }
+          },
+          "derivation_rule": {
+            "type": "string"
+          },
+          "benign_counterhypothesis": {
+            "type": "string"
+          },
+          "evidence_class": {
+            "const": "PROXY_INFERENCE"
+          }
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "layout",
+          "status",
+          "decision"
+        ],
+        "properties": {
+          "layout": {
+            "enum": [
+              "KEEP",
+              "GROUP_BY_DECLARED_LANGUAGE_FAMILY",
+              "SIBLING_DISTRIBUTION"
+            ]
+          },
+          "status": {
+            "enum": [
+              "BASELINE",
+              "REVIEW_CANDIDATE"
+            ]
+          },
+          "decision": {
+            "const": "NOT_EVALUATED"
+          },
+          "unknowns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_status": {
+      "enum": [
+        "INCOMPLETE",
+        "EVIDENCE_ONLY"
+      ]
+    },
+    "decision": {
+      "const": "NOT_EVALUATED"
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "boundary_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
