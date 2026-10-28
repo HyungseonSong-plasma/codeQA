@@ -184,7 +184,8 @@ def assess_architecture_migration(
                         target = resolved + "." + alias.name if resolved else alias.name
                         for old, new in old_to_new.items():
                             if (_matches(resolved, old) or _matches(target, old)
-                                    or (moved_source and node.level > 0)):
+                                    or (moved_source and node.level > 0)
+                                    or (alias.name == "*" and old.startswith(resolved + "."))):
                                 if alias.name == "*":
                                     kind = "STAR_IMPORT"
                                     risk_flags.add("STAR_IMPORT_REVIEW")
