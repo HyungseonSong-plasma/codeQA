@@ -16,6 +16,7 @@ def main() -> None:
     for name in ("inventory", "metrics", "opportunities", "scenarios", "migration",
                  "output", "summary"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--adapter-boundaries", type=Path)
     args = parser.parse_args()
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     reports = [
@@ -25,7 +26,11 @@ def main() -> None:
     if any(r.get("snapshot_sha", r.get("source_identity", {}).get(
             "repository_commit_sha")) != head for r in reports):
         raise ValueError("B1--B5 reports must match checked-out HEAD")
-    result = assemble_architecture_advisory(*reports)
+    adapter = (json.loads(args.adapter_boundaries.read_text(encoding="utf-8"))
+               if args.adapter_boundaries else None)
+    if adapter is not None and adapter["snapshot_sha"] != head:
+        raise ValueError("B6 adapter evidence must match checked-out HEAD")
+    result = assemble_architecture_advisory(*reports, adapter_boundaries=adapter)
     schema = json.loads(Path(
         "contracts/qa/architecture-assessment-v0.1.schema.json"
     ).read_text(encoding="utf-8"))
