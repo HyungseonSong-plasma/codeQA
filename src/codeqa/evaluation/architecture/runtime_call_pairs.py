@@ -179,6 +179,7 @@ def capture_unittest_call_pairs(
             for name, outcome in sorted(result.outcomes.items())
         ],
         "tests_run": result.testsRun,
+        "suite_was_successful": result.wasSuccessful(),
         "observed_pairs": [
             {"source_path": src, "target_path": dst,
              "observed_direct_python_calls": data["count"],

@@ -159,6 +159,7 @@ B8_REQUIRED_ARTIFACTS = (
     "architecture-edge-responsibility.json",
     "architecture-internal-consumers.json",
     "architecture-package-surface.json",
+    "architecture-runtime-call-pairs.json",
     "architecture-self-diagnostic.md",
     "architecture-signals.json",
     "architecture-test-behavior-candidates.json",

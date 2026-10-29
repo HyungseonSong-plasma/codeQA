@@ -238,6 +238,9 @@ class B8ArtifactManifestTests(unittest.TestCase):
         self.assertIn("if-no-files-found: error", workflow)
         self.assertIn("build_b8_artifact_manifest(output, head)", script)
         self.assertIn("verify_b8_artifact_manifest(output, manifest)", script)
+        self.assertIn("architecture-runtime-call-pairs.json", B8_REQUIRED_ARTIFACTS)
+        self.assertIn("select_b8_runtime_pairs(inventory, responsibility)", script)
+        self.assertIn("capture_unittest_call_pairs(", script)
 
 
 if __name__ == "__main__":
