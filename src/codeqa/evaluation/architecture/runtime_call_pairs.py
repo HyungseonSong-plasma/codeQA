@@ -159,7 +159,21 @@ def capture_unittest_call_pairs(
             }
             if not set(lines) <= import_lines:
                 raise RuntimeCallPairError("witness line is not a static import")
+            # Direct Module.body imports execute during module initialization;
+            # they can precede the bounded test-time trace entirely.
+            direct_module_imports = {
+                node.lineno for node in parsed.body
+                if isinstance(node, (ast.Import, ast.ImportFrom))
+            }
             selected[pair]["import_lines"] = sorted(lines)
+            selected[pair]["import_line_scope"] = [
+                {
+                    "line": line,
+                    "scope": ("MODULE_TOP_LEVEL" if line in direct_module_imports
+                              else "NESTED_OR_CONDITIONAL"),
+                }
+                for line in sorted(lines)
+            ]
             selected[pair]["line_visits"] = 0
             selected[pair]["line_witnesses"] = []
             source_absolute = str(source_file.resolve())
@@ -241,6 +255,7 @@ def capture_unittest_call_pairs(
              "witnesses_truncated": data["count"] > len(data["witnesses"]),
              **({
                  "selected_import_lines": data["import_lines"],
+                 "import_line_scope": data["import_line_scope"],
                  "import_line_visits": data["line_visits"],
                  "import_line_witnesses": data["line_witnesses"],
                  "import_lines_truncated": (
@@ -260,6 +275,7 @@ def capture_unittest_call_pairs(
         "limitations": [
             "direct frame calls do not prove the static import statement was executed",
             "an import-line event is pre-execution, not proof of target import success",
+            "module-level imports may execute before the bounded test-time trace starts",
             "frame filename and loaded code bytes are not independently attested",
             "only the current thread is profiled; native calls and other threads may be missed",
             "absence of a call is not evidence of absence of a dependency",
