@@ -174,12 +174,12 @@ class B8ArtifactManifestTests(unittest.TestCase):
             if name.endswith(".json"):
                 path.write_text(json.dumps({"source_identity": {"snapshot_sha": sha}}))
             else:
-                path.write_text("# B8 report\\nExact source HEAD: " + sha + "\\n")
+                path.write_text("# B8 report\nExact source HEAD: " + sha + "\n")
 
     def seal(self, root: Path):
         manifest = build_b8_artifact_manifest(root, SHA)
         (root / "architecture-evidence-manifest.json").write_text(
-            json.dumps(manifest, sort_keys=True, indent=2) + "\\n"
+            json.dumps(manifest, sort_keys=True, indent=2) + "\n"
         )
         return manifest
 
