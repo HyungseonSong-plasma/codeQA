@@ -30,7 +30,7 @@ def digest(obj):
 def fixture():
     suite = unittest.TestSuite([PassCase("test_example")])
     receipt = capture_unittest_execution(
-        suite, snapshot_sha=COMMIT, test_path="tests/test_example.py",
+        suite, snapshot_sha=COMMIT, test_path="tests/test_architecture_runtime_test_evidence_v01.py",
         test_source=SOURCE, expected_source_sha256=SHA,
     )
     candidates = {
@@ -39,7 +39,7 @@ def fixture():
         "edges": [{
             "source_path": "src/thing/a.py", "target_path": "src/thing/b.py",
             "candidate_test_paths": [{
-                "test_path": "tests/test_example.py", "test_source_sha256": SHA,
+                "test_path": "tests/test_architecture_runtime_test_evidence_v01.py", "test_source_sha256": SHA,
                 "candidate_tests": [{"test_function": "test_example"}],
             }],
         }],
@@ -71,7 +71,7 @@ class RuntimeReceiptTests(unittest.TestCase):
 
         suite = unittest.TestSuite([FailCase("test_fail"), SkipCase("test_skip")])
         receipt = capture_unittest_execution(
-            suite, snapshot_sha=COMMIT, test_path="tests/test_example.py",
+            suite, snapshot_sha=COMMIT, test_path="tests/test_architecture_runtime_test_evidence_v01.py",
             test_source=SOURCE, expected_source_sha256=SHA,
         )
         self.assertFalse(receipt["all_passed"])
@@ -81,7 +81,7 @@ class RuntimeReceiptTests(unittest.TestCase):
         with self.assertRaises(RuntimeTestEvidenceError):
             capture_unittest_execution(
                 unittest.TestSuite([PassCase("test_example")]),
-                snapshot_sha=COMMIT, test_path="tests/test_example.py",
+                snapshot_sha=COMMIT, test_path="tests/test_architecture_runtime_test_evidence_v01.py",
                 test_source=SOURCE + b"\n", expected_source_sha256=SHA,
             )
 
@@ -100,12 +100,47 @@ class RuntimeReceiptTests(unittest.TestCase):
     def test_duplicate_method_names_are_ambiguous(self):
         candidates, receipt = fixture()
         other = deepcopy(receipt["executed_tests"][0])
-        other["test_id"] = "another.module.OtherCase.test_example"
+        other["test_id"] = "test_architecture_runtime_test_evidence_v01.OtherCase.test_example"
         receipt["executed_tests"].append(other)
         receipt["tests_run"] = 2
         receipt["receipt_id"] = digest({k: v for k, v in receipt.items() if k != "receipt_id"})
         correlated = correlate_runtime_test_candidates(candidates, receipt)
         self.assertEqual(correlated["matched_candidates"][0]["match_state"], "AMBIGUOUS")
+
+
+    def test_other_module_same_named_method_not_misreported_as_executed(self):
+        candidates, receipt = fixture()
+        receipt["executed_tests"][0]["test_id"] = "unrelated.module.OtherCase.test_example"
+        receipt["receipt_id"] = digest({
+            k: v for k, v in receipt.items() if k != "receipt_id"
+        })
+        matched = correlate_runtime_test_candidates(candidates, receipt)
+        self.assertEqual(matched["matched_candidates"][0]["match_state"], "NOT_EXECUTED")
+        self.assertIsNone(matched["matched_candidates"][0]["unittest_outcome"])
+        self.assertEqual(matched["decision"], "NOT_EVALUATED")
+
+    def test_arbitrary_module_prefix_cannot_spoof_expected_module(self):
+        candidates, receipt = fixture()
+        receipt["executed_tests"][0]["test_id"] = (
+            "foreign.test_architecture_runtime_test_evidence_v01.PassCase.test_example"
+        )
+        receipt["receipt_id"] = digest({
+            k: v for k, v in receipt.items() if k != "receipt_id"
+        })
+        matched = correlate_runtime_test_candidates(candidates, receipt)
+        self.assertEqual(matched["matched_candidates"][0]["match_state"], "NOT_EXECUTED")
+
+    def test_tests_package_qualified_module_is_accepted_as_lexical_match(self):
+        candidates, receipt = fixture()
+        receipt["executed_tests"][0]["test_id"] = (
+            "tests.test_architecture_runtime_test_evidence_v01.PassCase.test_example"
+        )
+        receipt["receipt_id"] = digest({
+            k: v for k, v in receipt.items() if k != "receipt_id"
+        })
+        matched = correlate_runtime_test_candidates(candidates, receipt)
+        self.assertEqual(matched["matched_candidates"][0]["match_state"], "UNIQUE")
+        self.assertEqual(matched["matched_candidates"][0]["edge_traversal"], "NOT_EVALUATED")
 
 
 if __name__ == "__main__":
