@@ -267,6 +267,8 @@ class B8ArtifactManifestTests(unittest.TestCase):
         self.assertIn("verify_b8_artifact_manifest(output, manifest)", script)
         self.assertIn("architecture-runtime-call-pairs.json", B8_REQUIRED_ARTIFACTS)
         self.assertIn("architecture-runtime-edge-correlation.json", B8_REQUIRED_ARTIFACTS)
+        self.assertIn("architecture-import-binding-usage.json", B8_REQUIRED_ARTIFACTS)
+        self.assertIn("census_b8_import_binding_uses(", script)
         self.assertIn("correlate_b8_runtime_pairs(selection, responsibility, observation)", script)
         self.assertIn("import_witness_lines=", script)
         self.assertIn("architecture-runtime-edge-correlation.json", script)
