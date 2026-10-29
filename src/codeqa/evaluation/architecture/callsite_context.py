@@ -81,6 +81,29 @@ def _callee_root(node: ast.expr) -> str | None:
     return node.id if isinstance(node, ast.Name) else None
 
 
+def _enclosing_parameter_names(tree: ast.AST, line: int) -> set[str]:
+    """Find lexical function parameters enclosing a sampled caller line.
+
+    This is a conservative *warning* only: global/nonlocal declarations,
+    runtime rebinding, decorators, and implicit call targets are not resolved.
+    """
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if (not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                or not node.body or node.end_lineno is None
+                or not node.body[0].lineno <= line <= node.end_lineno):
+            continue
+        args = node.args
+        names.update(arg.arg for arg in (
+            args.posonlyargs + args.args + args.kwonlyargs
+        ))
+        if args.vararg is not None:
+            names.add(args.vararg.arg)
+        if args.kwarg is not None:
+            names.add(args.kwarg.arg)
+    return names
+
+
 def _function_context(tree: ast.AST, line: int) -> dict[str, Any]:
     """Find the innermost *lexical* function body covering a sampled line."""
     parents = {child: parent for parent in ast.walk(tree)
@@ -144,8 +167,14 @@ def _callsite_syntax(
     alias_candidates.sort(key=lambda item: (
         item["call_line"], item["call_column"], item["callee_expression"]
     ))
+    parameter_names = _enclosing_parameter_names(tree, line)
+    parameter_warnings = sorted({
+        candidate["root_name"] for candidate in alias_candidates
+        if candidate["root_name"] in parameter_names
+    })
     return {
         "target_import_alias_call_candidates": alias_candidates,
+        "target_import_alias_parameter_shadowing_warnings": parameter_warnings,
         "target_import_alias_call_status": (
             "LEXICAL_ALIAS_CALL_CANDIDATE" if alias_candidates
             else "NO_DIRECT_ALIAS_CALL_CANDIDATE"
@@ -270,6 +299,10 @@ def census_b8_callsite_context(
             bool(w["target_import_alias_call_candidates"])
             for item in records for w in item["sampled_call_witnesses"]
         )
+        parameter_warning_count = sum(
+            bool(w["target_import_alias_parameter_shadowing_warnings"])
+            for item in records for w in item["sampled_call_witnesses"]
+        )
         result = {
             "schema_version": "0.1",
             "source_identity": identity,
@@ -284,6 +317,7 @@ def census_b8_callsite_context(
             "sampled_ast_call_candidate_witnesses": syntax_candidates,
             "sampled_no_ast_call_candidate_witnesses": witness_count - syntax_candidates,
             "sampled_import_alias_call_candidate_witnesses": import_alias_witnesses,
+            "sampled_alias_parameter_shadowing_warning_witnesses": parameter_warning_count,
             "sampled_without_direct_import_alias_call_candidate": (
                 witness_count - import_alias_witnesses
             ),
@@ -298,6 +332,7 @@ def census_b8_callsite_context(
                 "function spans describe lexical context, not responsibility or intent",
                 "AST Call spans and statement kinds are source-only candidates, not runtime callee identity",
                 "matching a call root to a module-level target import is lexical only; alias shadowing and rebinding are unresolved",
+                "enclosing function parameter collisions are source-only warnings, not runtime binding proof; lambda, global and nonlocal behavior remain unresolved",
                 "a call through a local variable or re-export may have no direct import alias candidate",
                 "a sampled caller line may contain multiple calls or no explicit AST Call",
                 "sampled frame calls do not establish import binding or module ownership",
