@@ -267,6 +267,8 @@ def main() -> None:
                    != context["sampled_call_witnesses"]
                 or not 0 <= context["sampled_alias_parameter_shadowing_warning_witnesses"]
                         <= context["sampled_import_alias_call_candidate_witnesses"]
+                or not 0 <= context["sampled_no_direct_alias_with_indirect_receiver_candidate"]
+                        <= context["sampled_without_direct_import_alias_call_candidate"]
                 or context["decision"] != "NOT_EVALUATED"):
             raise ValueError("B8 caller context identity or denominator drift")
         write(output / "architecture-callsite-context.json", context)
@@ -282,7 +284,9 @@ def main() -> None:
                 f"- Caller witnesses with target import-alias lexical call candidates: {context['sampled_import_alias_call_candidate_witnesses']}\n"
                 f"- Caller witnesses without direct target import-alias call candidates: {context['sampled_without_direct_import_alias_call_candidate']}\n"
                 f"- Caller witnesses with lexical parameter-shadowing warnings: {context['sampled_alias_parameter_shadowing_warning_witnesses']}\n"
+                f"- No-direct-alias caller witnesses with indirect receiver syntax: {context['sampled_no_direct_alias_with_indirect_receiver_candidate']}\n"
                 "- Parameter collisions are source-only warnings, not runtime attribution; global/nonlocal and lambda scope remain unresolved.\n"
+                "- Indirect receiver syntax is not callee identity, binding provenance or semantic ownership.\n"
                 "- Import alias call matches are lexical only: shadowing, rebinding and indirect receivers remain unresolved.\n"
                 "- AST Call spans and enclosing statement kinds are source candidates, not callee or ownership proof.\n"
                 "- Lexical caller function spans do not establish intentional orchestration or ownership.\n"
