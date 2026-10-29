@@ -30,14 +30,14 @@ TEST_TEXT = (
 )
 
 
-def reports(text=TEST_TEXT, *, test_import=True):
+def reports(text=TEST_TEXT, *, test_import=True, import_line=1):
     sources = dict(SOURCES)
     if test_import:
         sources[TEST_PATH] = text
     edges = list(CONCENTRATED)
     if test_import:
         edges.append(StaticDependency(
-            TEST_PATH, "src/orchard/sky/view.py", 1,
+            TEST_PATH, "src/orchard/sky/view.py", import_line,
             "from orchard.sky.view import view", "top_level",
         ))
     inventory, metrics = make_report(sources=sources, edges=tuple(edges))
@@ -171,6 +171,56 @@ class TestBehaviorCandidateTests(unittest.TestCase):
                     for site in edge["candidate_test_paths"]
                     for candidate in site["candidate_tests"]
                 ))
+
+    def test_import_inside_one_test_does_not_authenticate_sibling(self):
+        text = (
+            "def test_first():\n"
+            "    from orchard.sky.view import view\n"
+            "    assert view() is not None\n"
+            "def test_second():\n"
+            "    view()\n"
+            "    assert True\n"
+        )
+        report = census_test_behavior_candidates(*reports(text, import_line=2))
+        self.assertEqual(report["candidate_test_functions_across_edges"], 2)
+        self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 2)
+        for edge in report["edges"]:
+            for site in edge["candidate_test_paths"]:
+                self.assertEqual(
+                    [c["test_function"] for c in site["candidate_tests"]],
+                    ["test_first"],
+                )
+
+    def test_generator_call_is_not_eager_test_witness(self):
+        text = (
+            "from orchard.sky.view import view\n"
+            "def test_lazy():\n"
+            "    items = (view() for _ in range(1))\n"
+            "    assert items is not None\n"
+        )
+        report = census_test_behavior_candidates(*reports(text))
+        self.assertEqual(report["candidate_test_functions_across_edges"], 0)
+        self.assertEqual(report["assertion_operand_candidate_pairs_across_edges"], 0)
+
+    def test_nested_test_definition_is_not_independent_execution(self):
+        text = (
+            "from orchard.sky.view import view\n"
+            "def helper():\n"
+            "    def test_nested():\n"
+            "        assert view() is not None\n"
+        )
+        report = census_test_behavior_candidates(*reports(text))
+        self.assertEqual(report["candidate_test_functions_across_edges"], 0)
+
+    def test_class_namespace_import_is_not_module_binding(self):
+        text = (
+            "class TestExample:\n"
+            "    from orchard.sky.view import view\n"
+            "    def test_method(self):\n"
+            "        assert view() is not None\n"
+        )
+        report = census_test_behavior_candidates(*reports(text, import_line=2))
+        self.assertEqual(report["candidate_test_functions_across_edges"], 0)
 
     def test_nested_helper_does_not_create_test_behavior_candidate(self):
         text = (
