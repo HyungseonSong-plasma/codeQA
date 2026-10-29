@@ -130,6 +130,79 @@ def _enclosing_parameter_names(tree: ast.AST, line: int) -> set[str]:
     return names
 
 
+def _enclosing_local_binding_names(tree: ast.AST, line: int) -> set[str]:
+    """Conservatively find function-local names that may mask module imports.
+
+    Python treats a name assigned anywhere in a function as local, even if
+    the assignment occurs after the sampled call. Nested function bodies and
+    comprehension targets have separate scopes and are not traversed.
+    """
+    class LocalBindings(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.names: set[str] = set()
+            self.global_names: set[str] = set()
+            self.nonlocal_names: set[str] = set()
+
+        def visit_Name(self, node: ast.Name) -> None:
+            if isinstance(node.ctx, ast.Store):
+                self.names.add(node.id)
+
+        def visit_Import(self, node: ast.Import) -> None:
+            self.names.update(alias.asname or alias.name.split(".")[0]
+                              for alias in node.names)
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            self.names.update(alias.asname or alias.name
+                              for alias in node.names if alias.name != "*")
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name:
+                self.names.add(node.name)
+            self.generic_visit(node)
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            self.names.add(node.name)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            self.names.add(node.name)
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            self.names.add(node.name)
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            pass
+
+        def visit_ListComp(self, node: ast.ListComp) -> None:
+            pass
+
+        def visit_SetComp(self, node: ast.SetComp) -> None:
+            pass
+
+        def visit_DictComp(self, node: ast.DictComp) -> None:
+            pass
+
+        def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+            pass
+
+        def visit_Global(self, node: ast.Global) -> None:
+            self.global_names.update(node.names)
+
+        def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
+            self.nonlocal_names.update(node.names)
+
+    names: set[str] = set()
+    for scope in ast.walk(tree):
+        if (not isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
+                or not scope.body or scope.end_lineno is None
+                or not scope.body[0].lineno <= line <= scope.end_lineno):
+            continue
+        bindings = LocalBindings()
+        for statement in scope.body:
+            bindings.visit(statement)
+        names.update(bindings.names - bindings.global_names - bindings.nonlocal_names)
+    return names
+
+
 def _function_context(tree: ast.AST, line: int) -> dict[str, Any]:
     """Find the innermost *lexical* function body covering a sampled line."""
     parents = {child: parent for parent in ast.walk(tree)
@@ -220,14 +293,20 @@ def _callsite_syntax(
         item["call_line"], item["call_column"], item["callee_expression"]
     ))
     parameter_names = _enclosing_parameter_names(tree, line)
+    local_binding_names = _enclosing_local_binding_names(tree, line)
     parameter_warnings = sorted({
         candidate["root_name"] for candidate in alias_candidates
         if candidate["root_name"] in parameter_names
+    })
+    local_binding_warnings = sorted({
+        candidate["root_name"] for candidate in alias_candidates
+        if candidate["root_name"] in local_binding_names
     })
     return {
         "target_import_alias_call_candidates": alias_candidates,
         "unmatched_indirect_receiver_call_candidates": indirect_receivers,
         "target_import_alias_parameter_shadowing_warnings": parameter_warnings,
+        "target_import_alias_local_binding_warnings": local_binding_warnings,
         "target_import_alias_call_status": (
             "LEXICAL_ALIAS_CALL_CANDIDATE" if alias_candidates
             else "NO_DIRECT_ALIAS_CALL_CANDIDATE"
@@ -360,6 +439,10 @@ def census_b8_callsite_context(
             bool(w["target_import_alias_parameter_shadowing_warnings"])
             for item in records for w in item["sampled_call_witnesses"]
         )
+        local_binding_warning_count = sum(
+            bool(w["target_import_alias_local_binding_warnings"])
+            for item in records for w in item["sampled_call_witnesses"]
+        )
         indirect_receiver_count = sum(
             not w["target_import_alias_call_candidates"]
             and bool(w["unmatched_indirect_receiver_call_candidates"])
@@ -380,6 +463,7 @@ def census_b8_callsite_context(
             "sampled_no_ast_call_candidate_witnesses": witness_count - syntax_candidates,
             "sampled_import_alias_call_candidate_witnesses": import_alias_witnesses,
             "sampled_alias_parameter_shadowing_warning_witnesses": parameter_warning_count,
+            "sampled_alias_local_binding_warning_witnesses": local_binding_warning_count,
             "sampled_no_direct_alias_with_indirect_receiver_candidate": indirect_receiver_count,
             "sampled_without_direct_import_alias_call_candidate": (
                 witness_count - import_alias_witnesses
@@ -396,6 +480,7 @@ def census_b8_callsite_context(
                 "AST Call spans and statement kinds are source-only candidates, not runtime callee identity",
                 "matching a call root to a module-level target import is lexical only; bare dotted imports require a matching qualified callee prefix; alias shadowing and rebinding are unresolved",
                 "enclosing function parameter collisions are source-only warnings, not runtime binding proof; lambda, global and nonlocal behavior remain unresolved",
+                "function-local bindings are compile-time shadowing warnings, not proof of the sampled runtime object; comprehension walrus, pattern captures and dynamic rebinding remain unresolved",
                 "a call through a local variable or re-export may have no direct import alias candidate",
                 "indirect receiver shapes are source-only AST syntax, not binding provenance or proof of the sampled callee",
                 "a sampled caller line may contain multiple calls or no explicit AST Call",
