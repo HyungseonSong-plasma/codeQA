@@ -259,6 +259,9 @@ def main() -> None:
         if (context["source_identity"]["snapshot_sha"] != head
                 or context["static_pairs"] != len(selection["pairs"])
                 or context["direct_call_observed_pairs"] != correlation["direct_call_observed_pairs"]
+                or context["sampled_ast_call_candidate_witnesses"]
+                   + context["sampled_no_ast_call_candidate_witnesses"]
+                   != context["sampled_call_witnesses"]
                 or context["decision"] != "NOT_EVALUATED"):
             raise ValueError("B8 caller context identity or denominator drift")
         write(output / "architecture-callsite-context.json", context)
