@@ -157,6 +157,7 @@ B8_REQUIRED_ARTIFACTS = (
     "architecture-assessment.json",
     "architecture-bounded-disposition.json",
     "architecture-edge-responsibility.json",
+    "architecture-import-initialization.json",
     "architecture-internal-consumers.json",
     "architecture-import-binding-usage.json",
     "architecture-package-surface.json",

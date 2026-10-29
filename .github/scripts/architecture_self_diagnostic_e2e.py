@@ -35,6 +35,7 @@ from codeqa.evaluation.architecture.runtime_call_pairs import capture_unittest_c
 from codeqa.evaluation.architecture.runtime_pair_selection import select_b8_runtime_pairs
 from codeqa.evaluation.architecture.runtime_edge_correlation import correlate_b8_runtime_pairs
 from codeqa.evaluation.architecture.import_binding_usage import census_b8_import_binding_uses
+from codeqa.evaluation.architecture.import_initialization import capture_cold_import_line_entries
 from codeqa.evaluation.architecture.test_behavior_candidates import (
     census_test_behavior_candidates, render_test_behavior_candidates_markdown,
 )
@@ -159,6 +160,18 @@ def main() -> None:
         for path, expected_hash in selection["source_sha256"].items():
             if sha256(reader.read_file(head, path)).hexdigest() != expected_hash:
                 raise ValueError("runtime selected source differs from B1 Git blob")
+        # Observe module-initialization import-line entry in a fresh interpreter.
+        # This opt-in B8 job executes trusted repository code; line entry alone
+        # does not establish import completion, binding or semantic ownership.
+        cold_import = capture_cold_import_line_entries(
+            selection, responsibility, repository_root=ROOT,
+            timeout_seconds=90,
+        )
+        if (cold_import["source_identity"]["snapshot_sha"] != head
+                or cold_import["static_pairs"] != len(selection["pairs"])
+                or cold_import["decision"] != "NOT_EVALUATED"):
+            raise ValueError("cold interpreter import evidence drift")
+        write(output / "architecture-import-initialization.json", cold_import)
         # Lexical loads are source-only candidates; never infer target binding,
         # import execution, dead dependencies or a package-move recommendation.
         lexical_usage = census_b8_import_binding_uses(
@@ -246,6 +259,9 @@ def main() -> None:
                 f"- No lexical Name(Load) candidate pairs: {lexical_usage['pairs_without_name_load_candidates']}\n"
                 "- Lexical candidates are line-co-located, not resolved target bindings.\n"
                 "- Module-level imports may finish before the bounded test-time trace.\n"
+                f"- Cold-interpreter import-line observed pairs: {cold_import['pairs_with_line_entries']}/{cold_import['static_pairs']}\n"
+                f"- Cold-interpreter line visits truncated: {cold_import['line_visits_truncated']}\n"
+                "- Cold interpreter line entry does not prove import target resolution.\n"
                 "- Import-line entry is pre-execution, not proof of target resolution.\n"
                 "- Import-statement traversal and semantic ownership: NOT_EVALUATED.\n"
             )
