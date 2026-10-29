@@ -262,6 +262,9 @@ def main() -> None:
                 or context["sampled_ast_call_candidate_witnesses"]
                    + context["sampled_no_ast_call_candidate_witnesses"]
                    != context["sampled_call_witnesses"]
+                or context["sampled_import_alias_call_candidate_witnesses"]
+                   + context["sampled_without_direct_import_alias_call_candidate"]
+                   != context["sampled_call_witnesses"]
                 or context["decision"] != "NOT_EVALUATED"):
             raise ValueError("B8 caller context identity or denominator drift")
         write(output / "architecture-callsite-context.json", context)
@@ -274,6 +277,9 @@ def main() -> None:
                 f"- Sampled witnesses within function bodies: {context['sampled_function_body_witnesses']}\n"
                 f"- Caller lines with AST Call span candidates: {context['sampled_ast_call_candidate_witnesses']}\n"
                 f"- Caller lines without AST Call span candidates: {context['sampled_no_ast_call_candidate_witnesses']}\n"
+                f"- Caller witnesses with target import-alias lexical call candidates: {context['sampled_import_alias_call_candidate_witnesses']}\n"
+                f"- Caller witnesses without direct target import-alias call candidates: {context['sampled_without_direct_import_alias_call_candidate']}\n"
+                "- Import alias call matches are lexical only: shadowing, rebinding and indirect receivers remain unresolved.\n"
                 "- AST Call spans and enclosing statement kinds are source candidates, not callee or ownership proof.\n"
                 "- Lexical caller function spans do not establish intentional orchestration or ownership.\n"
                 f"- Not observed in sample: {correlation['not_observed_in_sample_pairs']}\n"
