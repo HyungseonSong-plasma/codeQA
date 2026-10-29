@@ -66,6 +66,11 @@ class CallsiteContextTests(unittest.TestCase):
         self.assertEqual(witness["lexical_context"], "FUNCTION_BODY")
         self.assertEqual(witness["function_qualname"], "Runner.execute")
         self.assertEqual(witness["function_line"], 3)
+        self.assertEqual(witness["ast_call_expression_candidates"], 1)
+        self.assertEqual(witness["ast_call_line_context"], "AST_CALL_SPAN_CANDIDATE")
+        self.assertEqual(witness["enclosing_statement_kind"], "Return")
+        self.assertEqual(report["sampled_ast_call_candidate_witnesses"], 1)
+        self.assertEqual(report["sampled_no_ast_call_candidate_witnesses"], 0)
         self.assertEqual(report["intentional_orchestration"], "NOT_EVALUATED")
         self.assertEqual(report["decision"], "NOT_EVALUATED")
         self.assertEqual(report, census_b8_callsite_context(s, c, b))
@@ -76,6 +81,7 @@ class CallsiteContextTests(unittest.TestCase):
         self.assertEqual(report["not_observed_in_sample_pairs"], 1)
         self.assertEqual(report["edges"][0]["sampled_call_witnesses"], [])
         self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+        self.assertEqual(report["sampled_ast_call_candidate_witnesses"], 0)
 
     def test_reject_modified_source_or_extra_source(self):
         s, c, b = fixture()
@@ -103,6 +109,38 @@ class CallsiteContextTests(unittest.TestCase):
         with self.assertRaises(CallsiteContextError):
             census_b8_callsite_context(s, c, b)
 
+    def test_resealed_noncall_line_is_not_a_call_candidate(self):
+        s, c, b = fixture()
+        c["edges"][0]["call_witnesses"][0]["caller_line"] = 3
+        seal(c, "correlation_id")
+        report = census_b8_callsite_context(s, c, b)
+        witness = report["edges"][0]["sampled_call_witnesses"][0]
+        self.assertEqual(witness["ast_call_expression_candidates"], 0)
+        self.assertEqual(witness["ast_call_line_context"], "NO_AST_CALL_SPAN_CANDIDATE")
+        self.assertEqual(witness["enclosing_statement_kind"], "FunctionDef")
+        self.assertEqual(report["sampled_no_ast_call_candidate_witnesses"], 1)
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
+    def test_multiline_nested_calls_are_candidates_not_callee_proof(self):
+        s, c, b = fixture()
+        src = next(iter(b))
+        raw = (b"from demo.core import work\n"
+               b"class Runner:\n"
+               b"    def execute(self):\n"
+               b"        return work.execute(\n"
+               b"            work.prepare())\n")
+        s["source_sha256"][src] = sha256(raw).hexdigest()
+        seal(s, "selection_id")
+        c["selection_id"] = s["selection_id"]
+        c["edges"][0]["call_witnesses"][0]["caller_line"] = 5
+        seal(c, "correlation_id")
+        report = census_b8_callsite_context(s, c, {src: raw})
+        witness = report["edges"][0]["sampled_call_witnesses"][0]
+        self.assertEqual(witness["ast_call_expression_candidates"], 2)
+        self.assertEqual(witness["enclosing_statement_kind"], "Return")
+        self.assertEqual(report["sampled_ast_call_candidate_witnesses"], 1)
+        self.assertEqual(report["intentional_orchestration"], "NOT_EVALUATED")
+
     def test_zero_pair_control(self):
         s, c, _ = fixture(with_call=False)
         s["pairs"] = []
@@ -116,6 +154,8 @@ class CallsiteContextTests(unittest.TestCase):
         seal(c, "correlation_id")
         report = census_b8_callsite_context(s, c, {})
         self.assertEqual(report["edges"], [])
+        self.assertEqual(report["sampled_ast_call_candidate_witnesses"], 0)
+        self.assertEqual(report["sampled_no_ast_call_candidate_witnesses"], 0)
         self.assertEqual(report["decision"], "NOT_EVALUATED")
 
     def test_module_level_call_is_not_function(self):
