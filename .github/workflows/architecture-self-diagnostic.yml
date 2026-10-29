@@ -61,9 +61,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: architecture-self-diagnostic-b8
-          path: |
-            architecture-e2e/architecture-signals.json
-            architecture-e2e/question-opportunities.json
-            architecture-e2e/architecture-assessment.json
-            architecture-e2e/architecture-self-diagnostic.md
+          path: architecture-e2e/
           if-no-files-found: error

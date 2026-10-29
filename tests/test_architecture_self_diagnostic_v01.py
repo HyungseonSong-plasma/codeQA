@@ -6,6 +6,7 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 from jsonschema import Draft202012Validator
@@ -18,6 +19,7 @@ from codeqa.evaluation.architecture.scenarios import generate_virtual_layout_sce
 from codeqa.evaluation.architecture.migration import assess_architecture_migration
 from codeqa.evaluation.architecture.self_diagnostic import (
     SelfDiagnosticEvidenceError, project_self_diagnostic,
+    B8_REQUIRED_ARTIFACTS, build_b8_artifact_manifest, verify_b8_artifact_manifest,
 )
 from test_architecture_assessment_v01 import assembled
 from test_architecture_scenarios_v01 import (
@@ -163,6 +165,79 @@ class SelfDiagnosticE2ETests(unittest.TestCase):
             Draft202012Validator(schema).validate(report)
             self.assertEqual(report["source_identity"]["snapshot_sha"], SHA)
             self.assertNotEqual(report["decision"], "PASS")
+
+
+class B8ArtifactManifestTests(unittest.TestCase):
+    def make_pack(self, root: Path, *, sha: str = SHA) -> None:
+        for name in B8_REQUIRED_ARTIFACTS:
+            path = root / name
+            if name.endswith(".json"):
+                path.write_text(json.dumps({"source_identity": {"snapshot_sha": sha}}))
+            else:
+                path.write_text("# B8 report\nExact source HEAD: " + sha + "\n")
+
+    def seal(self, root: Path):
+        manifest = build_b8_artifact_manifest(root, SHA)
+        (root / "architecture-evidence-manifest.json").write_text(
+            json.dumps(manifest, sort_keys=True, indent=2) + "\n"
+        )
+        return manifest
+
+    def test_complete_pack_sealed_and_reverified(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_pack(root)
+            manifest = self.seal(root)
+            self.assertEqual(len(manifest["files"]), len(B8_REQUIRED_ARTIFACTS))
+            self.assertEqual(manifest["decision"], "NOT_EVALUATED")
+            self.assertEqual(manifest["runtime_edge_traversal"], "NOT_EVALUATED")
+            verify_b8_artifact_manifest(root, manifest)
+
+    def test_missing_extra_or_mixed_source_rejected(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_pack(root)
+            (root / "architecture-edge-responsibility.json").unlink()
+            with self.assertRaises(SelfDiagnosticEvidenceError):
+                build_b8_artifact_manifest(root, SHA)
+            self.make_pack(root)
+            (root / "architecture-test-behavior-candidates.json").write_text(
+                json.dumps({"source_identity": {"snapshot_sha": "b" * 40}})
+            )
+            with self.assertRaises(SelfDiagnosticEvidenceError):
+                build_b8_artifact_manifest(root, SHA)
+            self.make_pack(root)
+            (root / "stale.json").write_text("{}")
+            with self.assertRaises(SelfDiagnosticEvidenceError):
+                build_b8_artifact_manifest(root, SHA)
+
+    def test_tampering_after_seal_rejected(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_pack(root)
+            manifest = self.seal(root)
+            (root / "architecture-edge-responsibility.json").write_text(
+                json.dumps({"source_identity": {"snapshot_sha": SHA}, "forged": True})
+            )
+            with self.assertRaises(SelfDiagnosticEvidenceError):
+                verify_b8_artifact_manifest(root, manifest)
+
+    def test_forged_manifest_rejected(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_pack(root)
+            manifest = self.seal(root)
+            manifest["evidence_class"] = "TRUSTED_CI"
+            with self.assertRaises(SelfDiagnosticEvidenceError):
+                verify_b8_artifact_manifest(root, manifest)
+
+    def test_workflow_uploads_complete_pack(self):
+        workflow = (ROOT / ".github/workflows/architecture-self-diagnostic.yml").read_text()
+        script = (ROOT / ".github/scripts/architecture_self_diagnostic_e2e.py").read_text()
+        self.assertIn("path: architecture-e2e/", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+        self.assertIn("build_b8_artifact_manifest(output, head)", script)
+        self.assertIn("verify_b8_artifact_manifest(output, manifest)", script)
 
 
 if __name__ == "__main__":

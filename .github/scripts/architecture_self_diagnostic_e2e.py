@@ -12,7 +12,9 @@ import sys
 import tempfile
 
 from jsonschema import Draft202012Validator
-from codeqa.evaluation.architecture.self_diagnostic import project_self_diagnostic
+from codeqa.evaluation.architecture.self_diagnostic import (
+    project_self_diagnostic, build_b8_artifact_manifest, verify_b8_artifact_manifest,
+)
 from codeqa.evaluation.architecture.policy_triage import (
     render_policy_triage_markdown, render_policy_candidate_decisions,
     triage_cross_role_concentration,
@@ -145,6 +147,9 @@ def main() -> None:
         write(output / "architecture-bounded-disposition.json", disposition)
         shutil.copyfile(p["assessment"], output / "architecture-assessment.json")
         (output / "architecture-self-diagnostic.md").write_text(summary, encoding="utf-8")
+        manifest = build_b8_artifact_manifest(output, head)
+        write(output / "architecture-evidence-manifest.json", manifest)
+        verify_b8_artifact_manifest(output, manifest)
     if git("status", "--porcelain", "--untracked-files=no") != before:
         raise ValueError("B8 pipeline mutated tracked source")
     print("ARCHITECTURE_B8 head=" + head
