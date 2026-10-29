@@ -166,6 +166,44 @@ class ImportCalleeCandidateTests(unittest.TestCase):
         self.assertEqual(candidate(sample(raw, line=3))[
             "target_import_alias_call_candidates"][0]["root_name"], "service")
 
+    def test_bare_dotted_import_rejects_unrelated_package_call(self):
+        raw = (b"import demo.core.work\\n"
+               b"def execute():\\n"
+               b"    return demo.other.execute()\\n")
+        report = sample(raw, line=3)
+        witness = candidate(report)
+        self.assertEqual(witness["target_import_alias_call_candidates"], [])
+        self.assertEqual(report["sampled_import_alias_call_candidate_witnesses"], 0)
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
+    def test_bare_dotted_import_accepts_exact_qualified_callee(self):
+        raw = (b"import demo.core.work\\n"
+               b"def execute():\\n"
+               b"    return demo.core.work.execute()\\n")
+        witness = candidate(sample(raw, line=3))
+        self.assertEqual(witness["target_import_alias_call_candidates"][0][
+            "callee_expression"], "demo.core.work.execute")
+        self.assertEqual(witness["target_import_alias_call_candidates"][0][
+            "target_import_lines"], [1])
+
+    def test_bare_dotted_import_rejects_partial_module_prefix(self):
+        raw = (b"import demo.core.work\\n"
+               b"def execute():\\n"
+               b"    return demo.core.workshop.execute()\\n")
+        self.assertEqual(candidate(sample(raw, line=3))[
+            "target_import_alias_call_candidates"], [])
+
+    def test_mixed_target_import_bindings_remain_lexical_candidates(self):
+        raw = (b"import demo.core.work\\n"
+               b"from demo.core import work as demo\\n"
+               b"def execute():\\n"
+               b"    return demo.execute()\\n")
+        report = sample(raw, line=4)
+        witness = candidate(report)
+        self.assertEqual(witness["target_import_alias_call_candidates"][0][
+            "target_import_lines"], [1, 2])
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
     def test_nested_calls_are_bounded_candidates_not_runtime_attribution(self):
         raw = (b"from demo.core import work\n"
                b"def execute():\n"
