@@ -289,7 +289,7 @@ def main() -> None:
                 f"- Caller witnesses with local-binding shadowing warnings: {context['sampled_alias_local_binding_warning_witnesses']}\n"
                 f"- No-direct-alias caller witnesses with indirect receiver syntax: {context['sampled_no_direct_alias_with_indirect_receiver_candidate']}\n"
                 "- Parameter collisions are source-only warnings, not runtime attribution; global/nonlocal and lambda scope remain unresolved.\n"
-                "- Local-binding shadowing is a lexical warning, not runtime callee identity; dynamic rebinding and comprehension walrus remain unresolved.\n"
+                "- Local-binding warnings include pattern captures and comprehension walrus targets; lexical warnings are not runtime callee identity and dynamic rebinding remains unresolved.\n"
                 "- Indirect receiver syntax is not callee identity, binding provenance or semantic ownership.\n"
                 "- Import alias call matches are lexical only: shadowing, rebinding and indirect receivers remain unresolved.\n"
                 "- AST Call spans and enclosing statement kinds are source candidates, not callee or ownership proof.\n"

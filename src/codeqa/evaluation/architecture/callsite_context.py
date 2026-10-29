@@ -137,6 +137,39 @@ def _enclosing_local_binding_names(tree: ast.AST, line: int) -> set[str]:
     the assignment occurs after the sampled call. Nested function bodies and
     comprehension targets have separate scopes and are not traversed.
     """
+    class ComprehensionAssignments(ast.NodeVisitor):
+        """Walrus targets bind the containing function, not comprehension locals.
+
+        Generator targets remain in the comprehension's own scope. A lambda
+        nested in a comprehension has a separate scope and is not inspected.
+        """
+        def __init__(self) -> None:
+            self.names: set[str] = set()
+
+        def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
+            self.names.update(
+                child.id for child in ast.walk(node.target)
+                if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store)
+            )
+            self.visit(node.value)
+
+        def visit_comprehension(self, node: ast.comprehension) -> None:
+            self.visit(node.iter)
+            for condition in node.ifs:
+                self.visit(condition)
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            pass
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            pass
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            pass
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            pass
+
     class LocalBindings(ast.NodeVisitor):
         def __init__(self) -> None:
             self.names: set[str] = set()
@@ -160,6 +193,20 @@ def _enclosing_local_binding_names(tree: ast.AST, line: int) -> set[str]:
                 self.names.add(node.name)
             self.generic_visit(node)
 
+        def visit_MatchAs(self, node: ast.MatchAs) -> None:
+            if node.name:
+                self.names.add(node.name)
+            self.generic_visit(node)
+
+        def visit_MatchStar(self, node: ast.MatchStar) -> None:
+            if node.name:
+                self.names.add(node.name)
+
+        def visit_MatchMapping(self, node: ast.MatchMapping) -> None:
+            if node.rest:
+                self.names.add(node.rest)
+            self.generic_visit(node)
+
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             self.names.add(node.name)
 
@@ -172,17 +219,15 @@ def _enclosing_local_binding_names(tree: ast.AST, line: int) -> set[str]:
         def visit_Lambda(self, node: ast.Lambda) -> None:
             pass
 
-        def visit_ListComp(self, node: ast.ListComp) -> None:
-            pass
+        def _visit_comprehension(self, node: ast.AST) -> None:
+            assignments = ComprehensionAssignments()
+            assignments.visit(node)
+            self.names.update(assignments.names)
 
-        def visit_SetComp(self, node: ast.SetComp) -> None:
-            pass
-
-        def visit_DictComp(self, node: ast.DictComp) -> None:
-            pass
-
-        def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
-            pass
+        visit_ListComp = _visit_comprehension
+        visit_SetComp = _visit_comprehension
+        visit_DictComp = _visit_comprehension
+        visit_GeneratorExp = _visit_comprehension
 
         def visit_Global(self, node: ast.Global) -> None:
             self.global_names.update(node.names)
@@ -480,7 +525,7 @@ def census_b8_callsite_context(
                 "AST Call spans and statement kinds are source-only candidates, not runtime callee identity",
                 "matching a call root to a module-level target import is lexical only; bare dotted imports require a matching qualified callee prefix; alias shadowing and rebinding are unresolved",
                 "enclosing function parameter collisions are source-only warnings, not runtime binding proof; lambda, global and nonlocal behavior remain unresolved",
-                "function-local bindings are compile-time shadowing warnings, not proof of the sampled runtime object; comprehension walrus, pattern captures and dynamic rebinding remain unresolved",
+                "function-local bindings include pattern captures and comprehension walrus targets; they are compile-time warnings, not proof of the sampled runtime object; dynamic rebinding remains unresolved",
                 "a call through a local variable or re-export may have no direct import alias candidate",
                 "indirect receiver shapes are source-only AST syntax, not binding provenance or proof of the sampled callee",
                 "a sampled caller line may contain multiple calls or no explicit AST Call",
