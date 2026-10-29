@@ -228,9 +228,9 @@ def main() -> None:
                 f"- Static pairs: {correlation['static_pairs']}\n"
                 f"- Direct-call observed: {correlation['direct_call_observed_pairs']}\n"
                 f"- Not observed in sample: {correlation['not_observed_in_sample_pairs']}\n"
-                f"- Import-line visited pairs: {correlation['import_line_visited_pairs']}\\n"
-                f"- Import-line not visited pairs: {correlation['not_visited_import_line_pairs']}\\n"
-                "- Import-line entry is pre-execution, not proof of target resolution.\\n"
+                f"- Import-line visited pairs: {correlation['import_line_visited_pairs']}\n"
+                f"- Import-line not visited pairs: {correlation['not_visited_import_line_pairs']}\n"
+                "- Import-line entry is pre-execution, not proof of target resolution.\n"
                 "- Import-statement traversal and semantic ownership: NOT_EVALUATED.\n"
             )
         manifest = build_b8_artifact_manifest(output, head)
