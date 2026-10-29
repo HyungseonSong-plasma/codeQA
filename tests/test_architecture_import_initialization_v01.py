@@ -106,7 +106,7 @@ class ColdImportTests(unittest.TestCase):
     def test_reject_unrelated_import_witness_even_if_resealed(self):
         # Line 1 is a real import, but not the selected demo.target pair.
         (self.root / self.src).write_text(
-            "import json\\nfrom demo import target\\nVALUE = target.VALUE\\n"
+            "import json\nfrom demo import target\nVALUE = target.VALUE\n"
         )
         self.hashes[self.src] = sha256((self.root / self.src).read_bytes()).hexdigest()
         self.resp["edges"][0]["import_witnesses"][0].update(
@@ -121,7 +121,7 @@ class ColdImportTests(unittest.TestCase):
 
     def test_relative_import_target_is_accepted(self):
         (self.root / self.src).write_text(
-            "from . import target\\nVALUE = target.VALUE\\n"
+            "from . import target\nVALUE = target.VALUE\n"
         )
         self.hashes[self.src] = sha256((self.root / self.src).read_bytes()).hexdigest()
         self.resp["edges"][0]["import_witnesses"][0]["source_sha256"] = self.hashes[self.src]
@@ -136,7 +136,7 @@ class ColdImportTests(unittest.TestCase):
 
     def test_import_alias_target_is_accepted(self):
         (self.root / self.src).write_text(
-            "import demo.target as imported\\nVALUE = imported.VALUE\\n"
+            "import demo.target as imported\nVALUE = imported.VALUE\n"
         )
         self.hashes[self.src] = sha256((self.root / self.src).read_bytes()).hexdigest()
         self.resp["edges"][0]["import_witnesses"][0]["source_sha256"] = self.hashes[self.src]
