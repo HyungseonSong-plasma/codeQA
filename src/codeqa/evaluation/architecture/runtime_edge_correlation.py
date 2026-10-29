@@ -100,7 +100,13 @@ def correlate_b8_runtime_pairs(
                 or set(observed) != set(pairs)
             ):
                 raise RuntimeEdgeCorrelationError("untrusted runtime observation")
-            for record in observed.values():
+            line_state = observation.get("import_line_observation", "NOT_EVALUATED")
+            if line_state not in (
+                "NOT_EVALUATED", "LOCAL_PYTHON_LINE_EVENT_UNATTESTED"
+            ):
+                raise RuntimeEdgeCorrelationError("untrusted import-line evidence class")
+            line_mode = line_state == "LOCAL_PYTHON_LINE_EVENT_UNATTESTED"
+            for pair, record in observed.items():
                 count = record["observed_direct_python_calls"]
                 witnesses = record["call_witnesses"]
                 if (type(count) is not int or count < 0
@@ -115,10 +121,40 @@ def correlate_b8_runtime_pairs(
                                or w["callee_first_line"] < 1
                                for w in witnesses)):
                     raise RuntimeEdgeCorrelationError("unbound call witness/count")
+                if line_mode:
+                    lines = sorted({w["line"] for w in edges[pair]["import_witnesses"]})
+                    visits = record["import_line_visits"]
+                    line_witnesses = record["import_line_witnesses"]
+                    scope = record["import_line_scope"]
+                    if (record["selected_import_lines"] != lines
+                            or not isinstance(scope, list)
+                            or [x["line"] for x in scope] != lines
+                            or any(x["scope"] not in (
+                                "MODULE_TOP_LEVEL", "NESTED_OR_CONDITIONAL"
+                            ) for x in scope)
+                            or type(visits) is not int or visits < 0
+                            or not isinstance(line_witnesses, list)
+                            or len(line_witnesses) > visits
+                            or record["import_lines_truncated"] is not (
+                                visits > len(line_witnesses)
+                            )
+                            or any(w["test_id"] not in tests
+                                   or tests[w["test_id"]] == "SKIPPED"
+                                   or type(w["line"]) is not int
+                                   or w["line"] not in lines
+                                   for w in line_witnesses)):
+                        raise RuntimeEdgeCorrelationError("unbound import-line witness")
+                elif any(key in record for key in (
+                    "import_line_visits", "import_line_witnesses",
+                    "selected_import_lines", "import_lines_truncated",
+                    "import_line_scope"
+                )):
+                    raise RuntimeEdgeCorrelationError("unexpected import-line evidence")
         else:
             if observation is not None:
                 raise RuntimeEdgeCorrelationError("unexpected runtime observation for zero pairs")
             observed, tests = {}, {}
+            line_mode = False
 
         by_role: dict[str, dict[str, int]] = defaultdict(
             lambda: {"static_pairs": 0, "direct_call_observed_pairs": 0, "direct_calls": 0}
@@ -150,6 +186,16 @@ def correlate_b8_runtime_pairs(
                 "runtime_observation": (
                     "OBSERVED_DIRECT_PYTHON_CALL" if calls else "NOT_OBSERVED_IN_SAMPLE"
                 ),
+                **({
+                    "import_line_visits": observed[(source, target)]["import_line_visits"],
+                    "import_line_scope": observed[(source, target)]["import_line_scope"],
+                    "import_line_witnesses": observed[(source, target)]["import_line_witnesses"],
+                    "import_line_observation": (
+                        "OBSERVED_IMPORT_LINE_ENTRY"
+                        if observed[(source, target)]["import_line_visits"]
+                        else "NOT_OBSERVED_IN_SAMPLE"
+                    ),
+                } if line_mode else {}),
                 "static_import_edge_traversal": "NOT_EVALUATED",
                 "semantic_ownership": "NOT_EVALUATED",
             })
@@ -173,12 +219,32 @@ def correlate_b8_runtime_pairs(
             "decision": "NOT_EVALUATED",
             "limitations": [
                 "a direct Python call does not prove execution of the static import witness",
+                "an import-line event occurs before import execution and does not prove target resolution",
                 "a zero call count is not evidence of a dead dependency or bad ownership",
+                "module-top-level imports can finish before test-time line tracing begins",
                 "role policy direction is not a semantic responsibility decision",
                 "sampled test execution does not cover all tests, threads or native calls",
                 "external/dynamic consumers and public API compatibility are NOT_EVALUATED",
             ],
         }
+        if line_mode:
+            result["import_line_visited_pairs"] = sum(
+                edge["import_line_visits"] > 0 for edge in records
+            )
+            result["not_visited_import_line_pairs"] = (
+                len(records) - result["import_line_visited_pairs"]
+            )
+            result["import_line_visits"] = sum(
+                edge["import_line_visits"] for edge in records
+            )
+            result["import_line_observation"] = "LOCAL_PYTHON_LINE_EVENT_UNATTESTED"
+            result["module_top_level_import_pairs"] = sum(
+                all(w["scope"] == "MODULE_TOP_LEVEL" for w in edge["import_line_scope"])
+                for edge in records
+            )
+            result["nested_or_conditional_import_pairs"] = (
+                len(records) - result["module_top_level_import_pairs"]
+            )
         result["correlation_id"] = _digest(result)
         return result
     except (KeyError, TypeError, AttributeError, ValueError) as exc:

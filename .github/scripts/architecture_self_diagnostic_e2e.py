@@ -186,6 +186,12 @@ def main() -> None:
                 suite, snapshot_sha=head, repository_root=ROOT,
                 source_sha256=selection["source_sha256"],
                 pairs=[tuple(pair) for pair in selection["pairs"]],
+                import_witness_lines={
+                    (edge["source_path"], edge["target_path"]): sorted({
+                        witness["line"] for witness in edge["import_witnesses"]
+                    })
+                    for edge in responsibility["edges"]
+                },
             )
             if not observation["suite_was_successful"] or observation["tests_run"] == 0:
                 raise ValueError("runtime test sample did not execute successfully")
@@ -208,6 +214,7 @@ def main() -> None:
                 "observed direct Python frame calls do not prove import statement traversal",
                 "selected unittest modules are a bounded sample, not full test coverage",
                 "unobserved pairs may execute through other tests, threads or native calls",
+                "import-line entry precedes statement execution; imported target resolution is unverified",
                 "Git blob hashes verify on-disk bytes, not interpreter-loaded bytecode",
                 "CI provenance requires independent GitHub run and artifact verification",
             ],
@@ -221,6 +228,12 @@ def main() -> None:
                 f"- Static pairs: {correlation['static_pairs']}\n"
                 f"- Direct-call observed: {correlation['direct_call_observed_pairs']}\n"
                 f"- Not observed in sample: {correlation['not_observed_in_sample_pairs']}\n"
+                f"- Import-line visited pairs: {correlation['import_line_visited_pairs']}\n"
+                f"- Import-line not visited pairs: {correlation['not_visited_import_line_pairs']}\n"
+                f"- Direct module-level import pairs: {correlation['module_top_level_import_pairs']}\n"
+                f"- Nested/conditional import pairs: {correlation['nested_or_conditional_import_pairs']}\n"
+                "- Module-level imports may finish before the bounded test-time trace.\n"
+                "- Import-line entry is pre-execution, not proof of target resolution.\n"
                 "- Import-statement traversal and semantic ownership: NOT_EVALUATED.\n"
             )
         manifest = build_b8_artifact_manifest(output, head)
