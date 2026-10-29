@@ -1,0 +1,175 @@
+"""Opt-in unittest execution receipts for Architecture QA review.
+
+Execution of a test is not proof that an import edge was traversed. The caller
+must choose the suite and supply source identity from a separately verified Git
+snapshot. This module does not discover or run repository tests implicitly.
+"""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from hashlib import sha256
+import json
+import re
+import unittest
+from typing import Any
+
+
+class RuntimeTestEvidenceError(ValueError):
+    """A receipt or its declared source identity is inconsistent."""
+
+
+def _digest(value: Any) -> str:
+    return sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+class _ReceiptResult(unittest.TestResult):
+    def __init__(self) -> None:
+        super().__init__()
+        self.outcomes: dict[str, str] = {}
+
+    def startTest(self, test: unittest.case.TestCase) -> None:
+        identifier = test.id()
+        if identifier in self.outcomes:
+            raise RuntimeTestEvidenceError("duplicate executed test identifier")
+        self.outcomes[identifier] = "STARTED"
+        super().startTest(test)
+
+    def addSuccess(self, test: unittest.case.TestCase) -> None:
+        super().addSuccess(test)
+        self.outcomes[test.id()] = "PASSED"
+
+    def addFailure(self, test: unittest.case.TestCase, err: Any) -> None:
+        super().addFailure(test, err)
+        self.outcomes[test.id()] = "FAILED"
+
+    def addError(self, test: unittest.case.TestCase, err: Any) -> None:
+        super().addError(test, err)
+        self.outcomes[test.id()] = "ERROR"
+
+    def addSkip(self, test: unittest.case.TestCase, reason: str) -> None:
+        super().addSkip(test, reason)
+        self.outcomes[test.id()] = "SKIPPED"
+
+    def addExpectedFailure(self, test: unittest.case.TestCase, err: Any) -> None:
+        super().addExpectedFailure(test, err)
+        self.outcomes[test.id()] = "EXPECTED_FAILURE"
+
+    def addUnexpectedSuccess(self, test: unittest.case.TestCase) -> None:
+        super().addUnexpectedSuccess(test)
+        self.outcomes[test.id()] = "UNEXPECTED_SUCCESS"
+
+
+def capture_unittest_execution(
+    suite: unittest.TestSuite,
+    *,
+    snapshot_sha: str,
+    test_path: str,
+    test_source: bytes,
+    expected_source_sha256: str,
+) -> dict[str, Any]:
+    """Execute an explicitly provided suite and return bounded local outcomes.
+
+    snapshot_sha is a caller-supplied claim, NOT Git/CI attestation.
+    test_source is checked against a caller-supplied inventory hash, but
+    this cannot establish that the interpreter loaded those exact bytes.
+    """
+    if (not isinstance(suite, unittest.TestSuite)
+            or not isinstance(snapshot_sha, str)
+            or re.fullmatch(r"[0-9a-f]{40}", snapshot_sha) is None
+            or not isinstance(test_path, str)
+            or not test_path.startswith("tests/") or not test_path.endswith(".py")
+            or ".." in test_path.split("/")
+            or not isinstance(test_source, bytes)
+            or not isinstance(expected_source_sha256, str)
+            or sha256(test_source).hexdigest() != expected_source_sha256):
+        raise RuntimeTestEvidenceError("invalid or mismatched source identity")
+    result = _ReceiptResult()
+    suite.run(result)
+    outcomes = [
+        {"test_id": name, "outcome": status}
+        for name, status in sorted(result.outcomes.items())
+    ]
+    receipt: dict[str, Any] = {
+        "schema_version": "0.1",
+        "source_identity": {
+            "snapshot_sha_claim": snapshot_sha,
+            "test_path": test_path,
+            "test_source_sha256": expected_source_sha256,
+        },
+        "executed_tests": outcomes,
+        "tests_run": result.testsRun,
+        "all_passed": bool(outcomes) and all(x["outcome"] == "PASSED" for x in outcomes),
+        "evidence_class": "LOCAL_UNITTEST_EXECUTION_UNATTESTED",
+        "edge_traversal": "NOT_EVALUATED",
+        "semantic_ownership": "NOT_EVALUATED",
+        "limitations": [
+            "snapshot identity and loaded test bytes are not independently attested",
+            "unittest execution does not prove any observed import edge was traversed",
+            "mocks, dynamic imports, external consumers and public API compatibility remain NOT_EVALUATED",
+        ],
+    }
+    receipt["receipt_id"] = _digest(receipt)
+    return receipt
+
+
+def correlate_runtime_test_candidates(
+    candidates: Mapping[str, Any], receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Associate a local unittest result with static candidates, never edge PASS.
+
+    A method name must match exactly one executed test ID. Duplicate class
+    methods or an unexecuted test remain ambiguous or unmatched, respectively.
+    """
+    try:
+        if (candidates["candidate_id"] != _digest({
+                k: v for k, v in candidates.items() if k != "candidate_id"
+            }) or receipt["receipt_id"] != _digest({
+                k: v for k, v in receipt.items() if k != "receipt_id"
+            }) or candidates["decision"] != "NOT_EVALUATED"
+                or receipt["schema_version"] != "0.1"
+                or receipt["evidence_class"] != "LOCAL_UNITTEST_EXECUTION_UNATTESTED"
+                or receipt["edge_traversal"] != "NOT_EVALUATED"
+                or receipt["semantic_ownership"] != "NOT_EVALUATED"
+                or candidates["source_identity"]["snapshot_sha"] != receipt["source_identity"]["snapshot_sha_claim"]
+                or receipt["tests_run"] != len(receipt["executed_tests"])):
+            raise RuntimeTestEvidenceError("receipt/candidate identity mismatch")
+        path = receipt["source_identity"]["test_path"]
+        source_hash = receipt["source_identity"]["test_source_sha256"]
+        outcomes = receipt["executed_tests"]
+        if len({r["test_id"] for r in outcomes}) != len(outcomes):
+            raise RuntimeTestEvidenceError("duplicate executed test ID")
+        matches = []
+        for edge in candidates["edges"]:
+            for site in edge["candidate_test_paths"]:
+                if site["test_path"] != path:
+                    continue
+                if site["test_source_sha256"] != source_hash:
+                    raise RuntimeTestEvidenceError("test source mismatch")
+                for candidate in site["candidate_tests"]:
+                    name = candidate["test_function"]
+                    matching = [r for r in outcomes if r["test_id"].endswith("." + name)]
+                    matches.append({
+                        "source_path": edge["source_path"],
+                        "target_path": edge["target_path"],
+                        "test_function": name,
+                        "match_state": "UNIQUE" if len(matching) == 1 else (
+                            "AMBIGUOUS" if matching else "NOT_EXECUTED"
+                        ),
+                        "unittest_outcome": matching[0]["outcome"] if len(matching) == 1 else None,
+                        "edge_traversal": "NOT_EVALUATED",
+                    })
+        output = {
+            "schema_version": "0.1",
+            "candidate_id": candidates["candidate_id"],
+            "receipt_id": receipt["receipt_id"],
+            "matched_candidates": matches,
+            "decision": "NOT_EVALUATED",
+            "limitations": [
+                "unique method-name match is not proof of the executed test source or import edge",
+                "runtime edge traversal and semantic ownership remain NOT_EVALUATED",
+            ],
+        }
+        output["correlation_id"] = _digest(output)
+        return output
+    except (KeyError, TypeError, AttributeError, ValueError) as exc:
+        raise RuntimeTestEvidenceError("untrustworthy runtime correlation") from exc
