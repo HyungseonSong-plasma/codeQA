@@ -33,6 +33,7 @@ from codeqa.evaluation.architecture.edge_responsibility import (
 from codeqa.infrastructure.git import GitReader
 from codeqa.evaluation.architecture.runtime_call_pairs import capture_unittest_call_pairs
 from codeqa.evaluation.architecture.runtime_pair_selection import select_b8_runtime_pairs
+from codeqa.evaluation.architecture.runtime_edge_correlation import correlate_b8_runtime_pairs
 from codeqa.evaluation.architecture.test_behavior_candidates import (
     census_test_behavior_candidates, render_test_behavior_candidates_markdown,
 )
@@ -199,6 +200,16 @@ def main() -> None:
             ],
         }
         write(output / "architecture-runtime-call-pairs.json", runtime_report)
+        correlation = correlate_b8_runtime_pairs(selection, responsibility, observation)
+        write(output / "architecture-runtime-edge-correlation.json", correlation)
+        with (output / "architecture-self-diagnostic.md").open("a", encoding="utf-8") as handle:
+            handle.write(
+                "\n## Bounded static/runtime pair correlation\n\n"
+                f"- Static pairs: {correlation['static_pairs']}\n"
+                f"- Direct-call observed: {correlation['direct_call_observed_pairs']}\n"
+                f"- Not observed in sample: {correlation['not_observed_in_sample_pairs']}\n"
+                "- Import-statement traversal and semantic ownership: NOT_EVALUATED.\n"
+            )
         manifest = build_b8_artifact_manifest(output, head)
         write(output / "architecture-evidence-manifest.json", manifest)
         verify_b8_artifact_manifest(output, manifest)
