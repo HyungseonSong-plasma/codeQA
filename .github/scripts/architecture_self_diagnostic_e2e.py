@@ -259,6 +259,9 @@ def main() -> None:
         if (context["source_identity"]["snapshot_sha"] != head
                 or context["static_pairs"] != len(selection["pairs"])
                 or context["direct_call_observed_pairs"] != correlation["direct_call_observed_pairs"]
+                or context["sampled_ast_call_candidate_witnesses"]
+                   + context["sampled_no_ast_call_candidate_witnesses"]
+                   != context["sampled_call_witnesses"]
                 or context["decision"] != "NOT_EVALUATED"):
             raise ValueError("B8 caller context identity or denominator drift")
         write(output / "architecture-callsite-context.json", context)
@@ -269,6 +272,9 @@ def main() -> None:
                 f"- Direct-call observed: {correlation['direct_call_observed_pairs']}\n"
                 f"- Sampled call witnesses with lexical caller context: {context['sampled_call_witnesses']}\n"
                 f"- Sampled witnesses within function bodies: {context['sampled_function_body_witnesses']}\n"
+                f"- Caller lines with AST Call span candidates: {context['sampled_ast_call_candidate_witnesses']}\n"
+                f"- Caller lines without AST Call span candidates: {context['sampled_no_ast_call_candidate_witnesses']}\n"
+                "- AST Call spans and enclosing statement kinds are source candidates, not callee or ownership proof.\n"
                 "- Lexical caller function spans do not establish intentional orchestration or ownership.\n"
                 f"- Not observed in sample: {correlation['not_observed_in_sample_pairs']}\n"
                 f"- Import-line visited pairs: {correlation['import_line_visited_pairs']}\n"

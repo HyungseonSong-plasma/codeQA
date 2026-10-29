@@ -53,6 +53,35 @@ def _function_context(tree: ast.AST, line: int) -> dict[str, Any]:
             "function_line": node.lineno}
 
 
+def _callsite_syntax(tree: ast.AST, line: int) -> dict[str, Any]:
+    """Describe source AST spans, without attributing a call to a target.
+
+    A frame's caller line can cover multiple nested calls or no explicit
+    ``ast.Call`` at all (e.g. implicit interpreter calls). Neither outcome
+    authenticates or disproves the callee observed by the runtime sampler.
+    """
+    calls = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and node.end_lineno is not None
+        and node.lineno <= line <= node.end_lineno
+    ]
+    statements = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.stmt) and node.end_lineno is not None
+        and node.lineno <= line <= node.end_lineno
+    ]
+    statement = min(
+        statements, key=lambda node: (node.end_lineno - node.lineno, -node.lineno)
+    ) if statements else None
+    return {
+        "ast_call_expression_candidates": len(calls),
+        "ast_call_line_context": (
+            "AST_CALL_SPAN_CANDIDATE" if calls else "NO_AST_CALL_SPAN_CANDIDATE"
+        ),
+        "enclosing_statement_kind": type(statement).__name__ if statement else None,
+    }
+
+
 def census_b8_callsite_context(
     selection: Mapping[str, Any],
     correlation: Mapping[str, Any],
@@ -125,7 +154,11 @@ def census_b8_callsite_context(
                         or not isinstance(witness["test_id"], str)
                         or not witness["test_id"]):
                     raise CallsiteContextError("caller line or test identity is invalid")
-                contexts.append({**witness, **_function_context(trees[source], line)})
+                contexts.append({
+                    **witness,
+                    **_function_context(trees[source], line),
+                    **_callsite_syntax(trees[source], line),
+                })
             records.append({
                 "source_path": source,
                 "target_path": target,
@@ -150,6 +183,10 @@ def census_b8_callsite_context(
             witness["lexical_context"] == "FUNCTION_BODY"
             for item in records for witness in item["sampled_call_witnesses"]
         )
+        syntax_candidates = sum(
+            witness["ast_call_expression_candidates"] > 0
+            for item in records for witness in item["sampled_call_witnesses"]
+        )
         result = {
             "schema_version": "0.1",
             "source_identity": identity,
@@ -161,6 +198,8 @@ def census_b8_callsite_context(
             "direct_python_calls": correlation["direct_python_calls"],
             "sampled_call_witnesses": witness_count,
             "sampled_function_body_witnesses": function_count,
+            "sampled_ast_call_candidate_witnesses": syntax_candidates,
+            "sampled_no_ast_call_candidate_witnesses": witness_count - syntax_candidates,
             "edges": records,
             "evidence_class": "SOURCE_AST_CALLSITE_CONTEXT_UNATTESTED",
             "semantic_ownership": "NOT_EVALUATED",
@@ -170,6 +209,8 @@ def census_b8_callsite_context(
             "decision": "NOT_EVALUATED",
             "limitations": [
                 "function spans describe lexical context, not responsibility or intent",
+                "AST Call spans and statement kinds are source-only candidates, not runtime callee identity",
+                "a sampled caller line may contain multiple calls or no explicit AST Call",
                 "sampled frame calls do not establish import binding or module ownership",
                 "bounded call witnesses may omit sites and cannot certify all tests",
                 "runtime frame source identity and interpreter-loaded bytes are not independently attested",
