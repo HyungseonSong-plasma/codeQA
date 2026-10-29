@@ -96,6 +96,46 @@ print(json.dumps({"line_counts": counts, "module_statuses": statuses,
 '''
 
 
+def _module_for_source_path(path: str) -> str:
+    parts = path.split("/")[1:]
+    stem = parts[-1][:-3]
+    return ".".join(parts[:-1] + ([] if stem == "__init__" else [stem]))
+
+
+def _witness_imports_target(
+    node: ast.Import | ast.ImportFrom, source_path: str, target_path: str,
+) -> bool:
+    """Verify an AST import witness names its selected module, not any import.
+
+    This is syntactic correspondence only. It does not attest runtime binding,
+    re-exports, import completion or the imported module's semantic owner.
+    """
+    target = _module_for_source_path(target_path)
+    if isinstance(node, ast.Import):
+        return any(
+            alias.name == target
+            or (target_path.endswith("/__init__.py")
+                and alias.name.startswith(target + "."))
+            for alias in node.names
+        )
+    source_module = _module_for_source_path(source_path)
+    package = (source_module if source_path.endswith("/__init__.py")
+               else source_module.rpartition(".")[0])
+    if node.level:
+        parts = package.split(".")
+        if node.level > len(parts):
+            return False
+        base = ".".join(parts[:len(parts) - node.level + 1])
+        if node.module:
+            base += "." + node.module
+    else:
+        base = node.module or ""
+    return base == target or any(
+        alias.name != "*" and base + "." + alias.name == target
+        for alias in node.names
+    )
+
+
 def capture_cold_import_line_entries(
     selection: Mapping[str, Any],
     responsibility: Mapping[str, Any],
@@ -169,12 +209,23 @@ def capture_cold_import_line_entries(
                         or type(w["line"]) is not int or w["line"] < 1):
                     raise ImportInitializationError("invalid import witness")
                 line_map[src].add(w["line"])
-        for src, lines in line_map.items():
+        # A matching line number alone is insufficient: a forged pair can
+        # point at an unrelated import on the same selected source file.
+        import_nodes = {}
+        for src in line_map:
             parsed = ast.parse((root / src).read_bytes(), filename=src)
-            actual = {n.lineno for n in ast.walk(parsed)
-                      if isinstance(n, (ast.Import, ast.ImportFrom))}
-            if not lines <= actual:
-                raise ImportInitializationError("witness line is not import AST")
+            by_line = {}
+            for node in ast.walk(parsed):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    by_line.setdefault(node.lineno, []).append(node)
+            import_nodes[src] = by_line
+        for src, dst in pairs:
+            for witness in edges[(src, dst)]["import_witnesses"]:
+                if not any(
+                    _witness_imports_target(node, src, dst)
+                    for node in import_nodes[src].get(witness["line"], [])
+                ):
+                    raise ImportInitializationError("import witness does not name target")
         records = []
         if pairs:
             target_paths = sorted({dst for _, dst in pairs})
