@@ -54,6 +54,9 @@ class ColdImportTests(unittest.TestCase):
         self.assertEqual(report["pairs_with_line_entries"], 1)
         self.assertEqual(report["records"][0]["line_entries"], 1)
         self.assertEqual(report["module_statuses"]["demo.pipeline"], "IMPORTED")
+        self.assertEqual(report["records"][0]["target_module_cache_status"], "SELECTED_PATH_MATCH")
+        self.assertEqual(report["pairs_with_target_module_path_match"], 1)
+        self.assertEqual(report["target_module_cache_evidence"], "PROCESS_LOCAL_PATH_METADATA_UNATTESTED")
         self.assertEqual(report["decision"], "NOT_EVALUATED")
         self.assertEqual(report["import_target_resolution"], "NOT_EVALUATED")
 
@@ -65,6 +68,39 @@ class ColdImportTests(unittest.TestCase):
         report = self.probe()
         self.assertEqual(report["records"][0]["line_entries"], 1)
         self.assertEqual(report["module_statuses"]["demo.pipeline"], "IMPORT_ERROR:RuntimeError")
+        self.assertEqual(report["records"][0]["target_module_cache_status"], "NOT_LOADED")
+        self.assertEqual(report["pairs_with_target_module_path_match"], 0)
+        self.assertEqual(report["import_target_resolution"], "NOT_EVALUATED")
+
+    def test_caught_target_import_failure_does_not_claim_loaded_target(self):
+        (self.root / self.src).write_text(
+            "try:\n    from demo import target\nexcept RuntimeError:\n    pass\n"
+        )
+        (self.root / self.dst).write_text("raise RuntimeError('controlled')\n")
+        self.hashes = {p: sha256((self.root / p).read_bytes()).hexdigest()
+                       for p in (self.src, self.dst)}
+        self.resp["edges"][0]["import_witnesses"][0].update(
+            source_sha256=self.hashes[self.src], line=2
+        )
+        seal(self.resp, "responsibility_id")
+        self.sel["source_identity"]["responsibility_id"] = self.resp["responsibility_id"]
+        self.sel["source_sha256"] = self.hashes
+        seal(self.sel, "selection_id")
+        report = self.probe()
+        self.assertEqual(report["module_statuses"]["demo.pipeline"], "IMPORTED")
+        self.assertEqual(report["pairs_with_line_entries"], 1)
+        self.assertEqual(report["records"][0]["target_module_cache_status"], "NOT_LOADED")
+        self.assertEqual(report["import_target_resolution"], "NOT_EVALUATED")
+
+    def test_mutated_module_file_metadata_is_not_a_verified_path(self):
+        (self.root / self.dst).write_text("VALUE = 7\n__file__ = 'spoofed.py'\n")
+        self.hashes[self.dst] = sha256((self.root / self.dst).read_bytes()).hexdigest()
+        self.sel["source_sha256"] = self.hashes
+        seal(self.sel, "selection_id")
+        report = self.probe()
+        self.assertEqual(report["module_statuses"]["demo.pipeline"], "IMPORTED")
+        self.assertEqual(report["records"][0]["target_module_cache_status"], "PATH_UNVERIFIED")
+        self.assertEqual(report["pairs_with_target_module_path_match"], 0)
         self.assertEqual(report["import_target_resolution"], "NOT_EVALUATED")
 
     def test_reject_stale_source_hash(self):
@@ -112,6 +148,7 @@ class ColdImportTests(unittest.TestCase):
         report = capture_cold_import_line_entries(sel, resp, repository_root=self.root)
         self.assertEqual(report["records"], [])
         self.assertEqual(report["static_pairs"], 0)
+        self.assertEqual(report["pairs_with_target_module_path_match"], 0)
 
 
 if __name__ == "__main__":

@@ -169,6 +169,8 @@ def main() -> None:
         )
         if (cold_import["source_identity"]["snapshot_sha"] != head
                 or cold_import["static_pairs"] != len(selection["pairs"])
+                or not 0 <= cold_import["pairs_with_target_module_path_match"] <= len(selection["pairs"])
+                or cold_import["target_module_cache_evidence"] != "PROCESS_LOCAL_PATH_METADATA_UNATTESTED"
                 or cold_import["decision"] != "NOT_EVALUATED"):
             raise ValueError("cold interpreter import evidence drift")
         write(output / "architecture-import-initialization.json", cold_import)
@@ -261,6 +263,8 @@ def main() -> None:
                 "- Module-level imports may finish before the bounded test-time trace.\n"
                 f"- Cold-interpreter import-line observed pairs: {cold_import['pairs_with_line_entries']}/{cold_import['static_pairs']}\n"
                 f"- Cold-interpreter line visits truncated: {cold_import['line_visits_truncated']}\n"
+                f"- Process-local target module path matches: {cold_import['pairs_with_target_module_path_match']}/{cold_import['static_pairs']}\n"
+                "- Module cache path metadata is mutable and does not prove import binding or bytecode identity.\n"
                 "- Cold interpreter line entry does not prove import target resolution.\n"
                 "- Import-line entry is pre-execution, not proof of target resolution.\n"
                 "- Import-statement traversal and semantic ownership: NOT_EVALUATED.\n"

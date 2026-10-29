@@ -271,6 +271,8 @@ class B8ArtifactManifestTests(unittest.TestCase):
         self.assertIn("architecture-import-initialization.json", B8_REQUIRED_ARTIFACTS)
         self.assertIn("census_b8_import_binding_uses(", script)
         self.assertIn("capture_cold_import_line_entries(", script)
+        self.assertIn("pairs_with_target_module_path_match", script)
+        self.assertIn("PROCESS_LOCAL_PATH_METADATA_UNATTESTED", script)
         self.assertIn('write(output / "architecture-import-initialization.json", cold_import)', script)
         self.assertIn("correlate_b8_runtime_pairs(selection, responsibility, observation)", script)
         self.assertIn("import_witness_lines=", script)
