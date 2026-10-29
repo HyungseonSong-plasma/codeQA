@@ -103,6 +103,52 @@ class ColdImportTests(unittest.TestCase):
         self.assertEqual(report["pairs_with_target_module_path_match"], 0)
         self.assertEqual(report["import_target_resolution"], "NOT_EVALUATED")
 
+    def test_reject_unrelated_import_witness_even_if_resealed(self):
+        # Line 1 is a real import, but not the selected demo.target pair.
+        (self.root / self.src).write_text(
+            "import json\\nfrom demo import target\\nVALUE = target.VALUE\\n"
+        )
+        self.hashes[self.src] = sha256((self.root / self.src).read_bytes()).hexdigest()
+        self.resp["edges"][0]["import_witnesses"][0].update(
+            source_sha256=self.hashes[self.src], line=1
+        )
+        seal(self.resp, "responsibility_id")
+        self.sel["source_identity"]["responsibility_id"] = self.resp["responsibility_id"]
+        self.sel["source_sha256"] = self.hashes
+        seal(self.sel, "selection_id")
+        with self.assertRaises(ImportInitializationError):
+            self.probe()
+
+    def test_relative_import_target_is_accepted(self):
+        (self.root / self.src).write_text(
+            "from . import target\\nVALUE = target.VALUE\\n"
+        )
+        self.hashes[self.src] = sha256((self.root / self.src).read_bytes()).hexdigest()
+        self.resp["edges"][0]["import_witnesses"][0]["source_sha256"] = self.hashes[self.src]
+        seal(self.resp, "responsibility_id")
+        self.sel["source_identity"]["responsibility_id"] = self.resp["responsibility_id"]
+        self.sel["source_sha256"] = self.hashes
+        seal(self.sel, "selection_id")
+        report = self.probe()
+        self.assertEqual(report["pairs_with_line_entries"], 1)
+        self.assertEqual(report["records"][0]["target_module_cache_status"], "SELECTED_PATH_MATCH")
+        self.assertEqual(report["import_target_resolution"], "NOT_EVALUATED")
+
+    def test_import_alias_target_is_accepted(self):
+        (self.root / self.src).write_text(
+            "import demo.target as imported\\nVALUE = imported.VALUE\\n"
+        )
+        self.hashes[self.src] = sha256((self.root / self.src).read_bytes()).hexdigest()
+        self.resp["edges"][0]["import_witnesses"][0]["source_sha256"] = self.hashes[self.src]
+        seal(self.resp, "responsibility_id")
+        self.sel["source_identity"]["responsibility_id"] = self.resp["responsibility_id"]
+        self.sel["source_sha256"] = self.hashes
+        seal(self.sel, "selection_id")
+        report = self.probe()
+        self.assertEqual(report["pairs_with_line_entries"], 1)
+        self.assertEqual(report["records"][0]["target_module_cache_status"], "SELECTED_PATH_MATCH")
+
+
     def test_reject_stale_source_hash(self):
         (self.root / self.src).write_text("from demo import target\nprint('changed')\n")
         with self.assertRaises(ImportInitializationError):
