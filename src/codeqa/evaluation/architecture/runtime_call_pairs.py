@@ -8,6 +8,7 @@ This is local, current-thread execution, not independently attested CI.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import ast
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -75,6 +76,7 @@ def capture_unittest_call_pairs(
     repository_root: str | Path,
     source_sha256: Mapping[str, str],
     pairs: Sequence[tuple[str, str]],
+    import_witness_lines: Mapping[tuple[str, str], Sequence[int]] | None = None,
     max_witnesses_per_pair: int = 8,
 ) -> dict[str, Any]:
     """Observe direct Python calls between selected source-file pairs.
@@ -91,7 +93,8 @@ def capture_unittest_call_pairs(
             or not isinstance(pairs, (list, tuple))
             or type(max_witnesses_per_pair) is not int
             or not 1 <= max_witnesses_per_pair <= 100
-            or sys.getprofile() is not None):
+            or sys.getprofile() is not None
+            or (import_witness_lines is not None and sys.gettrace() is not None)):
         raise RuntimeCallPairError("invalid execution/profile precondition")
     root = Path(repository_root).resolve()
     if not root.is_dir():
@@ -131,6 +134,39 @@ def capture_unittest_call_pairs(
     except (OSError, TypeError) as exc:
         raise RuntimeCallPairError("invalid source identity") from exc
 
+    # A line event means the interpreter reached a source line before executing
+    # its statement. It does NOT prove a particular imported target resolved.
+    line_mode = import_witness_lines is not None
+    line_pairs: dict[tuple[str, int], list[tuple[str, str]]] = {}
+    trace_sources: set[str] = set()
+    if line_mode:
+        if (not isinstance(import_witness_lines, Mapping)
+                or set(import_witness_lines) != set(selected)):
+            raise RuntimeCallPairError("import-line pair denominator mismatch")
+        for pair, lines in import_witness_lines.items():
+            if (not isinstance(lines, (list, tuple)) or not lines
+                    or any(type(line) is not int or line < 1 for line in lines)
+                    or len(set(lines)) != len(lines)):
+                raise RuntimeCallPairError("invalid import-line witnesses")
+            source_file = root / pair[0]
+            try:
+                parsed = ast.parse(source_file.read_bytes(), filename=str(source_file))
+            except (OSError, SyntaxError, ValueError) as exc:
+                raise RuntimeCallPairError("unparseable source import witness") from exc
+            import_lines = {
+                node.lineno for node in ast.walk(parsed)
+                if isinstance(node, (ast.Import, ast.ImportFrom))
+            }
+            if not set(lines) <= import_lines:
+                raise RuntimeCallPairError("witness line is not a static import")
+            selected[pair]["import_lines"] = sorted(lines)
+            selected[pair]["line_visits"] = 0
+            selected[pair]["line_witnesses"] = []
+            source_absolute = str(source_file.resolve())
+            trace_sources.add(source_absolute)
+            for line in lines:
+                line_pairs.setdefault((source_absolute, line), []).append(pair)
+
     result = _ObservedTests()
     path_cache: dict[str, str | None] = {}
 
@@ -156,11 +192,29 @@ def capture_unittest_call_pairs(
                 "callee_first_line": frame.f_code.co_firstlineno,
             })
 
+    def trace(frame: Any, event: str, arg: Any) -> Any:
+        filename = frame.f_code.co_filename
+        if event == "call":
+            return trace if filename in trace_sources else None
+        if event == "line" and result.current is not None:
+            for pair in line_pairs.get((filename, frame.f_lineno), ()):
+                record = selected[pair]
+                record["line_visits"] += 1
+                if len(record["line_witnesses"]) < max_witnesses_per_pair:
+                    record["line_witnesses"].append({
+                        "test_id": result.current, "line": frame.f_lineno,
+                    })
+        return trace
+
     try:
+        if line_mode:
+            sys.settrace(trace)
         sys.setprofile(profile)
         suite.run(result)
     finally:
         sys.setprofile(None)
+        if line_mode:
+            sys.settrace(None)
     try:
         for absolute_path, relative in absolute.items():
             if sha256(Path(absolute_path).read_bytes()).hexdigest() != source_sha256[relative]:
@@ -184,16 +238,28 @@ def capture_unittest_call_pairs(
             {"source_path": src, "target_path": dst,
              "observed_direct_python_calls": data["count"],
              "call_witnesses": data["witnesses"],
-             "witnesses_truncated": data["count"] > len(data["witnesses"])}
+             "witnesses_truncated": data["count"] > len(data["witnesses"]),
+             **({
+                 "selected_import_lines": data["import_lines"],
+                 "import_line_visits": data["line_visits"],
+                 "import_line_witnesses": data["line_witnesses"],
+                 "import_lines_truncated": (
+                     data["line_visits"] > len(data["line_witnesses"])
+                 ),
+             } if line_mode else {})}
             for (src, dst), data in sorted(selected.items())
         ],
         "evidence_class": "LOCAL_PYTHON_FRAME_CALL_UNATTESTED",
+        "import_line_observation": (
+            "LOCAL_PYTHON_LINE_EVENT_UNATTESTED" if line_mode else "NOT_EVALUATED"
+        ),
         "static_import_edge_traversal": "NOT_EVALUATED",
         "semantic_ownership": "NOT_EVALUATED",
         "public_api_compatibility": "NOT_EVALUATED",
         "decision": "NOT_EVALUATED",
         "limitations": [
             "direct frame calls do not prove the static import statement was executed",
+            "an import-line event is pre-execution, not proof of target import success",
             "frame filename and loaded code bytes are not independently attested",
             "only the current thread is profiled; native calls and other threads may be missed",
             "absence of a call is not evidence of absence of a dependency",
