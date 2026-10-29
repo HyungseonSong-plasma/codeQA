@@ -26,6 +26,61 @@ def _sealed(value: Mapping[str, Any], key: str) -> bool:
     return value[key] == _digest({k: v for k, v in value.items() if k != key})
 
 
+def _module_name(path: str) -> str | None:
+    """Map a selected src-layout Python path to a lexical module name."""
+    if not path.startswith("src/") or not path.endswith(".py"):
+        return None
+    parts = path[4:-3].split("/")
+    if parts[-1] == "__init__":
+        parts.pop()
+    if not parts or not all(part.isidentifier() for part in parts):
+        return None
+    return ".".join(parts)
+
+
+def _module_level_target_aliases(
+    tree: ast.Module, source_path: str, target_path: str,
+) -> dict[str, list[int]]:
+    """Find module-level import spellings that *could* bind a target.
+
+    Does not resolve shadowing, rebinding, control flow, star imports, or
+    runtime objects. This is a lexical candidate census, not attribution.
+    """
+    target = _module_name(target_path)
+    source = _module_name(source_path)
+    if target is None or source is None:
+        return {}
+    package = source if source_path.endswith("/__init__.py") else source.rpartition(".")[0]
+    aliases: dict[str, set[int]] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == target:
+                    name = alias.asname or alias.name.split(".")[0]
+                    aliases.setdefault(name, set()).add(node.lineno)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                parts = package.split(".") if package else []
+                if node.level > len(parts):
+                    continue
+                prefix = ".".join(parts[:len(parts) - node.level + 1])
+                module = ".".join(filter(None, (prefix, node.module or "")))
+            else:
+                module = node.module or ""
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                if module == target or ".".join((module, alias.name)) == target:
+                    aliases.setdefault(alias.asname or alias.name, set()).add(node.lineno)
+    return {name: sorted(lines) for name, lines in sorted(aliases.items())}
+
+
+def _callee_root(node: ast.expr) -> str | None:
+    while isinstance(node, ast.Attribute):
+        node = node.value
+    return node.id if isinstance(node, ast.Name) else None
+
+
 def _function_context(tree: ast.AST, line: int) -> dict[str, Any]:
     """Find the innermost *lexical* function body covering a sampled line."""
     parents = {child: parent for parent in ast.walk(tree)
@@ -53,7 +108,9 @@ def _function_context(tree: ast.AST, line: int) -> dict[str, Any]:
             "function_line": node.lineno}
 
 
-def _callsite_syntax(tree: ast.AST, line: int) -> dict[str, Any]:
+def _callsite_syntax(
+    tree: ast.AST, line: int, target_aliases: Mapping[str, list[int]],
+) -> dict[str, Any]:
     """Describe source AST spans, without attributing a call to a target.
 
     A frame's caller line can cover multiple nested calls or no explicit
@@ -73,7 +130,26 @@ def _callsite_syntax(tree: ast.AST, line: int) -> dict[str, Any]:
     statement = min(
         statements, key=lambda node: (node.end_lineno - node.lineno, -node.lineno)
     ) if statements else None
+    alias_candidates = []
+    for call in calls:
+        root = _callee_root(call.func)
+        if root in target_aliases:
+            alias_candidates.append({
+                "callee_expression": ast.unparse(call.func),
+                "root_name": root,
+                "call_line": call.lineno,
+                "call_column": call.col_offset,
+                "target_import_lines": target_aliases[root],
+            })
+    alias_candidates.sort(key=lambda item: (
+        item["call_line"], item["call_column"], item["callee_expression"]
+    ))
     return {
+        "target_import_alias_call_candidates": alias_candidates,
+        "target_import_alias_call_status": (
+            "LEXICAL_ALIAS_CALL_CANDIDATE" if alias_candidates
+            else "NO_DIRECT_ALIAS_CALL_CANDIDATE"
+        ),
         "ast_call_expression_candidates": len(calls),
         "ast_call_line_context": (
             "AST_CALL_SPAN_CANDIDATE" if calls else "NO_AST_CALL_SPAN_CANDIDATE"
@@ -133,6 +209,9 @@ def census_b8_callsite_context(
         records = []
         for source, target in sorted(pairs):
             edge = correlated[(source, target)]
+            target_aliases = _module_level_target_aliases(
+                trees[source], source, target,
+            )
             calls = edge["direct_python_calls"]
             witnesses = edge["call_witnesses"]
             if (type(calls) is not int or calls < 0
@@ -157,7 +236,7 @@ def census_b8_callsite_context(
                 contexts.append({
                     **witness,
                     **_function_context(trees[source], line),
-                    **_callsite_syntax(trees[source], line),
+                    **_callsite_syntax(trees[source], line, target_aliases),
                 })
             records.append({
                 "source_path": source,
@@ -187,6 +266,10 @@ def census_b8_callsite_context(
             witness["ast_call_expression_candidates"] > 0
             for item in records for witness in item["sampled_call_witnesses"]
         )
+        import_alias_witnesses = sum(
+            bool(w["target_import_alias_call_candidates"])
+            for item in records for w in item["sampled_call_witnesses"]
+        )
         result = {
             "schema_version": "0.1",
             "source_identity": identity,
@@ -200,6 +283,10 @@ def census_b8_callsite_context(
             "sampled_function_body_witnesses": function_count,
             "sampled_ast_call_candidate_witnesses": syntax_candidates,
             "sampled_no_ast_call_candidate_witnesses": witness_count - syntax_candidates,
+            "sampled_import_alias_call_candidate_witnesses": import_alias_witnesses,
+            "sampled_without_direct_import_alias_call_candidate": (
+                witness_count - import_alias_witnesses
+            ),
             "edges": records,
             "evidence_class": "SOURCE_AST_CALLSITE_CONTEXT_UNATTESTED",
             "semantic_ownership": "NOT_EVALUATED",
@@ -210,6 +297,8 @@ def census_b8_callsite_context(
             "limitations": [
                 "function spans describe lexical context, not responsibility or intent",
                 "AST Call spans and statement kinds are source-only candidates, not runtime callee identity",
+                "matching a call root to a module-level target import is lexical only; alias shadowing and rebinding are unresolved",
+                "a call through a local variable or re-export may have no direct import alias candidate",
                 "a sampled caller line may contain multiple calls or no explicit AST Call",
                 "sampled frame calls do not establish import binding or module ownership",
                 "bounded call witnesses may omit sites and cannot certify all tests",
