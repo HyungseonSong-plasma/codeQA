@@ -66,12 +66,30 @@ class ImportLineRuntimeTests(unittest.TestCase):
         edge = result["observed_pairs"][0]
         self.assertEqual(edge["observed_direct_python_calls"], 0)
         self.assertEqual(edge["selected_import_lines"], [2])
+        self.assertEqual(edge["import_line_scope"], [
+            {"line": 2, "scope": "NESTED_OR_CONDITIONAL"}
+        ])
         self.assertEqual(edge["import_line_visits"], 1)
         self.assertEqual(edge["import_line_witnesses"][0]["line"], 2)
         self.assertEqual(result["import_line_observation"], "LOCAL_PYTHON_LINE_EVENT_UNATTESTED")
         self.assertEqual(result["static_import_edge_traversal"], "NOT_EVALUATED")
         self.assertIsNone(sys.gettrace())
         self.assertIsNone(sys.getprofile())
+
+    def test_module_top_level_import_precedes_test_time_trace(self):
+        source = "import math\\ndef produce():\\n    return 7\\n"
+        self.sources[SRC] = source
+        (self.root / SRC).write_text(source, encoding="utf-8")
+        namespace = {}
+        exec(compile(source, str(self.root / SRC), "exec"), namespace)
+        self.produce = namespace["produce"]
+        report = self.capture(lines=[1])
+        edge = report["observed_pairs"][0]
+        self.assertEqual(edge["import_line_scope"], [
+            {"line": 1, "scope": "MODULE_TOP_LEVEL"}
+        ])
+        self.assertEqual(edge["import_line_visits"], 0)
+        self.assertEqual(report["decision"], "NOT_EVALUATED")
 
     def test_unexecuted_import_line_is_not_inferred(self):
         result = self.capture(call=False)
@@ -112,6 +130,7 @@ class ImportLineCorrelationTests(unittest.TestCase):
         observation["import_line_observation"] = "LOCAL_PYTHON_LINE_EVENT_UNATTESTED"
         for index, edge in enumerate(observation["observed_pairs"]):
             edge["selected_import_lines"] = [7]
+            edge["import_line_scope"] = [{"line": 7, "scope": "MODULE_TOP_LEVEL"}]
             edge["import_line_visits"] = 2 if index == 1 else 0
             edge["import_line_witnesses"] = (
                 [{"test_id": "test_one", "line": 7}] if index == 1 else []
@@ -127,6 +146,8 @@ class ImportLineCorrelationTests(unittest.TestCase):
         self.assertEqual(report["import_line_visited_pairs"], 1)
         self.assertEqual(report["not_visited_import_line_pairs"], 1)
         self.assertEqual(report["import_line_visits"], 2)
+        self.assertEqual(report["module_top_level_import_pairs"], 2)
+        self.assertEqual(report["nested_or_conditional_import_pairs"], 0)
         self.assertEqual(
             [edge["import_line_observation"] for edge in report["edges"]],
             ["OBSERVED_IMPORT_LINE_ENTRY", "NOT_OBSERVED_IN_SAMPLE"],
@@ -137,6 +158,14 @@ class ImportLineCorrelationTests(unittest.TestCase):
         selection, responsibility, observation = self.correlated()
         changed = deepcopy(observation)
         changed["observed_pairs"][1]["import_line_witnesses"][0]["line"] = 99
+        seal(changed, "observation_id")
+        with self.assertRaises(RuntimeEdgeCorrelationError):
+            correlate_b8_runtime_pairs(selection, responsibility, changed)
+
+    def test_reject_forged_scope_denominator(self):
+        selection, responsibility, observation = self.correlated()
+        changed = deepcopy(observation)
+        changed["observed_pairs"][1]["import_line_scope"][0]["line"] = 99
         seal(changed, "observation_id")
         with self.assertRaises(RuntimeEdgeCorrelationError):
             correlate_b8_runtime_pairs(selection, responsibility, changed)
