@@ -112,6 +112,23 @@ def capture_unittest_execution(
     return receipt
 
 
+def _test_id_belongs_to_path(test_id: str, test_path: str) -> bool:
+    """Fail closed on a same-named test from a different Python module.
+
+    unittest IDs use module.Class.method. Discovery may import a test module
+    with or without its leading tests package; arbitrary module suffixes are
+    not accepted. This is only a lexical binding, NOT loaded-byte attestation.
+    """
+    if not isinstance(test_id, str) or not isinstance(test_path, str):
+        return False
+    parts = test_id.split(".")
+    if len(parts) < 3:
+        return False
+    expected = test_path.removeprefix("tests/").removesuffix(".py").replace("/", ".")
+    module = ".".join(parts[:-2])
+    return module in (expected, "tests." + expected)
+
+
 def correlate_runtime_test_candidates(
     candidates: Mapping[str, Any], receipt: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -147,7 +164,11 @@ def correlate_runtime_test_candidates(
                     raise RuntimeTestEvidenceError("test source mismatch")
                 for candidate in site["candidate_tests"]:
                     name = candidate["test_function"]
-                    matching = [r for r in outcomes if r["test_id"].endswith("." + name)]
+                    matching = [
+                        r for r in outcomes
+                        if r["test_id"].endswith("." + name)
+                        and _test_id_belongs_to_path(r["test_id"], path)
+                    ]
                     matches.append({
                         "source_path": edge["source_path"],
                         "target_path": edge["target_path"],
@@ -165,7 +186,7 @@ def correlate_runtime_test_candidates(
             "matched_candidates": matches,
             "decision": "NOT_EVALUATED",
             "limitations": [
-                "unique method-name match is not proof of the executed test source or import edge",
+                "test module-name binding is not proof of loaded test bytes or import edge",
                 "runtime edge traversal and semantic ownership remain NOT_EVALUATED",
             ],
         }
