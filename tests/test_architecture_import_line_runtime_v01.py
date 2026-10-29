@@ -77,7 +77,7 @@ class ImportLineRuntimeTests(unittest.TestCase):
         self.assertIsNone(sys.getprofile())
 
     def test_module_top_level_import_precedes_test_time_trace(self):
-        source = "import math\\ndef produce():\\n    return 7\\n"
+        source = "import math\ndef produce():\n    return 7\n"
         self.sources[SRC] = source
         (self.root / SRC).write_text(source, encoding="utf-8")
         namespace = {}
