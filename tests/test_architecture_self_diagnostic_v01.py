@@ -231,6 +231,33 @@ class B8ArtifactManifestTests(unittest.TestCase):
             with self.assertRaises(SelfDiagnosticEvidenceError):
                 verify_b8_artifact_manifest(root, manifest)
 
+    def test_runtime_sample_covers_measured_pipeline_families_without_duplicate_tests(self):
+        script_path = ROOT / ".github/scripts/architecture_self_diagnostic_e2e.py"
+        tree = ast.parse(script_path.read_text(encoding="utf-8"))
+        assignments = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "test_patterns"
+                    for target in node.targets)
+        ]
+        self.assertEqual(len(assignments), 1)
+        patterns = ast.literal_eval(assignments[0].value)
+        self.assertEqual(len(patterns), len(set(patterns)))
+        self.assertTrue(all((ROOT / "tests" / pattern).is_file()
+                            for pattern in patterns))
+        self.assertTrue({
+            "test_analysis_request.py", "test_mechanical_pipeline.py",
+            "test_shared_evidence_pipeline.py", "test_naming_product_boundary.py",
+            "test_naming_field_evidence_v03.py",
+            "test_naming_internal_import_census_v04.py",
+            "test_naming_official_adoption_v05.py",
+            "test_naming_official_policy_v05.py",
+            "test_naming_rule_inventory_v03.py",
+            "test_naming_scope_discovery_v04.py",
+            "test_naming_snapshot_coverage_v03.py",
+            "test_mixed_source_coverage.py", "test_git_tree_reader_v01.py",
+        }.issubset(set(patterns)))
+
     def test_workflow_uploads_complete_pack(self):
         workflow = (ROOT / ".github/workflows/architecture-self-diagnostic.yml").read_text()
         script = (ROOT / ".github/scripts/architecture_self_diagnostic_e2e.py").read_text()

@@ -159,10 +159,23 @@ def main() -> None:
             if sha256(reader.read_file(head, path)).hexdigest() != expected_hash:
                 raise ValueError("runtime selected source differs from B1 Git blob")
         observation = None
+        # Extend the bounded sample using test modules that statically import
+        # pipeline sources among the 31 previously unobserved cross-role pairs.
+        # Candidate imports select tests; they do not prove runtime traversal.
         test_patterns = (
             "test_analysis_request.py",
             "test_mechanical_pipeline.py",
             "test_shared_evidence_pipeline.py",
+            "test_naming_product_boundary.py",
+            "test_naming_field_evidence_v03.py",
+            "test_naming_internal_import_census_v04.py",
+            "test_naming_official_adoption_v05.py",
+            "test_naming_official_policy_v05.py",
+            "test_naming_rule_inventory_v03.py",
+            "test_naming_scope_discovery_v04.py",
+            "test_naming_snapshot_coverage_v03.py",
+            "test_mixed_source_coverage.py",
+            "test_git_tree_reader_v01.py",
         )
         if selection["pairs"]:
             loader = unittest.TestLoader()
