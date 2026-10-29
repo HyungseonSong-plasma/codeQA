@@ -34,6 +34,7 @@ from codeqa.infrastructure.git import GitReader
 from codeqa.evaluation.architecture.runtime_call_pairs import capture_unittest_call_pairs
 from codeqa.evaluation.architecture.runtime_pair_selection import select_b8_runtime_pairs
 from codeqa.evaluation.architecture.runtime_edge_correlation import correlate_b8_runtime_pairs
+from codeqa.evaluation.architecture.callsite_context import census_b8_callsite_context
 from codeqa.evaluation.architecture.import_binding_usage import census_b8_import_binding_uses
 from codeqa.evaluation.architecture.import_initialization import capture_cold_import_line_entries
 from codeqa.evaluation.architecture.test_behavior_candidates import (
@@ -247,11 +248,28 @@ def main() -> None:
         write(output / "architecture-runtime-call-pairs.json", runtime_report)
         correlation = correlate_b8_runtime_pairs(selection, responsibility, observation)
         write(output / "architecture-runtime-edge-correlation.json", correlation)
+        # Preserve each observed call's lexical caller function at the same
+        # source HEAD. This is review context, not semantic ownership proof.
+        context = census_b8_callsite_context(
+            selection, correlation, {
+                path: reader.read_file(head, path)
+                for path in sorted({source for source, _ in selection["pairs"]})
+            },
+        )
+        if (context["source_identity"]["snapshot_sha"] != head
+                or context["static_pairs"] != len(selection["pairs"])
+                or context["direct_call_observed_pairs"] != correlation["direct_call_observed_pairs"]
+                or context["decision"] != "NOT_EVALUATED"):
+            raise ValueError("B8 caller context identity or denominator drift")
+        write(output / "architecture-callsite-context.json", context)
         with (output / "architecture-self-diagnostic.md").open("a", encoding="utf-8") as handle:
             handle.write(
                 "\n## Bounded static/runtime pair correlation\n\n"
                 f"- Static pairs: {correlation['static_pairs']}\n"
                 f"- Direct-call observed: {correlation['direct_call_observed_pairs']}\n"
+                f"- Sampled call witnesses with lexical caller context: {context['sampled_call_witnesses']}\n"
+                f"- Sampled witnesses within function bodies: {context['sampled_function_body_witnesses']}\n"
+                "- Lexical caller function spans do not establish intentional orchestration or ownership.\n"
                 f"- Not observed in sample: {correlation['not_observed_in_sample_pairs']}\n"
                 f"- Import-line visited pairs: {correlation['import_line_visited_pairs']}\n"
                 f"- Import-line not visited pairs: {correlation['not_visited_import_line_pairs']}\n"
