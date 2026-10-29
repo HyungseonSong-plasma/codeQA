@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unittest
 
 from jsonschema import Draft202012Validator
 from codeqa.evaluation.architecture.self_diagnostic import (
@@ -29,6 +31,8 @@ from codeqa.evaluation.architecture.edge_responsibility import (
     census_edge_responsibility, render_edge_responsibility_markdown,
 )
 from codeqa.infrastructure.git import GitReader
+from codeqa.evaluation.architecture.runtime_call_pairs import capture_unittest_call_pairs
+from codeqa.evaluation.architecture.runtime_pair_selection import select_b8_runtime_pairs
 from codeqa.evaluation.architecture.test_behavior_candidates import (
     census_test_behavior_candidates, render_test_behavior_candidates_markdown,
 )
@@ -147,6 +151,54 @@ def main() -> None:
         write(output / "architecture-bounded-disposition.json", disposition)
         shutil.copyfile(p["assessment"], output / "architecture-assessment.json")
         (output / "architecture-self-diagnostic.md").write_text(summary, encoding="utf-8")
+        # Bind all B8 measured cross-role pairs to the same Git HEAD, then
+        # observe a small, explicit unittest sample. No question is seeded.
+        selection = select_b8_runtime_pairs(inventory, responsibility)
+        for path, expected_hash in selection["source_sha256"].items():
+            if sha256(reader.read_file(head, path)).hexdigest() != expected_hash:
+                raise ValueError("runtime selected source differs from B1 Git blob")
+        observation = None
+        test_patterns = (
+            "test_analysis_request.py",
+            "test_mechanical_pipeline.py",
+            "test_shared_evidence_pipeline.py",
+        )
+        if selection["pairs"]:
+            loader = unittest.TestLoader()
+            suite = unittest.TestSuite()
+            for pattern in test_patterns:
+                suite.addTests(loader.discover(str(ROOT / "tests"), pattern=pattern))
+            observation = capture_unittest_call_pairs(
+                suite, snapshot_sha=head, repository_root=ROOT,
+                source_sha256=selection["source_sha256"],
+                pairs=[tuple(pair) for pair in selection["pairs"]],
+            )
+            if not observation["suite_was_successful"] or observation["tests_run"] == 0:
+                raise ValueError("runtime test sample did not execute successfully")
+        runtime_report = {
+            "schema_version": "0.1",
+            "source_identity": selection["source_identity"],
+            "selection_id": selection["selection_id"],
+            "observed_cross_role_pairs": selection["observed_cross_role_pairs"],
+            "test_patterns": list(test_patterns) if observation else [],
+            "observation": observation,
+            "runtime_collection_state": (
+                "BOUNDED_SAMPLE_EXECUTED" if observation else "NO_MEASURED_PAIRS"
+            ),
+            "ci_provenance": "NOT_INDEPENDENTLY_ATTESTED",
+            "static_import_edge_traversal": "NOT_EVALUATED",
+            "semantic_ownership": "NOT_EVALUATED",
+            "public_api_compatibility": "NOT_EVALUATED",
+            "decision": "NOT_EVALUATED",
+            "limitations": [
+                "observed direct Python frame calls do not prove import statement traversal",
+                "selected unittest modules are a bounded sample, not full test coverage",
+                "unobserved pairs may execute through other tests, threads or native calls",
+                "Git blob hashes verify on-disk bytes, not interpreter-loaded bytecode",
+                "CI provenance requires independent GitHub run and artifact verification",
+            ],
+        }
+        write(output / "architecture-runtime-call-pairs.json", runtime_report)
         manifest = build_b8_artifact_manifest(output, head)
         write(output / "architecture-evidence-manifest.json", manifest)
         verify_b8_artifact_manifest(output, manifest)
