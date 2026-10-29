@@ -240,6 +240,75 @@ class ImportCalleeCandidateTests(unittest.TestCase):
         self.assertEqual(candidate(sample(raw, line=5))[
             "target_import_alias_local_binding_warnings"], ["work"])
 
+    def test_match_capture_shadows_alias_even_after_call(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(value):\n"
+               b"    result = work.execute()\n"
+               b"    match value:\n"
+               b"        case {'key': work}:\n"
+               b"            pass\n"
+               b"    return result\n")
+        report = sample(raw, line=3)
+        self.assertEqual(candidate(report)[
+            "target_import_alias_local_binding_warnings"], ["work"])
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
+    def test_match_mapping_rest_capture_shadows_alias(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(value):\n"
+               b"    match value:\n"
+               b"        case {'key': _, **work}:\n"
+               b"            pass\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=6))[
+            "target_import_alias_local_binding_warnings"], ["work"])
+
+    def test_match_star_capture_shadows_alias(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(value):\n"
+               b"    match value:\n"
+               b"        case [*work]:\n"
+               b"            pass\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=6))[
+            "target_import_alias_local_binding_warnings"], ["work"])
+
+    def test_match_wildcard_does_not_shadow_alias(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(value):\n"
+               b"    match value:\n"
+               b"        case _:\n"
+               b"            pass\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=6))[
+            "target_import_alias_local_binding_warnings"], [])
+
+    def test_comprehension_walrus_binds_containing_function(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    values = [(work := item) for item in ()]\n"
+               b"    return work.execute()\n")
+        report = sample(raw, line=4)
+        self.assertEqual(candidate(report)[
+            "target_import_alias_local_binding_warnings"], ["work"])
+        self.assertEqual(report["sampled_alias_local_binding_warning_witnesses"], 1)
+
+    def test_generator_walrus_binds_containing_function(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    values = (work := item for item in ())\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=4))[
+            "target_import_alias_local_binding_warnings"], ["work"])
+
+    def test_comprehension_nested_lambda_walrus_is_isolated(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    values = [lambda: (work := 1) for _ in ()]\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=4))[
+            "target_import_alias_local_binding_warnings"], [])
+
     def test_bare_dotted_import_rejects_unrelated_package_call(self):
         raw = (b"import demo.core.work\n"
                b"def execute():\n"
