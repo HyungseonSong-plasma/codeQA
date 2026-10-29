@@ -34,6 +34,7 @@ from codeqa.infrastructure.git import GitReader
 from codeqa.evaluation.architecture.runtime_call_pairs import capture_unittest_call_pairs
 from codeqa.evaluation.architecture.runtime_pair_selection import select_b8_runtime_pairs
 from codeqa.evaluation.architecture.runtime_edge_correlation import correlate_b8_runtime_pairs
+from codeqa.evaluation.architecture.import_binding_usage import census_b8_import_binding_uses
 from codeqa.evaluation.architecture.test_behavior_candidates import (
     census_test_behavior_candidates, render_test_behavior_candidates_markdown,
 )
@@ -158,6 +159,15 @@ def main() -> None:
         for path, expected_hash in selection["source_sha256"].items():
             if sha256(reader.read_file(head, path)).hexdigest() != expected_hash:
                 raise ValueError("runtime selected source differs from B1 Git blob")
+        # Lexical loads are source-only candidates; never infer target binding,
+        # import execution, dead dependencies or a package-move recommendation.
+        lexical_usage = census_b8_import_binding_uses(
+            selection, responsibility, {
+                path: reader.read_file(head, path)
+                for path in sorted({edge["source_path"] for edge in responsibility["edges"]})
+            },
+        )
+        write(output / "architecture-import-binding-usage.json", lexical_usage)
         observation = None
         # Extend the bounded sample using test modules that statically import
         # pipeline sources among the 31 previously unobserved cross-role pairs.
@@ -232,6 +242,9 @@ def main() -> None:
                 f"- Import-line not visited pairs: {correlation['not_visited_import_line_pairs']}\n"
                 f"- Direct module-level import pairs: {correlation['module_top_level_import_pairs']}\n"
                 f"- Nested/conditional import pairs: {correlation['nested_or_conditional_import_pairs']}\n"
+                f"- Import-line lexical Name(Load) candidate pairs: {lexical_usage['pairs_with_name_load_candidates']}\n"
+                f"- No lexical Name(Load) candidate pairs: {lexical_usage['pairs_without_name_load_candidates']}\n"
+                "- Lexical candidates are line-co-located, not resolved target bindings.\n"
                 "- Module-level imports may finish before the bounded test-time trace.\n"
                 "- Import-line entry is pre-execution, not proof of target resolution.\n"
                 "- Import-statement traversal and semantic ownership: NOT_EVALUATED.\n"
