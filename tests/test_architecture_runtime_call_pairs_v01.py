@@ -109,6 +109,18 @@ class CallPairTests(unittest.TestCase):
         self.assertIsNone(sys.getprofile())
         self.assertEqual(report["executed_tests"][0]["outcome"], "FAILED")
 
+    def test_setup_class_error_is_not_reported_as_success(self):
+        class SetupError(unittest.TestCase):
+            @classmethod
+            def setUpClass(cls):
+                raise RuntimeError("setup failed")
+            def test_never_started(self):
+                self.fail("not reached")
+        report = self.observe(suite=unittest.TestSuite([SetupError("test_never_started")]))
+        self.assertFalse(report["suite_was_successful"])
+        self.assertEqual(report["tests_run"], 0)
+        self.assertEqual(report["decision"], "NOT_EVALUATED")
+
     def test_existing_profiler_is_not_overwritten(self):
         def existing(frame, event, arg):
             return None
