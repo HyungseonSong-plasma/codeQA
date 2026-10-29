@@ -166,6 +166,80 @@ class ImportCalleeCandidateTests(unittest.TestCase):
         self.assertEqual(candidate(sample(raw, line=3))[
             "target_import_alias_call_candidates"][0]["root_name"], "service")
 
+    def test_local_assignment_before_call_warns_on_import_alias(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    work = object()\n"
+               b"    return work.execute()\n")
+        report = sample(raw, line=4)
+        self.assertEqual(candidate(report)["target_import_alias_local_binding_warnings"],
+                         ["work"])
+        self.assertEqual(report["sampled_alias_local_binding_warning_witnesses"], 1)
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
+    def test_local_assignment_after_call_still_warns(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    result = work.execute()\n"
+               b"    work = object()\n"
+               b"    return result\n")
+        self.assertEqual(candidate(sample(raw, line=3))[
+            "target_import_alias_local_binding_warnings"], ["work"])
+
+    def test_outer_closure_binding_warns(self):
+        raw = (b"from demo.core import work\n"
+               b"def outer():\n"
+               b"    work = object()\n"
+               b"    def inner():\n"
+               b"        return work.execute()\n"
+               b"    return inner\n")
+        self.assertEqual(candidate(sample(raw, line=5))[
+            "target_import_alias_local_binding_warnings"], ["work"])
+
+    def test_nested_function_assignment_does_not_pollute_outer_scope(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    def inner():\n"
+               b"        work = object()\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=5))[
+            "target_import_alias_local_binding_warnings"], [])
+
+    def test_global_declaration_does_not_count_as_local_binding(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    global work\n"
+               b"    work = object()\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=5))[
+            "target_import_alias_local_binding_warnings"], [])
+
+    def test_comprehension_target_does_not_shadow_outer_alias(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    values = [work for work in ()]\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=4))[
+            "target_import_alias_local_binding_warnings"], [])
+
+    def test_for_loop_target_is_local_binding(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    for work in ():\n"
+               b"        pass\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=5))[
+            "target_import_alias_local_binding_warnings"], ["work"])
+
+    def test_nested_function_name_is_local_binding(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    def work():\n"
+               b"        return None\n"
+               b"    return work.execute()\n")
+        self.assertEqual(candidate(sample(raw, line=5))[
+            "target_import_alias_local_binding_warnings"], ["work"])
+
     def test_bare_dotted_import_rejects_unrelated_package_call(self):
         raw = (b"import demo.core.work\n"
                b"def execute():\n"
