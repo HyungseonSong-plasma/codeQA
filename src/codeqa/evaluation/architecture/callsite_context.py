@@ -75,6 +75,32 @@ def _module_level_target_aliases(
     return {name: sorted(lines) for name, lines in sorted(aliases.items())}
 
 
+
+def _unaliased_module_import_prefixes(
+    tree: ast.Module, target_path: str,
+    target_aliases: Mapping[str, list[int]],
+) -> dict[str, str]:
+    """Restrict a bare package root to its actually imported module path.
+
+    For ``import pkg.core.target``, Python binds ``pkg``, but a call
+    to ``pkg.other.run()`` is not a lexical call through that import.
+    If another target import binds the same root, preserve uncertainty.
+    """
+    target = _module_name(target_path)
+    if target is None:
+        return {}
+    root = target.partition(".")[0]
+    lines = {
+        node.lineno
+        for node in tree.body if isinstance(node, ast.Import)
+        for alias in node.names
+        if alias.name == target and alias.asname is None
+    }
+    if lines and set(target_aliases.get(root, [])) == lines:
+        return {root: target}
+    return {}
+
+
 def _callee_root(node: ast.expr) -> str | None:
     while isinstance(node, ast.Attribute):
         node = node.value
@@ -133,6 +159,7 @@ def _function_context(tree: ast.AST, line: int) -> dict[str, Any]:
 
 def _callsite_syntax(
     tree: ast.AST, line: int, target_aliases: Mapping[str, list[int]],
+    qualified_import_prefixes: Mapping[str, str],
 ) -> dict[str, Any]:
     """Describe source AST spans, without attributing a call to a target.
 
@@ -156,9 +183,13 @@ def _callsite_syntax(
     alias_candidates = []
     for call in calls:
         root = _callee_root(call.func)
-        if root in target_aliases:
+        expression = ast.unparse(call.func)
+        prefix = qualified_import_prefixes.get(root)
+        if (root in target_aliases
+                and (prefix is None or expression == prefix
+                     or expression.startswith(prefix + "."))):
             alias_candidates.append({
-                "callee_expression": ast.unparse(call.func),
+                "callee_expression": expression,
                 "root_name": root,
                 "call_line": call.lineno,
                 "call_column": call.col_offset,
@@ -263,6 +294,9 @@ def census_b8_callsite_context(
             target_aliases = _module_level_target_aliases(
                 trees[source], source, target,
             )
+            qualified_import_prefixes = _unaliased_module_import_prefixes(
+                trees[source], target, target_aliases,
+            )
             calls = edge["direct_python_calls"]
             witnesses = edge["call_witnesses"]
             if (type(calls) is not int or calls < 0
@@ -287,7 +321,8 @@ def census_b8_callsite_context(
                 contexts.append({
                     **witness,
                     **_function_context(trees[source], line),
-                    **_callsite_syntax(trees[source], line, target_aliases),
+                    **_callsite_syntax(trees[source], line, target_aliases,
+                                       qualified_import_prefixes),
                 })
             records.append({
                 "source_path": source,
@@ -359,7 +394,7 @@ def census_b8_callsite_context(
             "limitations": [
                 "function spans describe lexical context, not responsibility or intent",
                 "AST Call spans and statement kinds are source-only candidates, not runtime callee identity",
-                "matching a call root to a module-level target import is lexical only; alias shadowing and rebinding are unresolved",
+                "matching a call root to a module-level target import is lexical only; bare dotted imports require a matching qualified callee prefix; alias shadowing and rebinding are unresolved",
                 "enclosing function parameter collisions are source-only warnings, not runtime binding proof; lambda, global and nonlocal behavior remain unresolved",
                 "a call through a local variable or re-export may have no direct import alias candidate",
                 "indirect receiver shapes are source-only AST syntax, not binding provenance or proof of the sampled callee",
