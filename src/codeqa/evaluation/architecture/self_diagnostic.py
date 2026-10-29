@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+from pathlib import Path
+import re
 from typing import Any, Mapping
 
 
@@ -147,3 +149,86 @@ def project_self_diagnostic(
         return signal_report, question_report, "\n".join(lines)
     except (KeyError, TypeError, AttributeError) as exc:
         raise SelfDiagnosticEvidenceError("incomplete B7 source evidence") from exc
+
+
+# Every B8 output must survive the CI artifact boundary. This manifest
+# proves byte consistency within one artifact, NOT external CI provenance.
+B8_REQUIRED_ARTIFACTS = (
+    "architecture-assessment.json",
+    "architecture-bounded-disposition.json",
+    "architecture-edge-responsibility.json",
+    "architecture-internal-consumers.json",
+    "architecture-package-surface.json",
+    "architecture-self-diagnostic.md",
+    "architecture-signals.json",
+    "architecture-test-behavior-candidates.json",
+    "question-opportunities.json",
+)
+
+
+def _b8_artifact_entries(output_dir: Path, snapshot_sha: str, *, sealed: bool) -> list[dict[str, Any]]:
+    expected = set(B8_REQUIRED_ARTIFACTS)
+    if sealed:
+        expected.add("architecture-evidence-manifest.json")
+    if (not output_dir.is_dir()
+            or {p.name for p in output_dir.iterdir()} != expected):
+        raise SelfDiagnosticEvidenceError("missing, extra or stale B8 artifact")
+    entries = []
+    for name in B8_REQUIRED_ARTIFACTS:
+        path = output_dir / name
+        if not path.is_file() or path.is_symlink():
+            raise SelfDiagnosticEvidenceError("invalid B8 artifact path")
+        raw = path.read_bytes()
+        if not raw:
+            raise SelfDiagnosticEvidenceError("empty B8 artifact")
+        if name.endswith(".json"):
+            try:
+                record = json.loads(raw)
+                if record["source_identity"]["snapshot_sha"] != snapshot_sha:
+                    raise SelfDiagnosticEvidenceError("mixed-source B8 artifact")
+            except (ValueError, KeyError, TypeError) as exc:
+                raise SelfDiagnosticEvidenceError("invalid B8 JSON identity") from exc
+        elif ("Exact source HEAD: " + snapshot_sha).encode() not in raw:
+            raise SelfDiagnosticEvidenceError("B8 markdown source identity mismatch")
+        entries.append({
+            "path": name, "sha256": sha256(raw).hexdigest(), "size_bytes": len(raw),
+        })
+    return entries
+
+
+def build_b8_artifact_manifest(output_dir: Path, snapshot_sha: str) -> dict[str, Any]:
+    """Seal the complete B8 evidence pack without claiming trusted CI attestation."""
+    if not isinstance(snapshot_sha, str) or re.fullmatch(r"[0-9a-f]{40}", snapshot_sha) is None:
+        raise SelfDiagnosticEvidenceError("invalid B8 source SHA")
+    manifest = {
+        "schema_version": "0.1",
+        "source_identity": {"snapshot_sha": snapshot_sha},
+        "files": _b8_artifact_entries(output_dir, snapshot_sha, sealed=False),
+        "evidence_class": "ARTIFACT_BYTE_INTEGRITY_UNATTESTED",
+        "runtime_edge_traversal": "NOT_EVALUATED",
+        "decision": "NOT_EVALUATED",
+    }
+    manifest["manifest_id"] = _digest(manifest)
+    return manifest
+
+
+def verify_b8_artifact_manifest(output_dir: Path, manifest: Mapping[str, Any]) -> None:
+    """Reject missing, stale, altered or extra files in a downloaded B8 pack."""
+    try:
+        sha = manifest["source_identity"]["snapshot_sha"]
+        if (not isinstance(sha, str)
+                or re.fullmatch(r"[0-9a-f]{40}", sha) is None
+                or manifest["schema_version"] != "0.1"
+                or manifest["evidence_class"] != "ARTIFACT_BYTE_INTEGRITY_UNATTESTED"
+                or manifest["runtime_edge_traversal"] != "NOT_EVALUATED"
+                or manifest["decision"] != "NOT_EVALUATED"
+                or manifest["manifest_id"] != _digest({
+                    k: v for k, v in manifest.items() if k != "manifest_id"
+                })
+                or manifest["files"] != _b8_artifact_entries(output_dir, sha, sealed=True)
+                or json.loads(
+                    (output_dir / "architecture-evidence-manifest.json").read_text(encoding="utf-8")
+                ) != manifest):
+            raise SelfDiagnosticEvidenceError("B8 artifact manifest mismatch")
+    except (KeyError, TypeError, AttributeError, ValueError, OSError) as exc:
+        raise SelfDiagnosticEvidenceError("untrustworthy B8 artifact manifest") from exc
