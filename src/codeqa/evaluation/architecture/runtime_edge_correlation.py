@@ -125,7 +125,13 @@ def correlate_b8_runtime_pairs(
                     lines = sorted({w["line"] for w in edges[pair]["import_witnesses"]})
                     visits = record["import_line_visits"]
                     line_witnesses = record["import_line_witnesses"]
+                    scope = record["import_line_scope"]
                     if (record["selected_import_lines"] != lines
+                            or not isinstance(scope, list)
+                            or [x["line"] for x in scope] != lines
+                            or any(x["scope"] not in (
+                                "MODULE_TOP_LEVEL", "NESTED_OR_CONDITIONAL"
+                            ) for x in scope)
                             or type(visits) is not int or visits < 0
                             or not isinstance(line_witnesses, list)
                             or len(line_witnesses) > visits
@@ -181,6 +187,7 @@ def correlate_b8_runtime_pairs(
                 ),
                 **({
                     "import_line_visits": observed[(source, target)]["import_line_visits"],
+                    "import_line_scope": observed[(source, target)]["import_line_scope"],
                     "import_line_witnesses": observed[(source, target)]["import_line_witnesses"],
                     "import_line_observation": (
                         "OBSERVED_IMPORT_LINE_ENTRY"
@@ -213,6 +220,7 @@ def correlate_b8_runtime_pairs(
                 "a direct Python call does not prove execution of the static import witness",
                 "an import-line event occurs before import execution and does not prove target resolution",
                 "a zero call count is not evidence of a dead dependency or bad ownership",
+                "module-top-level imports can finish before test-time line tracing begins",
                 "role policy direction is not a semantic responsibility decision",
                 "sampled test execution does not cover all tests, threads or native calls",
                 "external/dynamic consumers and public API compatibility are NOT_EVALUATED",
@@ -229,6 +237,13 @@ def correlate_b8_runtime_pairs(
                 edge["import_line_visits"] for edge in records
             )
             result["import_line_observation"] = "LOCAL_PYTHON_LINE_EVENT_UNATTESTED"
+            result["module_top_level_import_pairs"] = sum(
+                all(w["scope"] == "MODULE_TOP_LEVEL" for w in edge["import_line_scope"])
+                for edge in records
+            )
+            result["nested_or_conditional_import_pairs"] = (
+                len(records) - result["module_top_level_import_pairs"]
+            )
         result["correlation_id"] = _digest(result)
         return result
     except (KeyError, TypeError, AttributeError, ValueError) as exc:
