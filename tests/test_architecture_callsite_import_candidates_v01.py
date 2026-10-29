@@ -55,6 +55,44 @@ class ImportCalleeCandidateTests(unittest.TestCase):
         self.assertEqual(witness["target_import_alias_call_candidates"], [])
         self.assertEqual(witness["target_import_alias_call_status"],
                          "NO_DIRECT_ALIAS_CALL_CANDIDATE")
+        self.assertEqual(witness["unmatched_indirect_receiver_call_candidates"], [{
+            "callee_expression": "worker.execute",
+            "root_name": "worker",
+            "receiver_kind": "NAMED_RECEIVER",
+            "call_line": 5,
+            "call_column": 15,
+        }])
+
+    def test_self_attribute_receiver_is_syntax_only(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(self):\n"
+               b"    return self.graph.to_document()\n")
+        report = sample(raw, line=3)
+        witness = candidate(report)
+        self.assertEqual(witness["target_import_alias_call_candidates"], [])
+        self.assertEqual(report[
+            "sampled_no_direct_alias_with_indirect_receiver_candidate"], 1)
+        self.assertEqual(witness["unmatched_indirect_receiver_call_candidates"][0][
+            "receiver_kind"], "SELF_ATTRIBUTE_RECEIVER")
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
+    def test_computed_receiver_is_not_runtime_provenance(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    return get_reader().execute()\n")
+        witness = candidate(sample(raw, line=3))
+        self.assertEqual(witness["unmatched_indirect_receiver_call_candidates"][0][
+            "receiver_kind"], "COMPUTED_RECEIVER")
+
+    def test_plain_name_call_has_no_indirect_receiver_candidate(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute():\n"
+               b"    return len((1, 2))\n")
+        report = sample(raw, line=3)
+        witness = candidate(report)
+        self.assertEqual(witness["unmatched_indirect_receiver_call_candidates"], [])
+        self.assertEqual(report[
+            "sampled_no_direct_alias_with_indirect_receiver_candidate"], 0)
 
     def test_shadowed_alias_remains_candidate_not_binding_proof(self):
         raw = (b"from demo.core import work\n"
@@ -152,6 +190,7 @@ class ImportCalleeCandidateTests(unittest.TestCase):
         self.assertEqual(report["sampled_import_alias_call_candidate_witnesses"], 0)
         self.assertEqual(report["sampled_without_direct_import_alias_call_candidate"], 0)
         self.assertEqual(report["sampled_alias_parameter_shadowing_warning_witnesses"], 0)
+        self.assertEqual(report["sampled_no_direct_alias_with_indirect_receiver_candidate"], 0)
         self.assertEqual(report["decision"], "NOT_EVALUATED")
 
     def test_source_hash_tamper_fails_closed(self):

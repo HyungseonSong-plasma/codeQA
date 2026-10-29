@@ -167,6 +167,27 @@ def _callsite_syntax(
     alias_candidates.sort(key=lambda item: (
         item["call_line"], item["call_column"], item["callee_expression"]
     ))
+    # Source-only receiver shapes help explain sampled calls that do not
+    # syntactically invoke an imported alias. They never identify the callee.
+    indirect_receivers = []
+    for call in calls:
+        root = _callee_root(call.func)
+        if root in target_aliases or not isinstance(call.func, ast.Attribute):
+            continue
+        indirect_receivers.append({
+            "callee_expression": ast.unparse(call.func),
+            "root_name": root,
+            "receiver_kind": (
+                "SELF_ATTRIBUTE_RECEIVER" if root == "self"
+                else "NAMED_RECEIVER" if root is not None
+                else "COMPUTED_RECEIVER"
+            ),
+            "call_line": call.lineno,
+            "call_column": call.col_offset,
+        })
+    indirect_receivers.sort(key=lambda item: (
+        item["call_line"], item["call_column"], item["callee_expression"]
+    ))
     parameter_names = _enclosing_parameter_names(tree, line)
     parameter_warnings = sorted({
         candidate["root_name"] for candidate in alias_candidates
@@ -174,6 +195,7 @@ def _callsite_syntax(
     })
     return {
         "target_import_alias_call_candidates": alias_candidates,
+        "unmatched_indirect_receiver_call_candidates": indirect_receivers,
         "target_import_alias_parameter_shadowing_warnings": parameter_warnings,
         "target_import_alias_call_status": (
             "LEXICAL_ALIAS_CALL_CANDIDATE" if alias_candidates
@@ -303,6 +325,11 @@ def census_b8_callsite_context(
             bool(w["target_import_alias_parameter_shadowing_warnings"])
             for item in records for w in item["sampled_call_witnesses"]
         )
+        indirect_receiver_count = sum(
+            not w["target_import_alias_call_candidates"]
+            and bool(w["unmatched_indirect_receiver_call_candidates"])
+            for item in records for w in item["sampled_call_witnesses"]
+        )
         result = {
             "schema_version": "0.1",
             "source_identity": identity,
@@ -318,6 +345,7 @@ def census_b8_callsite_context(
             "sampled_no_ast_call_candidate_witnesses": witness_count - syntax_candidates,
             "sampled_import_alias_call_candidate_witnesses": import_alias_witnesses,
             "sampled_alias_parameter_shadowing_warning_witnesses": parameter_warning_count,
+            "sampled_no_direct_alias_with_indirect_receiver_candidate": indirect_receiver_count,
             "sampled_without_direct_import_alias_call_candidate": (
                 witness_count - import_alias_witnesses
             ),
@@ -334,6 +362,7 @@ def census_b8_callsite_context(
                 "matching a call root to a module-level target import is lexical only; alias shadowing and rebinding are unresolved",
                 "enclosing function parameter collisions are source-only warnings, not runtime binding proof; lambda, global and nonlocal behavior remain unresolved",
                 "a call through a local variable or re-export may have no direct import alias candidate",
+                "indirect receiver shapes are source-only AST syntax, not binding provenance or proof of the sampled callee",
                 "a sampled caller line may contain multiple calls or no explicit AST Call",
                 "sampled frame calls do not establish import binding or module ownership",
                 "bounded call witnesses may omit sites and cannot certify all tests",
