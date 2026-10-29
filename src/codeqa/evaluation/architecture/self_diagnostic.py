@@ -156,6 +156,7 @@ def project_self_diagnostic(
 B8_REQUIRED_ARTIFACTS = (
     "architecture-assessment.json",
     "architecture-bounded-disposition.json",
+    "architecture-callsite-context.json",
     "architecture-edge-responsibility.json",
     "architecture-import-initialization.json",
     "architecture-internal-consumers.json",
