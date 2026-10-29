@@ -146,7 +146,8 @@ def correlate_b8_runtime_pairs(
                         raise RuntimeEdgeCorrelationError("unbound import-line witness")
                 elif any(key in record for key in (
                     "import_line_visits", "import_line_witnesses",
-                    "selected_import_lines", "import_lines_truncated"
+                    "selected_import_lines", "import_lines_truncated",
+                    "import_line_scope"
                 )):
                     raise RuntimeEdgeCorrelationError("unexpected import-line evidence")
         else:
