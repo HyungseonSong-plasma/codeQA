@@ -40,6 +40,8 @@ class ImportCalleeCandidateTests(unittest.TestCase):
             "target_import_lines": [1],
         }])
         self.assertEqual(report["sampled_import_alias_call_candidate_witnesses"], 1)
+        self.assertEqual(witness["target_import_alias_parameter_shadowing_warnings"], [])
+        self.assertEqual(report["sampled_alias_parameter_shadowing_warning_witnesses"], 0)
         self.assertEqual(report["intentional_orchestration"], "NOT_EVALUATED")
 
     def test_local_receiver_call_does_not_claim_direct_import_alias(self):
@@ -62,7 +64,47 @@ class ImportCalleeCandidateTests(unittest.TestCase):
         self.assertEqual(candidate(report)["target_import_alias_call_status"],
                          "LEXICAL_ALIAS_CALL_CANDIDATE")
         self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+        self.assertEqual(candidate(report)["target_import_alias_parameter_shadowing_warnings"],
+                         ["work"])
+        self.assertEqual(report["sampled_alias_parameter_shadowing_warning_witnesses"], 1)
         self.assertIn("shadowing", " ".join(report["limitations"]))
+
+    def test_outer_function_parameter_warns_for_nested_closure(self):
+        raw = (b"from demo.core import work\n"
+               b"def outer(work):\n"
+               b"    def inner():\n"
+               b"        return work.execute()\n"
+               b"    return inner\n")
+        witness = candidate(sample(raw, line=4))
+        self.assertEqual(witness["target_import_alias_parameter_shadowing_warnings"],
+                         ["work"])
+        self.assertEqual(witness["target_import_alias_call_status"],
+                         "LEXICAL_ALIAS_CALL_CANDIDATE")
+
+    def test_keyword_only_parameter_warns(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(*, work):\n"
+               b"    return work.execute()\n")
+        witness = candidate(sample(raw, line=3))
+        self.assertEqual(witness["target_import_alias_parameter_shadowing_warnings"],
+                         ["work"])
+
+    def test_vararg_parameter_warns(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(*work):\n"
+               b"    return work.execute()\n")
+        witness = candidate(sample(raw, line=3))
+        self.assertEqual(witness["target_import_alias_parameter_shadowing_warnings"],
+                         ["work"])
+
+    def test_unrelated_parameter_does_not_warn(self):
+        raw = (b"from demo.core import work\n"
+               b"def execute(other):\n"
+               b"    return work.execute()\n")
+        report = sample(raw, line=3)
+        self.assertEqual(candidate(report)[
+            "target_import_alias_parameter_shadowing_warnings"], [])
+        self.assertEqual(report["sampled_alias_parameter_shadowing_warning_witnesses"], 0)
 
     def test_unrelated_import_with_same_spelling_does_not_match_target(self):
         raw = (b"from demo.other import work\n"
@@ -109,6 +151,7 @@ class ImportCalleeCandidateTests(unittest.TestCase):
         report = census_b8_callsite_context(selection, correlation, sources)
         self.assertEqual(report["sampled_import_alias_call_candidate_witnesses"], 0)
         self.assertEqual(report["sampled_without_direct_import_alias_call_candidate"], 0)
+        self.assertEqual(report["sampled_alias_parameter_shadowing_warning_witnesses"], 0)
         self.assertEqual(report["decision"], "NOT_EVALUATED")
 
     def test_source_hash_tamper_fails_closed(self):
