@@ -278,13 +278,13 @@ class TestBehaviorCandidateTests(unittest.TestCase):
 
     def test_class_setup_import_call_is_fixture_evidence_not_test_coverage(self):
         text = (
-            "from orchard.sky.view import view\\n"
-            "class TestFixture:\\n"
-            "    @classmethod\\n"
-            "    def setUpClass(cls):\\n"
-            "        cls.packet = view()\\n"
-            "    def test_packet(self):\\n"
-            "        assert self.packet is not None\\n"
+            "from orchard.sky.view import view\n"
+            "class TestFixture:\n"
+            "    @classmethod\n"
+            "    def setUpClass(cls):\n"
+            "        cls.packet = view()\n"
+            "    def test_packet(self):\n"
+            "        assert self.packet is not None\n"
         )
         report = census_test_behavior_candidates(*reports(text))
         self.assertEqual(report["candidate_test_functions_across_edges"], 0)
@@ -305,14 +305,14 @@ class TestBehaviorCandidateTests(unittest.TestCase):
 
     def test_instance_and_async_setup_are_bounded_separate_candidates(self):
         text = (
-            "from orchard.sky.view import view\\n"
-            "class TestFixture:\\n"
-            "    def setUp(self):\\n"
-            "        self.packet = view()\\n"
-            "    async def asyncSetUp(self):\\n"
-            "        self.second = view()\\n"
-            "    def test_packet(self):\\n"
-            "        assert True\\n"
+            "from orchard.sky.view import view\n"
+            "class TestFixture:\n"
+            "    def setUp(self):\n"
+            "        self.packet = view()\n"
+            "    async def asyncSetUp(self):\n"
+            "        self.second = view()\n"
+            "    def test_packet(self):\n"
+            "        assert True\n"
         )
         report = census_test_behavior_candidates(*reports(text))
         self.assertEqual(report["fixture_call_candidate_sites_across_edges"], 4)
@@ -327,40 +327,40 @@ class TestBehaviorCandidateTests(unittest.TestCase):
     def test_nonfixtures_shadowed_names_and_deferred_calls_do_not_count(self):
         texts = (
             # A helper method is not a unittest setup hook.
-            "from orchard.sky.view import view\\n"
-            "class TestFixture:\\n"
-            "    def prepare(self):\\n"
-            "        view()\\n"
-            "    def test_packet(self):\\n"
-            "        assert True\\n",
+            "from orchard.sky.view import view\n"
+            "class TestFixture:\n"
+            "    def prepare(self):\n"
+            "        view()\n"
+            "    def test_packet(self):\n"
+            "        assert True\n",
             # A setup-shaped method in a class without tests is not a candidate.
-            "from orchard.sky.view import view\\n"
-            "class Helper:\\n"
-            "    def setUpClass(cls):\\n"
-            "        view()\\n",
+            "from orchard.sky.view import view\n"
+            "class Helper:\n"
+            "    def setUpClass(cls):\n"
+            "        view()\n",
             # Local assignment shadows the imported alias throughout the method.
-            "from orchard.sky.view import view\\n"
-            "class TestFixture:\\n"
-            "    def setUpClass(cls):\\n"
-            "        view()\\n"
-            "        view = lambda: None\\n"
-            "    def test_packet(self):\\n"
-            "        assert True\\n",
+            "from orchard.sky.view import view\n"
+            "class TestFixture:\n"
+            "    def setUpClass(cls):\n"
+            "        view()\n"
+            "        view = lambda: None\n"
+            "    def test_packet(self):\n"
+            "        assert True\n",
             # Nested functions are deferred and not executed by the hook syntax.
-            "from orchard.sky.view import view\\n"
-            "class TestFixture:\\n"
-            "    def setUpClass(cls):\\n"
-            "        def later():\\n"
-            "            view()\\n"
-            "    def test_packet(self):\\n"
-            "        assert True\\n",
+            "from orchard.sky.view import view\n"
+            "class TestFixture:\n"
+            "    def setUpClass(cls):\n"
+            "        def later():\n"
+            "            view()\n"
+            "    def test_packet(self):\n"
+            "        assert True\n",
             # A class-local import is not a module-level binding for the method.
-            "class TestFixture:\\n"
-            "    from orchard.sky.view import view\\n"
-            "    def setUpClass(cls):\\n"
-            "        view()\\n"
-            "    def test_packet(self):\\n"
-            "        assert True\\n",
+            "class TestFixture:\n"
+            "    from orchard.sky.view import view\n"
+            "    def setUpClass(cls):\n"
+            "        view()\n"
+            "    def test_packet(self):\n"
+            "        assert True\n",
         )
         for i, text in enumerate(texts):
             with self.subTest(i=i):
@@ -371,12 +371,12 @@ class TestBehaviorCandidateTests(unittest.TestCase):
 
     def test_fixture_report_mutation_cannot_be_rendered_as_verified(self):
         text = (
-            "from orchard.sky.view import view\\n"
-            "class TestFixture:\\n"
-            "    def setUp(self):\\n"
-            "        self.packet = view()\\n"
-            "    def test_packet(self):\\n"
-            "        assert True\\n"
+            "from orchard.sky.view import view\n"
+            "class TestFixture:\n"
+            "    def setUp(self):\n"
+            "        self.packet = view()\n"
+            "    def test_packet(self):\n"
+            "        assert True\n"
         )
         report = census_test_behavior_candidates(*reports(text))
         report["edges"][0]["candidate_test_paths"][0]["fixture_call_candidates"][0][
