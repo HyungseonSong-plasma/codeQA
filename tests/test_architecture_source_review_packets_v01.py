@@ -201,6 +201,28 @@ class SourceReviewPacketTests(unittest.TestCase):
         with self.assertRaises(SourceReviewPacketError):
             build_source_review_packets(worklist, {src: raw})
 
+    def test_multi_alias_imports_use_per_module_dependency_expressions(self):
+        src = "src/orchard/sky/view.py"
+        raw = (
+            b"import orchard.earth.model as earth, "
+            b"orchard.rain.flow as rain\\n"
+        )
+        worklist, _ = pack()
+        worklist["edges"] = deepcopy(worklist["edges"][:2])
+        for row in worklist["edges"]:
+            witness = row["import_witnesses"][0]
+            witness["source_sha256"] = sha256(raw).hexdigest()
+            witness["line"] = 1
+            module = (
+                "orchard.earth.model" if "/earth/" in row["target_path"]
+                else "orchard.rain.flow"
+            )
+            witness["expression"] = "import " + module
+        worklist["observed_cross_role_pairs"] = 2
+        seal(worklist)
+        result = build_source_review_packets(worklist, {src: raw})
+        self.assertEqual(result["observed_cross_role_pairs"], 2)
+
     def test_imported_member_is_not_guessed_to_be_submodule(self):
         src = "src/orchard/sky/helper.py"
         raw = b"from orchard.earth import model\n"
