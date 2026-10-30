@@ -91,6 +91,35 @@ class PackageSurfaceEvidenceTests(unittest.TestCase):
         ))
         self.assertEqual(report["external_consumers"], "NOT_EVALUATED")
 
+    def test_nested_setuptools_include_exclude_patterns_are_honored(self):
+        # setuptools applies patterns to each package name. A matching root
+        # does not make a specifically excluded child package distributable.
+        declarations = (
+            (PYPROJECT.replace(
+                'include = ["orchard*"]',
+                'include = ["orchard*"]\nexclude = ["orchard.sky*"]',
+            ), 0),
+            (PYPROJECT.replace(
+                'include = ["orchard*"]', 'include = ["orchard"]',
+            ), 0),
+            (PYPROJECT.replace(
+                'include = ["orchard*"]',
+                'include = ["orchard*"]\nexclude = ["orchard.earth*"]',
+            ), 2),
+            (PYPROJECT.replace('include = ["orchard*"]\n', ''), 2),
+        )
+        for declaration, expected in declarations:
+            with self.subTest(declaration=declaration):
+                inv, consumers = evidence(pyproject=declaration)
+                report = census_package_surface(inv, consumers, declaration)
+                self.assertEqual(report["declared_discovery_candidates"], expected)
+                self.assertEqual(
+                    {m["declared_discovery_status"] for m in report["modules"]},
+                    {"DECLARED_DISCOVERY_CANDIDATE" if expected else "NOT_EVALUATED"},
+                )
+                self.assertEqual(report["public_api_compatibility"], "NOT_EVALUATED")
+                self.assertEqual(report["installed_distribution"], "NOT_EVALUATED")
+
     def test_pyproject_content_must_match_tracked_sha(self):
         inv, consumers = evidence()
         with self.assertRaises(PackageSurfaceEvidenceError):
