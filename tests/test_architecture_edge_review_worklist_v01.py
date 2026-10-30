@@ -260,6 +260,38 @@ class EdgeReviewWorklistTests(unittest.TestCase):
         self.assertEqual(result["pairs_with_lexical_name_load_candidates"], 0)
         self.assertEqual(result["decision"], "NOT_EVALUATED")
 
+    def test_syntax_context_join_remains_non_semantic(self):
+        r, t, ctx, d = inputs()
+        lexical = lexical_census(r)
+        counts = {
+            "ANNOTATION_SYNTAX": 1,
+            "CALL_TARGET_SYNTAX": 1,
+            "ATTRIBUTE_ACCESS_SYNTAX": 0,
+            "OTHER_LOAD_SYNTAX": 0,
+        }
+        for row in lexical["records"]:
+            row["candidate_bindings"][0]["syntax_context_counts"] = counts.copy()
+            row["candidate_bindings"][0]["conditional_load_candidates"] = 1
+            row["syntax_context_counts"] = counts.copy()
+            row["conditional_load_candidates"] = 1
+        lexical["syntax_context_counts"] = {
+            k: v * len(lexical["records"]) for k, v in counts.items()
+        }
+        lexical["conditional_load_candidates"] = len(lexical["records"])
+        seal(lexical, "usage_id")
+        result = build_edge_review_worklist(r, t, ctx, d, lexical_usage=lexical)
+        self.assertEqual(result["lexical_syntax_context_counts"]["ANNOTATION_SYNTAX"], 3)
+        self.assertEqual(result["lexical_conditional_load_candidates"], 3)
+        self.assertIn("syntax=1/1/0/0; conditional=1",
+                      render_edge_review_worklist_markdown(result))
+        self.assertEqual(result["semantic_ownership"], "NOT_EVALUATED")
+        self.assertEqual(result["recommended_action"], "NO_AUTOMATIC_MOVE")
+
+        lexical["records"][0]["syntax_context_counts"]["CALL_TARGET_SYNTAX"] = 0
+        seal(lexical, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=lexical)
+
     def test_renderer_rejects_tampering(self):
         report = build_edge_review_worklist(*inputs())
         report["edges"][0]["semantic_ownership"] = "PASS"
