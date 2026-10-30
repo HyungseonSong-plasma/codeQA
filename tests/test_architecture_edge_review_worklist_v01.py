@@ -58,6 +58,46 @@ def inputs(*, edges=None, collision=False):
     return responsibility, tests, context, disposition
 
 
+def lexical_census(responsibility):
+    edges = responsibility["edges"]
+    records = []
+    for edge in edges:
+        witnesses = edge["import_witnesses"]
+        records.append({
+            "source_path": edge["source_path"],
+            "target_path": edge["target_path"],
+            "source_sha256": witnesses[0]["source_sha256"],
+            "import_lines": sorted({w["line"] for w in witnesses}),
+            "candidate_bindings": [{
+                "line": witnesses[0]["line"], "name": "imported_name",
+                "lexical_load_count": 2, "load_witnesses": [],
+                "status": "NAME_LOAD_CANDIDATE",
+            }],
+            "has_name_load_candidate": True,
+            "binding_target_attribution": "LINE_COLOCATED_UNVERIFIED",
+            "import_execution": "NOT_EVALUATED",
+            "semantic_ownership": "NOT_EVALUATED",
+        })
+    report = {
+        "schema_version": "0.1",
+        "source_identity": {
+            "snapshot_sha": responsibility["source_identity"]["snapshot_sha"],
+            "inventory_id": responsibility["source_identity"]["inventory_id"],
+            "responsibility_id": responsibility["responsibility_id"],
+        },
+        "responsibility_id": responsibility["responsibility_id"],
+        "static_pairs": len(edges),
+        "pairs_with_name_load_candidates": len(edges),
+        "pairs_without_name_load_candidates": 0,
+        "records": records,
+        "import_execution": "NOT_EVALUATED",
+        "semantic_ownership": "NOT_EVALUATED",
+        "decision": "NOT_EVALUATED",
+    }
+    seal(report, "usage_id")
+    return report
+
+
 class EdgeReviewWorklistTests(unittest.TestCase):
     def test_all_measured_pairs_are_present_without_semantic_keep(self):
         reports = inputs()
@@ -158,6 +198,67 @@ class EdgeReviewWorklistTests(unittest.TestCase):
         seal(changed, "context_id")
         with self.assertRaises(EdgeReviewWorklistError):
             build_edge_review_worklist(r, t, changed, d)
+
+    def test_lexical_census_join_preserves_unknowns_and_denominator(self):
+        r, t, ctx, d = inputs()
+        lexical = lexical_census(r)
+        result = build_edge_review_worklist(
+            r, t, ctx, d, lexical_usage=lexical,
+        )
+        self.assertEqual(result["source_identity"]["usage_id"], lexical["usage_id"])
+        self.assertEqual(result["pairs_with_lexical_name_load_candidates"], 3)
+        self.assertEqual(result["pairs_without_lexical_name_load_candidates"], 0)
+        self.assertEqual(sum(x["lexical_name_load_candidates"] for x in result["edges"]), 6)
+        self.assertTrue(all(x["lexical_binding_target_attribution"]
+                            == "LINE_COLOCATED_UNVERIFIED" and
+                            x["lexical_import_execution"] == "NOT_EVALUATED"
+                            for x in result["edges"]))
+        self.assertIn("lexical-name-loads=2",
+                      render_edge_review_worklist_markdown(result))
+        self.assertEqual(result["decision"], "NOT_EVALUATED")
+
+    def test_lexical_census_rejects_stale_or_missing_pairs(self):
+        r, t, ctx, d = inputs()
+        stale = lexical_census(r)
+        stale["source_identity"]["snapshot_sha"] = "f" * 40
+        seal(stale, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=stale)
+        missing = lexical_census(r)
+        missing["records"].pop()
+        seal(missing, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=missing)
+
+    def test_lexical_census_rejects_forged_witness_or_denominator(self):
+        r, t, ctx, d = inputs()
+        forged = lexical_census(r)
+        forged["records"][0]["source_sha256"] = "0" * 64
+        seal(forged, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=forged)
+        forged = lexical_census(r)
+        forged["pairs_with_name_load_candidates"] -= 1
+        seal(forged, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=forged)
+
+    def test_empty_import_witness_is_domain_error_not_index_error(self):
+        r, t, ctx, d = inputs()
+        broken = deepcopy(r)
+        broken["edges"][0]["import_witnesses"] = []
+        seal(broken, "responsibility_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(broken, t, ctx, d)
+
+    def test_zero_pair_lexical_join_remains_healthy(self):
+        r, t, ctx, d = inputs(edges=())
+        result = build_edge_review_worklist(
+            r, t, ctx, d, lexical_usage=lexical_census(r),
+        )
+        self.assertEqual(result["edges"], [])
+        self.assertEqual(result["pairs_with_lexical_name_load_candidates"], 0)
+        self.assertEqual(result["decision"], "NOT_EVALUATED")
 
     def test_renderer_rejects_tampering(self):
         report = build_edge_review_worklist(*inputs())
