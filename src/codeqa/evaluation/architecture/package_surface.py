@@ -70,21 +70,18 @@ def census_package_surface(
         if len(parts) < 2 or not all(parts):
             raise PackageSurfaceEvidenceError("invalid source scope")
         where = parts[0]
-        root_name = ".".join(parts[1:])
         find = config.get("tool", {}).get("setuptools", {}).get("packages", {}).get("find", {})
         if not isinstance(find, dict):
             raise PackageSurfaceEvidenceError("invalid package discovery declaration")
         search_roots = find.get("where", [])
-        includes = find.get("include", [])
+        includes = find.get("include", ["*"])
         excludes = find.get("exclude", [])
         if not all(isinstance(v, list) and all(isinstance(x, str) for x in v)
                    for v in (search_roots, includes, excludes)):
             raise PackageSurfaceEvidenceError("invalid package discovery patterns")
-        declared = (
-            where in search_roots
-            and any(fnmatchcase(root_name, pattern) for pattern in includes)
-            and not any(fnmatchcase(root_name, pattern) for pattern in excludes)
-        )
+        # setuptools applies include/exclude to each discovered package name,
+        # not just the top-level root. Parent packages may be excluded while
+        # a child package is still selected; do not infer wheel importability.
         modules = []
         for module in sorted(consumers["modules"], key=lambda item: item["module_path"]):
             path = module["module_path"]
@@ -113,9 +110,19 @@ def census_package_surface(
                 p in tracked and tracked[p]["read_state"] == "READ"
                 for p in init_paths
             )
+            # Match the containing package, not the .py module or root only.
+            # An excluded parent can coexist with an included child in the
+            # declared find_packages selection; runtime imports stay unknown.
+            package_name = ".".join(parent_parts[1:])
+            declared_package = (
+                where in search_roots
+                and any(fnmatchcase(package_name, pattern) for pattern in includes)
+                and not any(fnmatchcase(package_name, pattern) for pattern in excludes)
+            )
             status = (
                 "DECLARED_DISCOVERY_CANDIDATE"
-                if declared and init_coverage and tracked[path]["read_state"] == "READ"
+                if declared_package and init_coverage
+                and tracked[path]["read_state"] == "READ"
                 else "NOT_EVALUATED"
             )
             modules.append({
@@ -158,6 +165,7 @@ def census_package_surface(
             "public_api_compatibility": "NOT_EVALUATED",
             "decision": "NOT_EVALUATED",
             "limitations": [
+                "setuptools include/exclude patterns are checked per containing package",
                 "setuptools find configuration is declared intent, not a built-wheel file inventory",
                 "potential import names are not a supported public API contract",
                 "known B2 static importers are not exhaustive consumers or behavioral tests",
