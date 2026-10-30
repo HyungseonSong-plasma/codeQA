@@ -41,6 +41,10 @@ def _load_syntax_context(
 ) -> tuple[str, bool]:
     """Describe AST placement, never import binding or runtime target identity."""
     annotation = call = attribute = conditional = False
+    # A Name inside an argument, subscript index or other nested expression
+    # is not itself the receiver/callee merely because an outer expression
+    # is called. Track only the AST receiver/callee spine toward the root.
+    on_receiver_spine = True
     child: ast.AST = node
     while id(child) in parents:
         parent, field = parents[id(child)]
@@ -48,12 +52,18 @@ def _load_syntax_context(
             parent, (ast.arg, ast.AnnAssign, ast.FunctionDef, ast.AsyncFunctionDef)
         ):
             annotation = True
-        if isinstance(parent, ast.Call) and field == "func":
+        if isinstance(parent, ast.Call) and field == "func" and on_receiver_spine:
             call = True
-        if isinstance(parent, ast.Attribute) and field == "value":
+        if isinstance(parent, ast.Attribute) and field == "value" and on_receiver_spine:
             attribute = True
         if isinstance(parent, (ast.If, ast.IfExp)) and field in ("body", "orelse"):
             conditional = True
+        if isinstance(parent, ast.Call):
+            on_receiver_spine = on_receiver_spine and field == "func"
+        elif isinstance(parent, (ast.Attribute, ast.Subscript)):
+            on_receiver_spine = on_receiver_spine and field == "value"
+        else:
+            on_receiver_spine = False
         child = parent
     if annotation:
         return "ANNOTATION_SYNTAX", conditional
