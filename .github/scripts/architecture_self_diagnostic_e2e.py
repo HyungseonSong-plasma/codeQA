@@ -186,6 +186,14 @@ def main() -> None:
                 for path in sorted({edge["source_path"] for edge in responsibility["edges"]})
             },
         )
+        if (sum(lexical_usage["syntax_context_counts"].values()) != sum(
+                b["lexical_load_count"]
+                for record in lexical_usage["records"]
+                for b in record["candidate_bindings"]
+            ) or lexical_usage["conditional_load_candidates"] > sum(
+                lexical_usage["syntax_context_counts"].values()
+            )):
+            raise ValueError("B8 import usage syntax denominator drift")
         write(output / "architecture-import-binding-usage.json", lexical_usage)
         observation = None
         # Extend the bounded sample using test modules that statically import
@@ -318,7 +326,13 @@ def main() -> None:
                 f"- Nested/conditional import pairs: {correlation['nested_or_conditional_import_pairs']}\n"
                 f"- Import-line lexical Name(Load) candidate pairs: {lexical_usage['pairs_with_name_load_candidates']}\n"
                 f"- No lexical Name(Load) candidate pairs: {lexical_usage['pairs_without_name_load_candidates']}\n"
-                "- Lexical candidates are line-co-located, not resolved target bindings.\n"
+                f"- Lexical annotation syntax candidates: {lexical_usage['syntax_context_counts']['ANNOTATION_SYNTAX']}\\n"
+                f"- Lexical call-target syntax candidates: {lexical_usage['syntax_context_counts']['CALL_TARGET_SYNTAX']}\\n"
+                f"- Lexical attribute-access syntax candidates: {lexical_usage['syntax_context_counts']['ATTRIBUTE_ACCESS_SYNTAX']}\\n"
+                f"- Lexical other-load syntax candidates: {lexical_usage['syntax_context_counts']['OTHER_LOAD_SYNTAX']}\\n"
+                f"- Lexical candidates inside conditional branch syntax: {lexical_usage['conditional_load_candidates']}\\n"
+                "- Syntax context does not establish import binding, executed branch or intentional orchestration.\\n"
+                "- Lexical candidates are line-co-located, not resolved target bindings.\\n"
                 "- Module-level imports may finish before the bounded test-time trace.\n"
                 f"- Cold-interpreter import-line observed pairs: {cold_import['pairs_with_line_entries']}/{cold_import['static_pairs']}\n"
                 f"- Cold-interpreter line visits truncated: {cold_import['line_visits_truncated']}\n"
