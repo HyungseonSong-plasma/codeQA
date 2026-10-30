@@ -293,6 +293,7 @@ def main() -> None:
         )
         if (worklist["source_identity"]["snapshot_sha"] != head
                 or worklist["observed_cross_role_pairs"] != len(selection["pairs"])
+                or sum(worklist["lexical_use_mode_counts"].values()) != len(selection["pairs"])
                 or worklist["decision"] != "NOT_EVALUATED"
                 or worklist["recommended_action"] != "NO_AUTOMATIC_MOVE"):
             raise ValueError("B8 edge review worklist provenance drift")
