@@ -108,8 +108,8 @@ class ImportBindingUsageTests(unittest.TestCase):
     def test_multi_alias_import_does_not_count_unrelated_alias(self):
         s, r, b = inputs(
             1,
-            "import demo.core.a as core, demo.adapters.b as adapters\\n"
-            "x = adapters\\n",
+            "import demo.core.a as core, demo.adapters.b as adapters\n"
+            "x = adapters\n",
         )
         report = census_b8_import_binding_uses(s, r, b)
         bindings = report["records"][0]["candidate_bindings"]
@@ -121,7 +121,7 @@ class ImportBindingUsageTests(unittest.TestCase):
     def test_reject_resealed_import_target_mismatch(self):
         # A syntactically real import must not be attached to another module.
         s, r, b = inputs(
-            1, "from demo.adapters.b import Alpha\\nx = Alpha\\n",
+            1, "from demo.adapters.b import Alpha\nx = Alpha\n",
         )
         with self.assertRaises(ImportBindingUsageError):
             census_b8_import_binding_uses(s, r, b)
