@@ -19,6 +19,56 @@ def _digest(value: Any) -> str:
     return sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
+
+def _module_name(path: str) -> tuple[str, bool]:
+    """Match the snapshot-local Python dependency adapter's module naming rule."""
+    if not isinstance(path, str) or not path.endswith(".py"):
+        raise SourceReviewPacketError("unindexable Python module path")
+    relative = path.removeprefix("src/") if path.startswith("src/") else path
+    parts = relative.removesuffix(".py").split("/")
+    package = parts[-1] == "__init__"
+    if package:
+        parts.pop()
+    if not parts or any(not part.isidentifier() for part in parts):
+        raise SourceReviewPacketError("unindexable Python module path")
+    return ".".join(parts), package
+
+
+def _observed_imports(path: str, tree: ast.Module) -> dict[int, list[tuple[set[str], str, str]]]:
+    """Resolve only the module named by each import, never guessed members.
+
+    This mirrors the dependency adapter's syntax rule. It does not prove that
+    the import completed or that the target path is unique in the snapshot.
+    """
+    module, package = _module_name(path)
+    direct = {id(node) for node in tree.body}
+    result: dict[int, list[tuple[set[str], str, str]]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            # The dependency adapter records one edge per alias and stores
+            # "import <module>" rather than the entire aliased statement.
+            candidates = [({alias.name}, "import " + alias.name)
+                          for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                scope = module.split(".") if package else module.split(".")[:-1]
+                if node.level > len(scope):
+                    continue
+                prefix = scope[:len(scope) - (node.level - 1)]
+                targets = {".".join([*prefix, *([node.module] if node.module else [])])}
+            else:
+                targets = {node.module or ""}
+            candidates = [(targets, ast.unparse(node))]
+        else:
+            continue
+        for targets, expression in candidates:
+            result.setdefault(node.lineno, []).append((
+                targets, expression,
+                "top_level" if id(node) in direct else "conditional_or_deferred",
+            ))
+    return result
+
+
 def build_source_review_packets(
     worklist: Mapping[str, Any], source_blobs: Mapping[str, bytes],
 ) -> dict[str, Any]:
@@ -44,7 +94,7 @@ def build_source_review_packets(
         if set(source_blobs) != expected_paths:
             raise SourceReviewPacketError("missing or unexpected source blob")
         lines_by_path: dict[str, list[str]] = {}
-        imports_by_path: dict[str, set[int]] = {}
+        imports_by_path: dict[str, dict[int, list[tuple[set[str], str, str]]]] = {}
         hashes: dict[str, str] = {}
         for path in sorted(expected_paths):
             raw = source_blobs[path]
@@ -53,10 +103,7 @@ def build_source_review_packets(
             hashes[path] = sha256(raw).hexdigest()
             lines_by_path[path] = raw.decode("utf-8").splitlines()
             tree = ast.parse(raw, filename=path)
-            imports_by_path[path] = {
-                node.lineno for node in ast.walk(tree)
-                if isinstance(node, (ast.Import, ast.ImportFrom))
-            }
+            imports_by_path[path] = _observed_imports(path, tree)
 
         def excerpt(path: str, line: int) -> dict[str, Any]:
             lines = lines_by_path[path]
@@ -78,14 +125,21 @@ def build_source_review_packets(
                 raise SourceReviewPacketError("duplicate or unwitnessed edge")
             seen.add((src, dst))
             imports = []
+            target_module, _ = _module_name(dst)
             for witness in row["import_witnesses"]:
                 line = witness["line"]
                 if (witness["source_path"] != src
                         or witness["target_path"] != dst
                         or witness["source_sha256"] != hashes[src]
                         or type(line) is not int
-                        or line not in imports_by_path[src]):
-                    raise SourceReviewPacketError("unbound import witness")
+                        or not any(
+                            target_module in modules
+                            and witness["expression"] == expression
+                            and witness["execution"] == execution
+                            for modules, expression, execution
+                            in imports_by_path[src].get(line, ())
+                        )):
+                    raise SourceReviewPacketError("import line does not bind measured target")
                 imports.append(excerpt(src, line))
             calls = [excerpt(src, w["caller_line"])
                      for w in row["callsite_examples"]]
@@ -119,6 +173,7 @@ def build_source_review_packets(
             "recommended_action": "NO_AUTOMATIC_MOVE",
             "limitations": [
                 "import and sampled callsite excerpts are syntax, not callee identity",
+                "import module-name matches do not prove uniqueness, execution or imported member identity",
                 "source snippets do not prove intentional composition or misplaced ownership",
                 "test-path candidates do not prove behavioral edge coverage",
                 "external consumers and public API compatibility require separate review",
