@@ -119,6 +119,17 @@ def assess_architecture_migration(
         except SyntaxError:
             syntax_errors.append(path)
     modules = {_module(p): p for p in by_path if _module(p)}
+    # A module file can shadow a namespace-package directory even when its
+    # destination .py path is free. Such a move may break child imports.
+    # Derive potential namespace parents from the same tracked source census.
+    namespace_descendants: dict[str, set[str]] = {}
+    for tracked_path in by_path:
+        if tracked_path.startswith("src/") and tracked_path.endswith(".py"):
+            parts = tracked_path[4:].split("/")
+            for depth in range(1, len(parts)):
+                namespace_descendants.setdefault(
+                    ".".join(parts[:depth]), set()
+                ).add(tracked_path)
     results: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
 
@@ -138,13 +149,15 @@ def assess_architecture_migration(
             if len(path_map) != len(candidate["path_mapping"]) or not path_map:
                 raise ArchitectureMigrationError("invalid or empty B4 mapping")
             old_to_new: dict[str, str] = {}
+            new_to_path: dict[str, str] = {}
             for move in candidate["path_mapping"]:
                 old, new = move["from"], move["to"]
                 if (old not in by_path or by_path[old]["source_sha256"] != move["source_sha256"]
                         or old not in decoded or _module(old) is None or _module(new) is None):
                     raise ArchitectureMigrationError("unverified moved source/module")
                 old_to_new[_module(old)] = _module(new)
-            if len(old_to_new) != len(path_map):
+                new_to_path[_module(new)] = new
+            if len(old_to_new) != len(path_map) or len(new_to_path) != len(path_map):
                 raise ArchitectureMigrationError("duplicate dotted module identity")
         except (KeyError, TypeError, ValueError) as exc:
             raise ArchitectureMigrationError("invalid B4 candidate") from exc
@@ -153,7 +166,10 @@ def assess_architecture_migration(
         # existing namespace package or __init__.py; block this independently.
         conflicts = sorted({
             new for old, new in old_to_new.items()
-            if new in modules and modules[new] not in path_map
+            if (new in modules and modules[new] not in path_map)
+            or (not new_to_path[new].endswith("/__init__.py")
+                and any(path not in path_map
+                        for path in namespace_descendants.get(new, ())))
         })
         sites: list[dict[str, Any]] = []
         risk_flags: set[str] = set()
