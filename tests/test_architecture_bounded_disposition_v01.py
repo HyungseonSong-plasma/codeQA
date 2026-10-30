@@ -26,15 +26,22 @@ def _digest(report):
     ).encode()).hexdigest()
 
 
-def fixture(*, edges=None, collision=False):
+def fixture(*, edges=None, collision=False, duplicate=False):
     if edges is None:
         inv, metrics, opportunities, policy = reports()
     else:
         inv, metrics, opportunities, policy = reports(edges=edges)
     mapping = None
-    if collision and opportunities["question_opportunities"]:
+    if (collision or duplicate) and opportunities["question_opportunities"]:
         qid = opportunities["question_opportunities"][0]["opportunity_id"]
-        mapping = {qid: {"src/orchard/sky/view.py": "src/orchard/earth/model.py"}}
+        if duplicate:
+            # A duplicate destination may be a *new*, unoccupied path.
+            mapping = {qid: {
+                "src/orchard/sky/view.py": "src/orchard/rain/combined.py",
+                "src/orchard/sky/helper.py": "src/orchard/rain/combined.py",
+            }}
+        else:
+            mapping = {qid: {"src/orchard/sky/view.py": "src/orchard/earth/model.py"}}
     scenarios = generate_virtual_layout_scenarios(
         inv, metrics, opportunities, policy, candidate_mappings=mapping,
     )
@@ -66,6 +73,55 @@ class BoundedDispositionTests(unittest.TestCase):
         self.assertIn("No viable measured alternative", summary)
         self.assertIn("NOT_EVALUATED", summary)
         self.assertIn("TARGET_COLLISION", summary)
+
+    def test_duplicate_destination_with_unoccupied_target_is_valid_collision(self):
+        report = assess_bounded_disposition(*fixture(duplicate=True))
+        signal = report["signal_dispositions"][0]
+        self.assertEqual(signal["disposition"], "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(signal["compared_candidates"], [])
+        self.assertEqual(len(signal["collision_witnesses"]), 2)
+        self.assertEqual(
+            {w["source_path"] for w in signal["collision_witnesses"]},
+            {"src/orchard/sky/view.py", "src/orchard/sky/helper.py"},
+        )
+        self.assertTrue(all(
+            w["proposed_target_path"] == "src/orchard/rain/combined.py"
+            and w["collision_kind"] == "DUPLICATE_DESTINATION"
+            for w in signal["collision_witnesses"]
+        ))
+        self.assertIn("DUPLICATE_DESTINATION", render_bounded_disposition_markdown(report))
+
+    def test_reject_resealed_collision_kind_and_target_hash(self):
+        inv, triage, responsibility, assessment = fixture(collision=True)
+        forged = deepcopy(assessment)
+        witness = forged["rejected_scenarios"][0]["collision_witnesses"][0]
+        witness["occupied_target_sha256"] = "0" * 64
+        forged["assessment_id"] = _digest({
+            k: v for k, v in forged.items() if k != "assessment_id"
+        })
+        with self.assertRaises(BoundedDispositionError):
+            assess_bounded_disposition(inv, triage, responsibility, forged)
+
+        forged = deepcopy(assessment)
+        witness = forged["rejected_scenarios"][0]["collision_witnesses"][0]
+        witness["collision_kind"] = "DUPLICATE_DESTINATION"
+        witness.pop("occupied_target_sha256")
+        witness["conflicting_sources"] = ["src/orchard/sky/helper.py"]
+        forged["assessment_id"] = _digest({
+            k: v for k, v in forged.items() if k != "assessment_id"
+        })
+        with self.assertRaises(BoundedDispositionError):
+            assess_bounded_disposition(inv, triage, responsibility, forged)
+
+    def test_reject_incomplete_duplicate_destination_group(self):
+        inv, triage, responsibility, assessment = fixture(duplicate=True)
+        forged = deepcopy(assessment)
+        forged["rejected_scenarios"][0]["collision_witnesses"].pop()
+        forged["assessment_id"] = _digest({
+            k: v for k, v in forged.items() if k != "assessment_id"
+        })
+        with self.assertRaises(BoundedDispositionError):
+            assess_bounded_disposition(inv, triage, responsibility, forged)
 
     def test_noncolliding_candidate_preserves_b7_unknowns(self):
         report = assess_bounded_disposition(*fixture())
