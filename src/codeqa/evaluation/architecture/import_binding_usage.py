@@ -12,6 +12,10 @@ import json
 import re
 from typing import Any
 
+from codeqa.evaluation.architecture.source_review_packets import (
+    SourceReviewPacketError, _module_name, _observed_imports,
+)
+
 
 class ImportBindingUsageError(ValueError):
     """Untrusted source identity or import-witness denominator."""
@@ -92,6 +96,7 @@ def census_b8_import_binding_uses(
             raise ImportBindingUsageError("unbound source or pair denominator")
 
         import_nodes: dict[str, dict[int, list[ast.Import | ast.ImportFrom]]] = {}
+        observed_imports: dict[str, dict[int, list[tuple[set[str], str, str]]]] = {}
         loads: dict[str, dict[str, list[dict[str, Any]]]] = {}
         for path in sorted(sources):
             raw = source_bytes[path]
@@ -117,6 +122,9 @@ def census_b8_import_binding_uses(
                         "syntax_context": kind, "conditional_branch": conditional,
                     })
             import_nodes[path] = by_line
+            # Use the same exact-module and expression resolver as B8 packets.
+            # A co-located import on the same line is not enough to bind an edge.
+            observed_imports[path] = _observed_imports(path, tree)
             loads[path] = by_name
 
         records = []
@@ -129,14 +137,39 @@ def census_b8_import_binding_uses(
                            or type(w["line"]) is not int or w["line"] < 1
                            for w in witnesses)):
                 raise ImportBindingUsageError("unbound static import witnesses")
+            target_module, _ = _module_name(dst)
+            for witness in witnesses:
+                if not any(
+                    target_module in modules
+                    and witness["expression"] == expression
+                    and witness["execution"] == execution
+                    for modules, expression, execution
+                    in observed_imports[src].get(witness["line"], ())
+                ):
+                    raise ImportBindingUsageError("witness does not bind the measured module")
             lines = sorted({w["line"] for w in witnesses})
             candidates = []
             for line in lines:
+                expressions = {
+                    w["expression"] for w in witnesses if w["line"] == line
+                }
                 nodes = import_nodes[src].get(line, [])
                 if not nodes:
                     raise ImportBindingUsageError("witness line is not an AST import")
                 for node in nodes:
-                    for alias in node.names:
+                    if isinstance(node, ast.Import):
+                        # A multi-alias import creates distinct module edges.
+                        # Only aliases for this exact target belong to this pair.
+                        aliases = [
+                            alias for alias in node.names
+                            if alias.name == target_module
+                            and "import " + alias.name in expressions
+                        ]
+                    else:
+                        # Imported members are still unverified: the dependency
+                        # adapter binds the ImportFrom module, not its members.
+                        aliases = node.names if ast.unparse(node) in expressions else []
+                    for alias in aliases:
                         if isinstance(node, ast.ImportFrom):
                             name = alias.asname or alias.name
                         else:
@@ -220,5 +253,6 @@ def census_b8_import_binding_uses(
         }
         result["usage_id"] = _digest(result)
         return result
-    except (KeyError, TypeError, AttributeError, ValueError, SyntaxError) as exc:
+    except (KeyError, TypeError, AttributeError, ValueError,
+            SyntaxError, SourceReviewPacketError) as exc:
         raise ImportBindingUsageError("invalid import binding usage evidence") from exc
