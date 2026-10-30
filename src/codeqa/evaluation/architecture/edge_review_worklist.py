@@ -30,6 +30,8 @@ def build_edge_review_worklist(
     test_candidates: Mapping[str, Any],
     callsite_context: Mapping[str, Any],
     disposition: Mapping[str, Any],
+    *,
+    lexical_usage: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Correlate all measured pairs, preserving unknowns and collision gates.
 
@@ -86,6 +88,34 @@ def build_edge_review_worklist(
                 or {e["signal_id"] for e in measured.values()} != set(dispositions)):
             raise EdgeReviewWorklistError("missing or duplicate signal disposition")
 
+        # A lexical Name(Load) is only a candidate, never import target proof.
+        lexical_records = None
+        if lexical_usage is not None:
+            if (lexical_usage["schema_version"] != "0.1"
+                    or not _sealed(lexical_usage, "usage_id")
+                    or lexical_usage["decision"] != "NOT_EVALUATED"
+                    or lexical_usage["import_execution"] != "NOT_EVALUATED"
+                    or lexical_usage["semantic_ownership"] != "NOT_EVALUATED"
+                    or lexical_usage["static_pairs"] != len(measured)
+                    or lexical_usage["responsibility_id"] != rid
+                    or lexical_usage["source_identity"]["snapshot_sha"] != head
+                    or lexical_usage["source_identity"]["inventory_id"] != identity["inventory_id"]
+                    or lexical_usage["source_identity"]["responsibility_id"] != rid):
+                raise EdgeReviewWorklistError("untrusted lexical census")
+            lexical_records = {}
+            for record in lexical_usage["records"]:
+                key = (record["source_path"], record["target_path"])
+                if key in lexical_records:
+                    raise EdgeReviewWorklistError("duplicate lexical pair")
+                lexical_records[key] = record
+            if set(lexical_records) != set(measured):
+                raise EdgeReviewWorklistError("missing lexical pair")
+            if (sum(bool(x["has_name_load_candidate"]) for x in lexical_records.values())
+                    != lexical_usage["pairs_with_name_load_candidates"]
+                    or sum(not x["has_name_load_candidate"] for x in lexical_records.values())
+                    != lexical_usage["pairs_without_name_load_candidates"]):
+                raise EdgeReviewWorklistError("lexical denominator mismatch")
+
         rows = []
         for (src, dst), edge in sorted(measured.items()):
             test = tests[(src, dst)]
@@ -94,15 +124,29 @@ def build_edge_review_worklist(
                     or ctx["source_role"] != edge["source_role"]
                     or ctx["target_role"] != edge["target_role"]
                     or ctx["declared_policy_direction"] != edge["declared_policy_direction"]
+                    or not edge["import_witnesses"]
                     or ctx["source_sha256"] != edge["import_witnesses"][0]["source_sha256"]
                     or ctx["semantic_ownership"] != "NOT_EVALUATED"
                     or test["behavioral_edge_coverage"] != "NOT_EVALUATED"
-                    or not edge["import_witnesses"]
                     or any(w["source_path"] != src or w["target_path"] != dst
                            or w["source_sha256"] != ctx["source_sha256"]
                            or type(w["line"]) is not int or w["line"] < 1
                            for w in edge["import_witnesses"])):
                 raise EdgeReviewWorklistError("edge provenance or policy mismatch")
+            lexical = None
+            if lexical_records is not None:
+                lexical = lexical_records[(src, dst)]
+                bindings = lexical["candidate_bindings"]
+                if (lexical["source_sha256"] != ctx["source_sha256"]
+                        or lexical["import_lines"] != sorted({w["line"] for w in edge["import_witnesses"]})
+                        or lexical["binding_target_attribution"] != "LINE_COLOCATED_UNVERIFIED"
+                        or lexical["import_execution"] != "NOT_EVALUATED"
+                        or lexical["semantic_ownership"] != "NOT_EVALUATED"
+                        or any(type(b["lexical_load_count"]) is not int
+                               or b["lexical_load_count"] < 0 for b in bindings)
+                        or lexical["has_name_load_candidate"]
+                           is not any(b["lexical_load_count"] > 0 for b in bindings)):
+                    raise EdgeReviewWorklistError("lexical witness mismatch")
             sites = test["candidate_test_paths"]
             test_functions = sum(len(site["candidate_tests"]) for site in sites)
             assertion_operand_pairs = sum(
@@ -164,6 +208,15 @@ def build_edge_review_worklist(
                 "public_api_compatibility": "NOT_EVALUATED",
                 "recommended_action": "NO_AUTOMATIC_MOVE",
             })
+            if lexical is not None:
+                rows[-1].update({
+                    "lexical_import_binding_candidates": len(bindings),
+                    "lexical_name_load_candidates": sum(
+                        b["lexical_load_count"] for b in bindings
+                    ),
+                    "lexical_binding_target_attribution": "LINE_COLOCATED_UNVERIFIED",
+                    "lexical_import_execution": "NOT_EVALUATED",
+                })
         if (sum(r["direct_python_calls"] for r in rows)
                 != callsite_context["direct_python_calls"]
                 or sum(r["sampled_call_witnesses"] for r in rows)
@@ -200,9 +253,21 @@ def build_edge_review_worklist(
                 "external consumers, public API and semantic ownership remain NOT_EVALUATED",
             ],
         }
+        if lexical_usage is not None:
+            result["source_identity"]["usage_id"] = lexical_usage["usage_id"]
+            result["pairs_with_lexical_name_load_candidates"] = lexical_usage[
+                "pairs_with_name_load_candidates"
+            ]
+            result["pairs_without_lexical_name_load_candidates"] = lexical_usage[
+                "pairs_without_name_load_candidates"
+            ]
+            result["limitations"].append(
+                "lexical Name(Load) candidates may be shadowed, rebound or unrelated "
+                "to the imported target; no binding resolution is asserted"
+            )
         result["worklist_id"] = _digest(result)
         return result
-    except (KeyError, TypeError, AttributeError, ValueError) as exc:
+    except (KeyError, IndexError, TypeError, AttributeError, ValueError) as exc:
         raise EdgeReviewWorklistError("untrustworthy edge review worklist inputs") from exc
 
 
@@ -228,6 +293,8 @@ def render_edge_review_worklist_markdown(report: Mapping[str, Any]) -> str:
                 + row["review_focus"] + "; " + row["declared_policy_direction"]
                 + "; calls=" + str(row["direct_python_calls"])
                 + "; sampled-sites=" + str(row["sampled_call_witnesses"])
+                + ("; lexical-name-loads=" + str(row["lexical_name_load_candidates"])
+                   if "lexical_name_load_candidates" in row else "")
                 + "; test-candidates=" + str(row["candidate_test_functions"])
                 + "; assertion-operand-candidates=" + str(row["assertion_operand_candidates"])
                 + "; signal=" + row["signal_disposition"] + "]"
@@ -237,5 +304,5 @@ def render_edge_review_worklist_markdown(report: Mapping[str, Any]) -> str:
             "External consumers, public API and behavioral edge coverage: NOT_EVALUATED.", "",
         ])
         return "\n".join(lines)
-    except (KeyError, TypeError, AttributeError, ValueError) as exc:
+    except (KeyError, IndexError, TypeError, AttributeError, ValueError) as exc:
         raise EdgeReviewWorklistError("untrustworthy edge review worklist report") from exc
