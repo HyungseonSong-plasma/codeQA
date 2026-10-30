@@ -238,6 +238,39 @@ class SourceReviewPacketTests(unittest.TestCase):
         with self.assertRaises(SourceReviewPacketError):
             build_source_review_packets(worklist, {src: raw})
 
+    def test_callsite_metadata_is_bound_to_actual_source_syntax(self):
+        src = "src/orchard/sky/helper.py"
+        raw = (
+            b"from orchard.earth.model import Model\\n"
+            b"def run():\\n"
+            b"    return Model()\\n"
+        )
+        worklist, _ = pack()
+        worklist["edges"] = [deepcopy(worklist["edges"][2])]
+        row = worklist["edges"][0]
+        row["import_witnesses"][0]["source_sha256"] = sha256(raw).hexdigest()
+        row["callsite_examples"] = [{
+            "test_id": "unit::test_run", "caller_line": 3,
+            "function_qualname": "run", "enclosing_statement_kind": "Return",
+        }]
+        worklist["observed_cross_role_pairs"] = 1
+        seal(worklist)
+        report = build_source_review_packets(worklist, {src: raw})
+        self.assertEqual(report["packets"][0]["sampled_callsite_excerpts"][0]["witness_line"], 3)
+
+        for key, forged in (
+            ("function_qualname", "unrelated_function"),
+            ("enclosing_statement_kind", "Assign"),
+            ("test_id", ""),
+            ("caller_line", 1),
+        ):
+            with self.subTest(key=key):
+                altered = deepcopy(worklist)
+                altered["edges"][0]["callsite_examples"][0][key] = forged
+                seal(altered)
+                with self.assertRaises(SourceReviewPacketError):
+                    build_source_review_packets(altered, {src: raw})
+
     def test_reject_resealed_report_with_false_decision(self):
         worklist, blobs = pack()
         result = build_source_review_packets(worklist, blobs)
