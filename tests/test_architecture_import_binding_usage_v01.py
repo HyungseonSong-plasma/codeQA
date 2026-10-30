@@ -181,10 +181,10 @@ class ImportBindingUsageTests(unittest.TestCase):
     def test_callee_spine_excludes_subscript_index_and_nested_call_argument(self):
         # An enclosing Call.func does not make *every* descendant Name a callee.
         source = (
-            "from demo.core.a import Alpha, Beta\\n"
-            "Alpha[Beta]()\\n"
-            "factory(Alpha).method()\\n"
-            "Alpha.run()\\n"
+            "from demo.core.a import Alpha, Beta\n"
+            "Alpha[Beta]()\n"
+            "factory(Alpha).method()\n"
+            "Alpha.run()\n"
         )
         s, r, b = inputs(1, source)
         report = census_b8_import_binding_uses(s, r, b)
@@ -205,7 +205,7 @@ class ImportBindingUsageTests(unittest.TestCase):
         self.assertEqual(report["decision"], "NOT_EVALUATED")
 
     def test_subscript_receiver_remains_attribute_syntax(self):
-        s, r, b = inputs(1, "from demo.core.a import Alpha\\nAlpha[0].value\\n")
+        s, r, b = inputs(1, "from demo.core.a import Alpha\nAlpha[0].value\n")
         report = census_b8_import_binding_uses(s, r, b)
         counts = report["records"][0]["syntax_context_counts"]
         self.assertEqual(counts["ATTRIBUTE_ACCESS_SYNTAX"], 1)
