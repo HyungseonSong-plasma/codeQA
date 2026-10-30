@@ -388,6 +388,13 @@ def render_edge_review_worklist_markdown(report: Mapping[str, Any]) -> str:
                     or report["lexical_use_mode_counts"] != dict(sorted(Counter(
                         row["lexical_use_mode"] for row in report["edges"]
                     ).items()))
+                    or any(
+                        row["lexical_use_mode"] != _lexical_use_mode(
+                            row["lexical_syntax_context_counts"],
+                            row["lexical_name_load_candidates"],
+                        )
+                        for row in report["edges"]
+                    )
                 ))):
             raise EdgeReviewWorklistError("modified worklist")
         lines = [
