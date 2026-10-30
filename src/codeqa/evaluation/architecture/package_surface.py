@@ -70,7 +70,6 @@ def census_package_surface(
         if len(parts) < 2 or not all(parts):
             raise PackageSurfaceEvidenceError("invalid source scope")
         where = parts[0]
-        root_name = ".".join(parts[1:])
         find = config.get("tool", {}).get("setuptools", {}).get("packages", {}).get("find", {})
         if not isinstance(find, dict):
             raise PackageSurfaceEvidenceError("invalid package discovery declaration")
