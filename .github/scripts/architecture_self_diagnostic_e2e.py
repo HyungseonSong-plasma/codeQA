@@ -46,6 +46,9 @@ from codeqa.evaluation.architecture.bounded_disposition import (
 from codeqa.evaluation.architecture.edge_review_worklist import (
     build_edge_review_worklist, render_edge_review_worklist_markdown,
 )
+from codeqa.evaluation.architecture.source_review_packets import (
+    build_source_review_packets, render_source_review_packets_markdown,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / ".github" / "scripts"
@@ -298,6 +301,23 @@ def main() -> None:
                 or worklist["recommended_action"] != "NO_AUTOMATIC_MOVE"):
             raise ValueError("B8 edge review worklist provenance drift")
         write(output / "architecture-edge-review-worklist.json", worklist)
+        # Source-backed, bounded excerpts enable a real human responsibility
+        # review of every measured edge. No semantic label is inferred.
+        source_packets = build_source_review_packets(
+            worklist, {
+                path: reader.read_file(head, path)
+                for path in sorted({edge["source_path"] for edge in worklist["edges"]})
+            },
+        )
+        if (source_packets["source_identity"]["snapshot_sha"] != head
+                or source_packets["source_identity"]["worklist_id"] != worklist["worklist_id"]
+                or source_packets["observed_cross_role_pairs"] != len(selection["pairs"])
+                or source_packets["decision"] != "NOT_EVALUATED"
+                or source_packets["recommended_action"] != "NO_AUTOMATIC_MOVE"):
+            raise ValueError("B8 source review packet provenance drift")
+        write(output / "architecture-source-review-packets.json", source_packets)
+        with (output / "architecture-self-diagnostic.md").open("a", encoding="utf-8") as handle:
+            handle.write("\n" + render_source_review_packets_markdown(source_packets))
         with (output / "architecture-self-diagnostic.md").open("a", encoding="utf-8") as handle:
             handle.write("\n" + render_edge_review_worklist_markdown(worklist))
         with (output / "architecture-self-diagnostic.md").open("a", encoding="utf-8") as handle:
