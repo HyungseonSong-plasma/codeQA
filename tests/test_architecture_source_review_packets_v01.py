@@ -14,10 +14,10 @@ from codeqa.evaluation.architecture.source_review_packets import (
 
 SOURCES = {
     "src/orchard/sky/view.py": (
-        "from orchard.earth.model import Model\\n"
-        "from orchard.rain.flow import flow\\n"
+        "from orchard.earth.model import Model\n"
+        "from orchard.rain.flow import flow\n"
     ),
-    "src/orchard/sky/helper.py": "from orchard.earth.model import Model\\n",
+    "src/orchard/sky/helper.py": "from orchard.earth.model import Model\n",
 }
 
 
@@ -180,7 +180,7 @@ class SourceReviewPacketTests(unittest.TestCase):
     def test_relative_import_is_bound_without_guessing_members(self):
         src = "src/orchard/sky/helper.py"
         dst = "src/orchard/earth/model.py"
-        raw = b"def run():\\n    from ..earth.model import Model\\n"
+        raw = b"def run():\n    from ..earth.model import Model\n"
         worklist, _ = pack()
         worklist["edges"] = [deepcopy(worklist["edges"][2])]
         row = worklist["edges"][0]
@@ -203,7 +203,7 @@ class SourceReviewPacketTests(unittest.TestCase):
 
     def test_imported_member_is_not_guessed_to_be_submodule(self):
         src = "src/orchard/sky/helper.py"
-        raw = b"from orchard.earth import model\\n"
+        raw = b"from orchard.earth import model\n"
         worklist, _ = pack()
         worklist["edges"] = [deepcopy(worklist["edges"][2])]
         row = worklist["edges"][0]
