@@ -45,7 +45,10 @@ def _observed_imports(path: str, tree: ast.Module) -> dict[int, list[tuple[set[s
     result: dict[int, list[tuple[set[str], str, str]]] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            targets = {alias.name for alias in node.names}
+            # The dependency adapter records one edge per alias and stores
+            # "import <module>" rather than the entire aliased statement.
+            candidates = [({alias.name}, "import " + alias.name)
+                          for alias in node.names]
         elif isinstance(node, ast.ImportFrom):
             if node.level:
                 scope = module.split(".") if package else module.split(".")[:-1]
@@ -55,12 +58,14 @@ def _observed_imports(path: str, tree: ast.Module) -> dict[int, list[tuple[set[s
                 targets = {".".join([*prefix, *([node.module] if node.module else [])])}
             else:
                 targets = {node.module or ""}
+            candidates = [(targets, ast.unparse(node))]
         else:
             continue
-        result.setdefault(node.lineno, []).append((
-            targets, ast.unparse(node),
-            "top_level" if id(node) in direct else "conditional_or_deferred",
-        ))
+        for targets, expression in candidates:
+            result.setdefault(node.lineno, []).append((
+                targets, expression,
+                "top_level" if id(node) in direct else "conditional_or_deferred",
+            ))
     return result
 
 
