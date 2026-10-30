@@ -10,6 +10,8 @@ from hashlib import sha256
 import json
 from typing import Any
 
+from codeqa.evaluation.architecture.callsite_context import _function_context
+
 
 class SourceReviewPacketError(ValueError):
     """A review packet cannot be tied to its immutable source and worklist."""
@@ -94,6 +96,7 @@ def build_source_review_packets(
         if set(source_blobs) != expected_paths:
             raise SourceReviewPacketError("missing or unexpected source blob")
         lines_by_path: dict[str, list[str]] = {}
+        trees_by_path: dict[str, ast.Module] = {}
         imports_by_path: dict[str, dict[int, list[tuple[set[str], str, str]]]] = {}
         hashes: dict[str, str] = {}
         for path in sorted(expected_paths):
@@ -103,6 +106,7 @@ def build_source_review_packets(
             hashes[path] = sha256(raw).hexdigest()
             lines_by_path[path] = raw.decode("utf-8").splitlines()
             tree = ast.parse(raw, filename=path)
+            trees_by_path[path] = tree
             imports_by_path[path] = _observed_imports(path, tree)
 
         def excerpt(path: str, line: int) -> dict[str, Any]:
@@ -141,8 +145,31 @@ def build_source_review_packets(
                         )):
                     raise SourceReviewPacketError("import line does not bind measured target")
                 imports.append(excerpt(src, line))
-            calls = [excerpt(src, w["caller_line"])
-                     for w in row["callsite_examples"]]
+            # Caller frames can be implicit calls without an ast.Call node.
+            # Validate only the lexical metadata previously measured by B8;
+            # this never claims callee identity or runtime edge traversal.
+            calls = []
+            tree = trees_by_path[src]
+            for witness in row["callsite_examples"]:
+                line = witness["caller_line"]
+                context = excerpt(src, line)
+                statements = [
+                    node for node in ast.walk(tree)
+                    if isinstance(node, ast.stmt) and node.end_lineno is not None
+                    and node.lineno <= line <= node.end_lineno
+                ]
+                statement = min(
+                    statements,
+                    key=lambda node: (node.end_lineno - node.lineno, -node.lineno),
+                ) if statements else None
+                kind = type(statement).__name__ if statement else None
+                lexical = _function_context(tree, line)["function_qualname"]
+                if (not isinstance(witness["test_id"], str)
+                        or not witness["test_id"]
+                        or witness["function_qualname"] != lexical
+                        or witness["enclosing_statement_kind"] != kind):
+                    raise SourceReviewPacketError("callsite lexical context mismatch")
+                calls.append(context)
             if (row["semantic_ownership"] != "NOT_EVALUATED"
                     or row["public_api_compatibility"] != "NOT_EVALUATED"
                     or row["recommended_action"] != "NO_AUTOMATIC_MOVE"):
