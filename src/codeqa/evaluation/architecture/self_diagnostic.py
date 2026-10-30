@@ -159,6 +159,7 @@ B8_REQUIRED_ARTIFACTS = (
     "architecture-callsite-context.json",
     "architecture-edge-responsibility.json",
     "architecture-edge-review-worklist.json",
+    "architecture-source-review-packets.json",
     "architecture-import-initialization.json",
     "architecture-internal-consumers.json",
     "architecture-import-binding-usage.json",
