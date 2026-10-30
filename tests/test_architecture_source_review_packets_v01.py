@@ -205,7 +205,7 @@ class SourceReviewPacketTests(unittest.TestCase):
         src = "src/orchard/sky/view.py"
         raw = (
             b"import orchard.earth.model as earth, "
-            b"orchard.rain.flow as rain\\n"
+            b"orchard.rain.flow as rain\n"
         )
         worklist, _ = pack()
         worklist["edges"] = deepcopy(worklist["edges"][:2])
