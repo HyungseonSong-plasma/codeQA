@@ -249,7 +249,8 @@ def render_bounded_disposition_markdown(report: Mapping[str, Any]) -> str:
                 )
             for witness in item["collision_witnesses"]:
                 lines.append(
-                    "    - " + witness["source_path"] + " -> "
+                    "    - " + witness["collision_kind"] + ": "
+                    + witness["source_path"] + " -> "
                     + witness["proposed_target_path"] + " sha256="
                     + witness["source_sha256"]
                 )
