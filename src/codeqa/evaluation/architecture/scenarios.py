@@ -42,15 +42,15 @@ def _role(path: str, scope: str, roles: set[str]) -> str:
     return parts[0] if len(parts) >= 2 and parts[0] in roles else "UNCLASSIFIED"
 
 
-def _automatic_mapping(
+def _ranked_automatic_mappings(
     signal: Mapping[str, Any], inventory_files: Mapping[str, Any],
     scope: str, roles: set[str],
-) -> tuple[dict[str, str], str | None]:
-    family = signal["family"]
-    if family == "STATIC_IMPORT_CYCLE":
-        return {}, "PATH_MOVE_CANNOT_REMOVE_STATIC_CYCLE"
-    if family not in {"DECLARED_BOUNDARY_CONFLICT", "CROSS_BOUNDARY_CONCENTRATION"}:
-        return {}, "UNSUPPORTED_SIGNAL_FAMILY"
+) -> list[tuple[str, int, dict[str, str]]]:
+    """Rank independent, source-witnessed moves without inventing filenames."""
+    if signal["family"] not in {
+        "DECLARED_BOUNDARY_CONFLICT", "CROSS_BOUNDARY_CONCENTRATION",
+    }:
+        return []
     counts: Counter[tuple[str, str]] = Counter()
     for witness in signal["source_witnesses"]:
         src, dst = witness["source_path"], witness["target_path"]
@@ -60,13 +60,30 @@ def _automatic_mapping(
         sr, dr = _role(src, scope, roles), _role(dst, scope, roles)
         if sr in roles and dr in roles and sr != dr:
             counts[(src, dr)] += 1
-    if not counts:
+    return [
+        (src, count, {
+            src: scope + "/" + target_role + "/" + src.rsplit("/", 1)[-1],
+        })
+        for (src, target_role), count in sorted(
+            counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    ]
+
+
+def _automatic_mapping(
+    signal: Mapping[str, Any], inventory_files: Mapping[str, Any],
+    scope: str, roles: set[str],
+) -> tuple[dict[str, str], str | None]:
+    if signal["family"] == "STATIC_IMPORT_CYCLE":
+        return {}, "PATH_MOVE_CANNOT_REMOVE_STATIC_CYCLE"
+    if signal["family"] not in {
+        "DECLARED_BOUNDARY_CONFLICT", "CROSS_BOUNDARY_CONCENTRATION",
+    }:
+        return {}, "UNSUPPORTED_SIGNAL_FAMILY"
+    ranked = _ranked_automatic_mappings(signal, inventory_files, scope, roles)
+    if not ranked:
         return {}, "NO_CLASSIFIED_MOVABLE_SOURCE_WITNESS"
-    (source, target_role), _ = sorted(
-        counts.items(), key=lambda item: (-item[1], item[0])
-    )[0]
-    destination = scope + "/" + target_role + "/" + source.rsplit("/", 1)[-1]
-    return {source: destination}, None
+    return ranked[0][2], None
 
 
 def generate_virtual_layout_scenarios(
@@ -297,6 +314,44 @@ def generate_virtual_layout_scenarios(
         }
         candidate["scenario_id"] = _digest(candidate)
         candidates.append(candidate)
+
+    # A top-ranked occupied target is still a hard rejection. Independently
+    # witnessed *other source files* may be assessed, but never rename the
+    # blocked source's destination to evade its collision. Limit exploration
+    # and retain every attempted rejection in the report.
+    if candidate_mappings is None:
+        for primary in tuple(rejected):
+            if primary["reason"] != "TARGET_COLLISION":
+                continue
+            qid = primary["opportunity_id"]
+            question = next(q for q in questions if q["opportunity_id"] == qid)
+            signal = signals[question["originating_signal_ids"][0]]
+            ranked = _ranked_automatic_mappings(signal, files, scope, roles)
+            if not ranked:
+                continue
+            primary_source = ranked[0][0]
+            attempts = 0
+            for source, count, alternative in ranked[1:]:
+                if source == primary_source or count < 2:
+                    continue
+                attempts += 1
+                if attempts > 4:
+                    break
+                trial = generate_virtual_layout_scenarios(
+                    inventory, metrics, opportunities, role_policy,
+                    candidate_mappings={qid: alternative},
+                )
+                rejected.extend(
+                    item for item in trial["rejected"]
+                    if item["opportunity_id"] == qid
+                )
+                viable = [
+                    item for item in trial["candidates"]
+                    if item["opportunity_id"] == qid
+                ]
+                if viable:
+                    candidates.extend(viable)
+                    break
 
     result = {
         "schema_version": "0.1",
