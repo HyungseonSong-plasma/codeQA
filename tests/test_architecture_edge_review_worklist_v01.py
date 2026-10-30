@@ -292,6 +292,101 @@ class EdgeReviewWorklistTests(unittest.TestCase):
         with self.assertRaises(EdgeReviewWorklistError):
             build_edge_review_worklist(r, t, ctx, d, lexical_usage=lexical)
 
+    def test_syntax_modes_prioritize_source_review_without_semantic_keep(self):
+        r, t, ctx, d = inputs()
+        lexical = lexical_census(r)
+        modes = ("ANNOTATION_SYNTAX", "CALL_TARGET_SYNTAX", None)
+        kinds = ("ANNOTATION_SYNTAX", "CALL_TARGET_SYNTAX",
+                 "ATTRIBUTE_ACCESS_SYNTAX", "OTHER_LOAD_SYNTAX")
+        for row, kind in zip(lexical["records"], modes):
+            binding = row["candidate_bindings"][0]
+            binding["lexical_load_count"] = 2 if kind else 0
+            binding["status"] = ("NAME_LOAD_CANDIDATE" if kind
+                                 else "NO_NAME_LOAD_IN_SOURCE")
+            binding["syntax_context_counts"] = {
+                k: (2 if k == kind else 0) for k in kinds
+            }
+            binding["conditional_load_candidates"] = 0
+            row["syntax_context_counts"] = binding["syntax_context_counts"].copy()
+            row["conditional_load_candidates"] = 0
+            row["has_name_load_candidate"] = bool(kind)
+        lexical["syntax_context_counts"] = {
+            k: sum(row["syntax_context_counts"][k] for row in lexical["records"])
+            for k in kinds
+        }
+        lexical["conditional_load_candidates"] = 0
+        lexical["pairs_with_name_load_candidates"] = 2
+        lexical["pairs_without_name_load_candidates"] = 1
+        seal(lexical, "usage_id")
+        report = build_edge_review_worklist(r, t, ctx, d, lexical_usage=lexical)
+        self.assertEqual(report["lexical_use_mode_counts"], {
+            "ANNOTATION_ONLY_SYNTAX": 1,
+            "CALL_TARGET_SYNTAX_PRESENT": 1,
+            "NO_NAME_LOAD_CANDIDATE": 1,
+        })
+        self.assertTrue(all(row["semantic_ownership"] == "NOT_EVALUATED"
+                            and row["review_focus"] == "UNOBSERVED_IN_BOUNDED_SAMPLE"
+                            for row in report["edges"]))
+        self.assertIn("use-mode=ANNOTATION_ONLY_SYNTAX",
+                      render_edge_review_worklist_markdown(report))
+        original = report["edges"][0]["lexical_use_mode"]
+        report["edges"][0]["lexical_use_mode"] = "SEMANTIC_KEEP"
+        report["lexical_use_mode_counts"][original] -= 1
+        if not report["lexical_use_mode_counts"][original]:
+            del report["lexical_use_mode_counts"][original]
+        report["lexical_use_mode_counts"]["SEMANTIC_KEEP"] = 1
+        seal(report, "worklist_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            render_edge_review_worklist_markdown(report)
+
+    def test_reject_resealed_lexical_binding_line_and_status_forgeries(self):
+        r, t, ctx, d = inputs()
+        lexical = lexical_census(r)
+        lexical["records"][0]["candidate_bindings"][0]["line"] = 999
+        seal(lexical, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=lexical)
+        lexical = lexical_census(r)
+        lexical["records"][0]["candidate_bindings"][0]["status"] = "RUNTIME_VERIFIED"
+        seal(lexical, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=lexical)
+
+    def test_reject_resealed_negative_per_binding_syntax_with_valid_totals(self):
+        r, t, ctx, d = inputs()
+        lexical = lexical_census(r)
+        kinds = ("ANNOTATION_SYNTAX", "CALL_TARGET_SYNTAX",
+                 "ATTRIBUTE_ACCESS_SYNTAX", "OTHER_LOAD_SYNTAX")
+        for row in lexical["records"]:
+            binding = row["candidate_bindings"][0]
+            binding["syntax_context_counts"] = {
+                k: (2 if k == "CALL_TARGET_SYNTAX" else 0) for k in kinds
+            }
+            binding["conditional_load_candidates"] = 0
+            row["syntax_context_counts"] = binding["syntax_context_counts"].copy()
+            row["conditional_load_candidates"] = 0
+        first = lexical["records"][0]
+        first["candidate_bindings"] = [
+            {**first["candidate_bindings"][0], "lexical_load_count": 1,
+             "syntax_context_counts": {
+                 "ANNOTATION_SYNTAX": -1, "CALL_TARGET_SYNTAX": 2,
+                 "ATTRIBUTE_ACCESS_SYNTAX": 0, "OTHER_LOAD_SYNTAX": 0,
+             }},
+            {**first["candidate_bindings"][0], "lexical_load_count": 1,
+             "syntax_context_counts": {
+                 "ANNOTATION_SYNTAX": 1, "CALL_TARGET_SYNTAX": 0,
+                 "ATTRIBUTE_ACCESS_SYNTAX": 0, "OTHER_LOAD_SYNTAX": 0,
+             }},
+        ]
+        lexical["syntax_context_counts"] = {
+            k: sum(row["syntax_context_counts"][k] for row in lexical["records"])
+            for k in kinds
+        }
+        lexical["conditional_load_candidates"] = 0
+        seal(lexical, "usage_id")
+        with self.assertRaises(EdgeReviewWorklistError):
+            build_edge_review_worklist(r, t, ctx, d, lexical_usage=lexical)
+
     def test_renderer_rejects_tampering(self):
         report = build_edge_review_worklist(*inputs())
         report["edges"][0]["semantic_ownership"] = "PASS"

@@ -31,6 +31,17 @@ _SYNTAX_CONTEXTS = (
 )
 
 
+def _lexical_use_mode(counts: Mapping[str, int], total: int) -> str:
+    """Group source-only syntax for review; never infer binding or ownership."""
+    if total == 0:
+        return "NO_NAME_LOAD_CANDIDATE"
+    if counts["ANNOTATION_SYNTAX"] == total:
+        return "ANNOTATION_ONLY_SYNTAX"
+    if counts["CALL_TARGET_SYNTAX"]:
+        return "CALL_TARGET_SYNTAX_PRESENT"
+    return "OTHER_LOAD_SYNTAX"
+
+
 def build_edge_review_worklist(
     responsibility: Mapping[str, Any],
     test_candidates: Mapping[str, Any],
@@ -157,6 +168,27 @@ def build_edge_review_worklist(
             if lexical_records is not None:
                 lexical = lexical_records[(src, dst)]
                 bindings = lexical["candidate_bindings"]
+                if any(
+                    type(b["line"]) is not int
+                    or b["line"] not in lexical["import_lines"]
+                    or type(b["name"]) not in (str, type(None))
+                    or (isinstance(b["name"], str) and not b["name"])
+                    or b["status"] not in (
+                        "NAME_LOAD_CANDIDATE", "NO_NAME_LOAD_IN_SOURCE",
+                        "STAR_IMPORT_UNRESOLVED",
+                    )
+                    or (b["status"] == "STAR_IMPORT_UNRESOLVED") != (b["name"] is None)
+                    or (b["lexical_load_count"] > 0)
+                       != (b["status"] == "NAME_LOAD_CANDIDATE")
+                    or len(b["load_witnesses"]) > min(8, b["lexical_load_count"])
+                    or any(
+                        type(w["line"]) is not int or w["line"] < 1
+                        or type(w["column"]) is not int or w["column"] < 0
+                        for w in b["load_witnesses"]
+                    )
+                    for b in bindings
+                ):
+                    raise EdgeReviewWorklistError("unbound lexical binding witness")
                 if (lexical["source_sha256"] != ctx["source_sha256"]
                         or lexical["import_lines"] != sorted({w["line"] for w in edge["import_witnesses"]})
                         or lexical["binding_target_attribution"] != "LINE_COLOCATED_UNVERIFIED"
@@ -169,6 +201,18 @@ def build_edge_review_worklist(
                     raise EdgeReviewWorklistError("lexical witness mismatch")
                 if "syntax_context_counts" in lexical_usage:
                     if (set(lexical["syntax_context_counts"]) != set(_SYNTAX_CONTEXTS)
+                            or any(
+                                set(b["syntax_context_counts"]) != set(_SYNTAX_CONTEXTS)
+                                or any(type(n) is not int or n < 0
+                                       for n in b["syntax_context_counts"].values())
+                                or sum(b["syntax_context_counts"].values())
+                                   != b["lexical_load_count"]
+                                or type(b["conditional_load_candidates"]) is not int
+                                for b in bindings
+                            )
+                            or any(type(n) is not int or n < 0
+                                   for n in lexical["syntax_context_counts"].values())
+                            or type(lexical["conditional_load_candidates"]) is not int
                             or lexical["syntax_context_counts"] != {
                                 k: sum(b["syntax_context_counts"][k] for b in bindings)
                                 for k in _SYNTAX_CONTEXTS
@@ -258,6 +302,10 @@ def build_edge_review_worklist(
                         "lexical_syntax_context_counts": lexical["syntax_context_counts"],
                         "lexical_conditional_load_candidates":
                             lexical["conditional_load_candidates"],
+                        "lexical_use_mode": _lexical_use_mode(
+                            lexical["syntax_context_counts"],
+                            sum(b["lexical_load_count"] for b in bindings),
+                        ),
                     })
         if (sum(r["direct_python_calls"] for r in rows)
                 != callsite_context["direct_python_calls"]
@@ -314,6 +362,9 @@ def build_edge_review_worklist(
                 result["lexical_conditional_load_candidates"] = lexical_usage[
                     "conditional_load_candidates"
                 ]
+                result["lexical_use_mode_counts"] = dict(sorted(Counter(
+                    row["lexical_use_mode"] for row in rows
+                ).items()))
                 result["limitations"].append(
                     "annotation, call, attribute and conditional placements are "
                     "AST syntax only; no semantic responsibility or runtime execution"
@@ -330,7 +381,21 @@ def render_edge_review_worklist_markdown(report: Mapping[str, Any]) -> str:
         if (not _sealed(report, "worklist_id")
                 or report["decision"] != "NOT_EVALUATED"
                 or report["recommended_action"] != "NO_AUTOMATIC_MOVE"
-                or len(report["edges"]) != report["observed_cross_role_pairs"]):
+                or len(report["edges"]) != report["observed_cross_role_pairs"]
+                or ("lexical_use_mode_counts" in report and (
+                    sum(report["lexical_use_mode_counts"].values())
+                    != report["observed_cross_role_pairs"]
+                    or report["lexical_use_mode_counts"] != dict(sorted(Counter(
+                        row["lexical_use_mode"] for row in report["edges"]
+                    ).items()))
+                    or any(
+                        row["lexical_use_mode"] != _lexical_use_mode(
+                            row["lexical_syntax_context_counts"],
+                            row["lexical_name_load_candidates"],
+                        )
+                        for row in report["edges"]
+                    )
+                ))):
             raise EdgeReviewWorklistError("modified worklist")
         lines = [
             "## Measured edge responsibility review worklist", "",
@@ -353,6 +418,8 @@ def render_edge_review_worklist_markdown(report: Mapping[str, Any]) -> str:
                     for k in _SYNTAX_CONTEXTS
                 ) + "; conditional=" + str(row["lexical_conditional_load_candidates"])
                    if "lexical_syntax_context_counts" in row else "")
+                + ("; use-mode=" + row["lexical_use_mode"]
+                   if "lexical_use_mode" in row else "")
                 + "; test-candidates=" + str(row["candidate_test_functions"])
                 + "; assertion-operand-candidates=" + str(row["assertion_operand_candidates"])
                 + "; signal=" + row["signal_disposition"] + "]"
