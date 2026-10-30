@@ -130,6 +130,46 @@ def build_source_review_packets(
         raise SourceReviewPacketError("untrustworthy source review packet evidence") from exc
 
 
+def _validate_rendered_packet_rows(report: Mapping[str, Any]) -> None:
+    """Reject resealed semantic promotion and internally inconsistent excerpts.
+
+    The digest is an accidental-tamper guard, not an authentication signature.
+    Exact source authenticity remains the responsibility of the builder and
+    the B8 manifest; rendering must not turn an edited packet into approval.
+    """
+    if report["schema_version"] != "0.1":
+        raise SourceReviewPacketError("unsupported packet schema")
+    seen: set[tuple[str, str]] = set()
+    source_hashes: dict[str, str] = {}
+    for row in report["packets"]:
+        src, dst = row["source_path"], row["target_path"]
+        if (not isinstance(src, str) or not isinstance(dst, str)
+                or not src or not dst or src == dst
+                or (src, dst) in seen
+                or row["review_status"] != "HUMAN_EVIDENCE_REQUIRED"
+                or row["semantic_ownership"] != "NOT_EVALUATED"
+                or row["public_api_compatibility"] != "NOT_EVALUATED"
+                or not row["import_excerpts"]):
+            raise SourceReviewPacketError("unsupported packet review assertion")
+        seen.add((src, dst))
+        for excerpt in (*row["import_excerpts"], *row["sampled_callsite_excerpts"]):
+            line = excerpt["witness_line"]
+            digest = excerpt["source_sha256"]
+            lines = excerpt["lines"]
+            if (type(line) is not int or line < 1
+                    or not isinstance(digest, str) or len(digest) != 64
+                    or not isinstance(lines, list) or not lines
+                    or any(type(item["line"]) is not int
+                           or not isinstance(item["text"], str)
+                           for item in lines)
+                    or [item["line"] for item in lines]
+                       != list(range(lines[0]["line"], lines[-1]["line"] + 1))
+                    or line not in {item["line"] for item in lines}
+                    or (src in source_hashes and source_hashes[src] != digest)):
+                raise SourceReviewPacketError("inconsistent source excerpt")
+            source_hashes[src] = digest
+
+
 def render_source_review_packets_markdown(report: Mapping[str, Any]) -> str:
     """Render source excerpts without an implicit KEEP or move recommendation."""
     try:
@@ -140,6 +180,7 @@ def render_source_review_packets_markdown(report: Mapping[str, Any]) -> str:
                 or report["recommended_action"] != "NO_AUTOMATIC_MOVE"
                 or report["observed_cross_role_pairs"] != len(report["packets"])):
             raise SourceReviewPacketError("modified source review packets")
+        _validate_rendered_packet_rows(report)
         lines = [
             "## Source-linked responsibility review packets", "",
             "Exact source HEAD: " + report["source_identity"]["snapshot_sha"],
