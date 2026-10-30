@@ -178,6 +178,39 @@ class ImportBindingUsageTests(unittest.TestCase):
         self.assertEqual(counts["CALL_TARGET_SYNTAX"], 1)
         self.assertEqual(counts["ATTRIBUTE_ACCESS_SYNTAX"], 0)
 
+    def test_callee_spine_excludes_subscript_index_and_nested_call_argument(self):
+        # An enclosing Call.func does not make *every* descendant Name a callee.
+        source = (
+            "from demo.core.a import Alpha, Beta\\n"
+            "Alpha[Beta]()\\n"
+            "factory(Alpha).method()\\n"
+            "Alpha.run()\\n"
+        )
+        s, r, b = inputs(1, source)
+        report = census_b8_import_binding_uses(s, r, b)
+        bindings = {c["name"]: c for c in report["records"][0]["candidate_bindings"]}
+        self.assertEqual(bindings["Alpha"]["syntax_context_counts"], {
+            "ANNOTATION_SYNTAX": 0,
+            "CALL_TARGET_SYNTAX": 2,
+            "ATTRIBUTE_ACCESS_SYNTAX": 0,
+            "OTHER_LOAD_SYNTAX": 1,
+        })
+        self.assertEqual(bindings["Beta"]["syntax_context_counts"], {
+            "ANNOTATION_SYNTAX": 0,
+            "CALL_TARGET_SYNTAX": 0,
+            "ATTRIBUTE_ACCESS_SYNTAX": 0,
+            "OTHER_LOAD_SYNTAX": 1,
+        })
+        self.assertEqual(report["syntax_context_counts"]["CALL_TARGET_SYNTAX"], 2)
+        self.assertEqual(report["decision"], "NOT_EVALUATED")
+
+    def test_subscript_receiver_remains_attribute_syntax(self):
+        s, r, b = inputs(1, "from demo.core.a import Alpha\\nAlpha[0].value\\n")
+        report = census_b8_import_binding_uses(s, r, b)
+        counts = report["records"][0]["syntax_context_counts"]
+        self.assertEqual(counts["ATTRIBUTE_ACCESS_SYNTAX"], 1)
+        self.assertEqual(counts["CALL_TARGET_SYNTAX"], 0)
+
     def test_star_import_and_zero_pair_contexts_do_not_force_question(self):
         s, r, b = inputs(1, "from demo.core.a import *\n")
         report = census_b8_import_binding_uses(s, r, b)
