@@ -6,6 +6,7 @@ bindings are not target-resolution, runtime-execution or ownership evidence.
 from __future__ import annotations
 
 import ast
+from collections import Counter
 from collections.abc import Mapping
 from hashlib import sha256
 import json
@@ -23,6 +24,41 @@ def _digest(value: Any) -> str:
 
 def _sealed(value: Mapping[str, Any], key: str) -> bool:
     return value[key] == _digest({k: v for k, v in value.items() if k != key})
+
+
+_SYNTAX_CONTEXTS = (
+    "ANNOTATION_SYNTAX", "CALL_TARGET_SYNTAX",
+    "ATTRIBUTE_ACCESS_SYNTAX", "OTHER_LOAD_SYNTAX",
+)
+
+
+def _load_syntax_context(
+    node: ast.Name,
+    parents: Mapping[int, tuple[ast.AST, str]],
+) -> tuple[str, bool]:
+    """Describe AST placement, never import binding or runtime target identity."""
+    annotation = call = attribute = conditional = False
+    child: ast.AST = node
+    while id(child) in parents:
+        parent, field = parents[id(child)]
+        if field in ("annotation", "returns") and isinstance(
+            parent, (ast.arg, ast.AnnAssign, ast.FunctionDef, ast.AsyncFunctionDef)
+        ):
+            annotation = True
+        if isinstance(parent, ast.Call) and field == "func":
+            call = True
+        if isinstance(parent, ast.Attribute) and field == "value":
+            attribute = True
+        if isinstance(parent, (ast.If, ast.IfExp)) and field in ("body", "orelse"):
+            conditional = True
+        child = parent
+    if annotation:
+        return "ANNOTATION_SYNTAX", conditional
+    if call:
+        return "CALL_TARGET_SYNTAX", conditional
+    if attribute:
+        return "ATTRIBUTE_ACCESS_SYNTAX", conditional
+    return "OTHER_LOAD_SYNTAX", conditional
 
 
 def census_b8_import_binding_uses(
@@ -64,13 +100,22 @@ def census_b8_import_binding_uses(
                 raise ImportBindingUsageError("source bytes do not match pinned hash")
             tree = ast.parse(raw, filename=path)
             by_line: dict[int, list[ast.Import | ast.ImportFrom]] = {}
-            by_name: dict[str, list[dict[str, int]]] = {}
+            by_name: dict[str, list[dict[str, Any]]] = {}
+            parents = {
+                id(child): (node, field)
+                for node in ast.walk(tree)
+                for field, value in ast.iter_fields(node)
+                for child in (value if isinstance(value, list) else [value])
+                if isinstance(child, ast.AST)
+            }
             for node in ast.walk(tree):
                 if isinstance(node, (ast.Import, ast.ImportFrom)):
                     by_line.setdefault(node.lineno, []).append(node)
                 elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                    kind, conditional = _load_syntax_context(node, parents)
                     by_name.setdefault(node.id, []).append({
                         "line": node.lineno, "column": node.col_offset,
+                        "syntax_context": kind, "conditional_branch": conditional,
                     })
             import_nodes[path] = by_line
             loads[path] = by_name
@@ -101,6 +146,8 @@ def census_b8_import_binding_uses(
                             candidates.append({
                                 "line": line, "name": None, "lexical_load_count": 0,
                                 "load_witnesses": [], "status": "STAR_IMPORT_UNRESOLVED",
+                                "syntax_context_counts": {k: 0 for k in _SYNTAX_CONTEXTS},
+                                "conditional_load_candidates": 0,
                             })
                             continue
                         positions = sorted(loads[src].get(name, []),
@@ -108,7 +155,17 @@ def census_b8_import_binding_uses(
                         candidates.append({
                             "line": line, "name": name,
                             "lexical_load_count": len(positions),
-                            "load_witnesses": positions[:8],
+                            "load_witnesses": [
+                                {"line": p["line"], "column": p["column"]}
+                                for p in positions[:8]
+                            ],
+                            "syntax_context_counts": {
+                                k: sum(p["syntax_context"] == k for p in positions)
+                                for k in _SYNTAX_CONTEXTS
+                            },
+                            "conditional_load_candidates": sum(
+                                bool(p["conditional_branch"]) for p in positions
+                            ),
                             "status": ("NAME_LOAD_CANDIDATE" if positions
                                        else "NO_NAME_LOAD_IN_SOURCE"),
                         })
@@ -119,6 +176,13 @@ def census_b8_import_binding_uses(
                 "import_lines": lines,
                 "candidate_bindings": candidates,
                 "has_name_load_candidate": any(c["lexical_load_count"] for c in candidates),
+                "syntax_context_counts": {
+                    k: sum(c["syntax_context_counts"][k] for c in candidates)
+                    for k in _SYNTAX_CONTEXTS
+                },
+                "conditional_load_candidates": sum(
+                    c["conditional_load_candidates"] for c in candidates
+                ),
                 "binding_target_attribution": "LINE_COLOCATED_UNVERIFIED",
                 "import_execution": "NOT_EVALUATED",
                 "semantic_ownership": "NOT_EVALUATED",
@@ -132,6 +196,13 @@ def census_b8_import_binding_uses(
             "pairs_with_name_load_candidates": sum(x["has_name_load_candidate"] for x in records),
             "pairs_without_name_load_candidates": sum(not x["has_name_load_candidate"] for x in records),
             "records": records,
+            "syntax_context_counts": {
+                k: sum(r["syntax_context_counts"][k] for r in records)
+                for k in _SYNTAX_CONTEXTS
+            },
+            "conditional_load_candidates": sum(
+                r["conditional_load_candidates"] for r in records
+            ),
             "evidence_class": "SOURCE_ONLY_LEXICAL_CANDIDATE_UNATTESTED",
             "import_execution": "NOT_EVALUATED",
             "semantic_ownership": "NOT_EVALUATED",
@@ -142,6 +213,8 @@ def census_b8_import_binding_uses(
                 "import-line co-location does not attribute an alias to the target module",
                 "lexical Name(Load) may be shadowed or rebound and is not runtime use proof",
                 "no Name(Load) does not prove an import is unused or safe to remove",
+                "AST annotation/call/attribute placements are syntax candidates, not ownership",
+                "conditional branch placement does not prove branch execution",
                 "annotations, reflection, wildcard and dynamic imports are not resolved",
                 "external callers and package/public API compatibility remain unknown",
             ],
