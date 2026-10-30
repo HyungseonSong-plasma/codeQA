@@ -184,6 +184,55 @@ def _candidate_sites(text: str, import_lines: set[int]) -> tuple[list[dict[str, 
     return sorted(results, key=lambda x: (x["test_function_line"], x["test_function"])), "PARSED"
 
 
+
+def _fixture_call_sites(text: str, import_lines: set[int]) -> list[dict[str, Any]]:
+    """Identify setup-shaped calls in test classes, not executed test coverage.
+
+    A class-level setup hook can invoke an imported pipeline wrapper even when
+    its test methods only assert on stored results. Only top-level test classes
+    with direct test_* methods are considered. Nested/deferred calls, class
+    namespace imports and locally shadowed names are excluded.
+    """
+    tree = ast.parse(text)
+    module_aliases = _scoped_import_aliases(tree.body, import_lines)
+    found: list[dict[str, Any]] = []
+    for cls in tree.body:
+        if not isinstance(cls, ast.ClassDef):
+            continue
+        test_methods = sorted(
+            node.name for node in cls.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        )
+        if not test_methods:
+            continue
+        for method in cls.body:
+            if (not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    or method.name not in ("setUpClass", "setUp", "asyncSetUp")):
+                continue
+            active_aliases = (
+                module_aliases | _scoped_import_aliases(method.body, import_lines)
+            ) - _shadowed_import_names(method, import_lines)
+            if not active_aliases:
+                continue
+            calls = sorted({
+                node.lineno for node in _test_body_nodes(method)
+                if isinstance(node, ast.Call) and _root_name(node.func) in active_aliases
+            })
+            if calls:
+                found.append({
+                    "class_name": cls.name,
+                    "class_line": cls.lineno,
+                    "fixture_method": method.name,
+                    "fixture_line": method.lineno,
+                    "candidate_call_lines": calls,
+                    "test_methods": test_methods,
+                    "evidence_class":
+                        "STATIC_FIXTURE_CALL_CANDIDATE_NOT_BEHAVIORAL_COVERAGE",
+                })
+    return found
+
+
 def census_test_behavior_candidates(
     inventory: Mapping[str, Any],
     responsibility: Mapping[str, Any],
@@ -245,6 +294,7 @@ def census_test_behavior_candidates(
         records = []
         total = 0
         operand_total = 0
+        fixture_total = 0
         for edge in edges:
             by_path: dict[str, set[int]] = {}
             for w in edge["known_test_path_importers"]:
@@ -253,9 +303,12 @@ def census_test_behavior_candidates(
             for path, lines in sorted(by_path.items()):
                 if decoded[path] is None:
                     candidates, parse_status = [], "DECODE_FAILED"
+                    fixtures = []
                 else:
                     candidates, parse_status = _candidate_sites(decoded[path], lines)
+                    fixtures = _fixture_call_sites(decoded[path], lines) if parse_status == "PARSED" else []
                 total += len(candidates)
+                fixture_total += len(fixtures)
                 operand_total += sum(len(c["assertion_operand_pairs"]) for c in candidates)
                 sites.append({
                     "test_path": path,
@@ -263,6 +316,7 @@ def census_test_behavior_candidates(
                     "import_lines": sorted(lines),
                     "parse_status": parse_status,
                     "candidate_tests": candidates,
+                    "fixture_call_candidates": fixtures,
                 })
             records.append({
                 "signal_id": edge["signal_id"],
@@ -282,6 +336,7 @@ def census_test_behavior_candidates(
             "observed_cross_role_pairs": len(records),
             "candidate_test_functions_across_edges": total,
             "assertion_operand_candidate_pairs_across_edges": operand_total,
+            "fixture_call_candidate_sites_across_edges": fixture_total,
             "edges": records,
             "decision": "NOT_EVALUATED",
             "limitations": [
@@ -291,6 +346,7 @@ def census_test_behavior_candidates(
                 "import bindings are confined to module/test lexical scopes; nested test definitions are excluded",
                 "test assertions may not inspect the imported call result or downstream edge",
                 "module import may be indirect, mocked, shadowed, or never executed",
+                "setup-shaped class fixture calls are static candidates, not proof of fixture execution or edge traversal",
                 "no candidate does not establish absent behavioral coverage",
                 "runtime, external consumers, semantic ownership and compatibility remain NOT_EVALUATED",
             ],
@@ -317,6 +373,8 @@ def render_test_behavior_candidates_markdown(report: Mapping[str, Any]) -> str:
             + str(report["candidate_test_functions_across_edges"]),
             "Assertion-operand candidate pairs across edges: "
             + str(report["assertion_operand_candidate_pairs_across_edges"]),
+            "Setup-shaped fixture call candidate sites across edges: "
+            + str(report["fixture_call_candidate_sites_across_edges"]),
             "Assertion-operand proximity is NOT runtime coverage or semantic ownership.",
         ]
         for edge in report["edges"]:
@@ -330,6 +388,18 @@ def render_test_behavior_candidates_markdown(report: Mapping[str, Any]) -> str:
                         + str(test["candidate_call_lines"]) + ", assertion="
                         + str(test["assertion_lines"]) + ", assertion-operand="
                         + str(test["assertion_operand_pairs"]) + "; candidate only)"
+                    )
+        for edge in report["edges"]:
+            for site in edge["candidate_test_paths"]:
+                for fixture in site.get("fixture_call_candidates", []):
+                    lines.append(
+                        "- `" + edge["source_path"] + "` -> `" + edge["target_path"]
+                        + "`: `" + site["test_path"] + ":"
+                        + str(fixture["fixture_line"]) + "` "
+                        + fixture["class_name"] + "." + fixture["fixture_method"]
+                        + " (call=" + str(fixture["candidate_call_lines"])
+                        + ", tests=" + str(fixture["test_methods"])
+                        + "; setup-shaped candidate only)"
                     )
         lines.extend(["", "Behavioral edge coverage, external callers and runtime/API compatibility: NOT_EVALUATED.", ""])
         return "\n".join(lines)
