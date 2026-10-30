@@ -92,7 +92,7 @@ def census_b8_import_binding_uses(
             raise ImportBindingUsageError("unbound source or pair denominator")
 
         import_nodes: dict[str, dict[int, list[ast.Import | ast.ImportFrom]]] = {}
-        loads: dict[str, dict[str, list[dict[str, int]]]] = {}
+        loads: dict[str, dict[str, list[dict[str, Any]]]] = {}
         for path in sorted(sources):
             raw = source_bytes[path]
             if not isinstance(raw, bytes) or sha256(raw).hexdigest() != hashes[path]:
