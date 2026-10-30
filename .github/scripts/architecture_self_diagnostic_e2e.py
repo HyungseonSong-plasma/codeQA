@@ -281,6 +281,7 @@ def main() -> None:
         # This is a review worklist, not a semantic classification or move gate.
         worklist = build_edge_review_worklist(
             responsibility, test_candidates, context, disposition,
+            lexical_usage=lexical_usage,
         )
         if (worklist["source_identity"]["snapshot_sha"] != head
                 or worklist["observed_cross_role_pairs"] != len(selection["pairs"])
