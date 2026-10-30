@@ -109,7 +109,7 @@ class PackageSurfaceEvidenceTests(unittest.TestCase):
             ), 2),
             (PYPROJECT.replace(
                 'include = ["orchard*"]',
-                'include = ["orchard*"]\\nexclude = ["orchard"]',
+                'include = ["orchard*"]\nexclude = ["orchard"]',
             ), 2),
             (PYPROJECT.replace(
                 'include = ["orchard*"]',
