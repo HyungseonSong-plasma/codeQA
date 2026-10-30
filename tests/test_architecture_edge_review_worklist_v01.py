@@ -329,7 +329,12 @@ class EdgeReviewWorklistTests(unittest.TestCase):
                             for row in report["edges"]))
         self.assertIn("use-mode=ANNOTATION_ONLY_SYNTAX",
                       render_edge_review_worklist_markdown(report))
+        original = report["edges"][0]["lexical_use_mode"]
         report["edges"][0]["lexical_use_mode"] = "SEMANTIC_KEEP"
+        report["lexical_use_mode_counts"][original] -= 1
+        if not report["lexical_use_mode_counts"][original]:
+            del report["lexical_use_mode_counts"][original]
+        report["lexical_use_mode_counts"]["SEMANTIC_KEEP"] = 1
         seal(report, "worklist_id")
         with self.assertRaises(EdgeReviewWorklistError):
             render_edge_review_worklist_markdown(report)
