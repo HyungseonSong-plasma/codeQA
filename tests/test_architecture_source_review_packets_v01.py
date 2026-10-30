@@ -241,9 +241,9 @@ class SourceReviewPacketTests(unittest.TestCase):
     def test_callsite_metadata_is_bound_to_actual_source_syntax(self):
         src = "src/orchard/sky/helper.py"
         raw = (
-            b"from orchard.earth.model import Model\\n"
-            b"def run():\\n"
-            b"    return Model()\\n"
+            b"from orchard.earth.model import Model\n"
+            b"def run():\n"
+            b"    return Model()\n"
         )
         worklist, _ = pack()
         worklist["edges"] = [deepcopy(worklist["edges"][2])]
