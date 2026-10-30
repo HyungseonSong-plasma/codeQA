@@ -126,14 +126,14 @@ class ImportBindingUsageTests(unittest.TestCase):
         self.assertEqual(report["public_api_compatibility"], "NOT_EVALUATED")
 
     def test_method_call_is_call_syntax_not_attribute_only(self):
-        s, r, b = inputs(1, "from codeqa.core import Alpha\\nAlpha.run()\\n")
+        s, r, b = inputs(1, "from codeqa.core import Alpha\nAlpha.run()\n")
         report = census_b8_import_binding_uses(s, r, b)
         counts = report["records"][0]["syntax_context_counts"]
         self.assertEqual(counts["CALL_TARGET_SYNTAX"], 1)
         self.assertEqual(counts["ATTRIBUTE_ACCESS_SYNTAX"], 0)
 
     def test_star_import_and_zero_pair_contexts_do_not_force_question(self):
-        s, r, b = inputs(1, "from codeqa.core import *\\n")
+        s, r, b = inputs(1, "from codeqa.core import *\n")
         report = census_b8_import_binding_uses(s, r, b)
         self.assertEqual(sum(report["syntax_context_counts"].values()), 0)
         self.assertEqual(report["records"][0]["candidate_bindings"][0]["status"],
