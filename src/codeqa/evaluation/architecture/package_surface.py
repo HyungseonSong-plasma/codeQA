@@ -75,12 +75,14 @@ def census_package_surface(
         if not isinstance(find, dict):
             raise PackageSurfaceEvidenceError("invalid package discovery declaration")
         search_roots = find.get("where", [])
-        includes = find.get("include", [])
+        includes = find.get("include", ["*"])
         excludes = find.get("exclude", [])
         if not all(isinstance(v, list) and all(isinstance(x, str) for x in v)
                    for v in (search_roots, includes, excludes)):
             raise PackageSurfaceEvidenceError("invalid package discovery patterns")
-        declared = (
+        # A root match alone does not establish that nested packages are
+        # discoverable. setuptools applies include/exclude to each package name.
+        declared_root = (
             where in search_roots
             and any(fnmatchcase(root_name, pattern) for pattern in includes)
             and not any(fnmatchcase(root_name, pattern) for pattern in excludes)
@@ -113,9 +115,21 @@ def census_package_surface(
                 p in tracked and tracked[p]["read_state"] == "READ"
                 for p in init_paths
             )
+            # An excluded subpackage cannot be rescued by a matching root.
+            # Check the complete package ancestry, not the .py module name.
+            package_names = [
+                ".".join(parent_parts[1:i])
+                for i in range(3, len(parent_parts) + 1)
+            ]
+            declared_package_chain = declared_root and all(
+                any(fnmatchcase(name, pattern) for pattern in includes)
+                and not any(fnmatchcase(name, pattern) for pattern in excludes)
+                for name in package_names
+            )
             status = (
                 "DECLARED_DISCOVERY_CANDIDATE"
-                if declared and init_coverage and tracked[path]["read_state"] == "READ"
+                if declared_package_chain and init_coverage
+                and tracked[path]["read_state"] == "READ"
                 else "NOT_EVALUATED"
             )
             modules.append({
@@ -158,6 +172,7 @@ def census_package_surface(
             "public_api_compatibility": "NOT_EVALUATED",
             "decision": "NOT_EVALUATED",
             "limitations": [
+                "setuptools include/exclude patterns are checked for every package ancestor",
                 "setuptools find configuration is declared intent, not a built-wheel file inventory",
                 "potential import names are not a supported public API contract",
                 "known B2 static importers are not exhaustive consumers or behavioral tests",
