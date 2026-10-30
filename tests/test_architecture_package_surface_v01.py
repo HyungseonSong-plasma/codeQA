@@ -102,6 +102,15 @@ class PackageSurfaceEvidenceTests(unittest.TestCase):
             (PYPROJECT.replace(
                 'include = ["orchard*"]', 'include = ["orchard"]',
             ), 0),
+            # find_packages selects a child by its own name even when the
+            # parent is not included; installed importability remains unknown.
+            (PYPROJECT.replace(
+                'include = ["orchard*"]', 'include = ["orchard.sky"]',
+            ), 2),
+            (PYPROJECT.replace(
+                'include = ["orchard*"]',
+                'include = ["orchard*"]\\nexclude = ["orchard"]',
+            ), 2),
             (PYPROJECT.replace(
                 'include = ["orchard*"]',
                 'include = ["orchard*"]\nexclude = ["orchard.earth*"]',
