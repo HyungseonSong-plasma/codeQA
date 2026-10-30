@@ -186,6 +186,65 @@ class ArchitectureScenarioTests(unittest.TestCase):
                 report = compare(edges=CONCENTRATED, candidate_mappings={qid: mapping})
                 self.assertEqual(report["rejected"][0]["reason"], expected)
 
+    def test_occupied_primary_kept_and_distinct_witnessed_source_compared(self):
+        # The highest-pressure source cannot move to its exact target path.
+        # A second, independently witnessed source can still be compared.
+        sources = {
+            **SOURCES,
+            "src/orchard/earth/view.py": "value = 1\n",
+            "src/orchard/sky/presenter.py":
+                "from orchard.earth.model import Model\n"
+                "from orchard.earth.other import Other\n",
+        }
+        edges = CONCENTRATED + (
+            edge("sky/presenter", "earth/model"),
+            StaticDependency(
+                "src/orchard/sky/presenter.py",
+                "src/orchard/earth/other.py", 2,
+                "from orchard.earth.other import Other", "top_level",
+            ),
+        )
+        inv, metrics, opp, policy = reports(sources=sources, edges=edges)
+        result = generate_virtual_layout_scenarios(inv, metrics, opp, policy)
+        self.assertTrue(any(
+            r["reason"] == "TARGET_COLLISION" and any(
+                w["source_path"] == "src/orchard/sky/view.py"
+                and w["proposed_target_path"] == "src/orchard/earth/view.py"
+                and w["collision_kind"] == "OCCUPIED_TARGET"
+                for w in r["collision_witnesses"]
+            ) for r in result["rejected"]))
+        self.assertEqual(len(result["candidates"]), 1)
+        mapping = result["candidates"][0]["path_mapping"]
+        self.assertEqual([(m["from"], m["to"]) for m in mapping], [
+            ("src/orchard/sky/presenter.py", "src/orchard/earth/presenter.py"),
+        ])
+        self.assertEqual(result["candidates"][0]["decision"], "NOT_EVALUATED")
+        from codeqa.evaluation.architecture.migration import assess_architecture_migration
+        from codeqa.evaluation.architecture.assessment import assemble_architecture_advisory
+        migration = assess_architecture_migration(inv, result, sources)
+        advisory = assemble_architecture_advisory(inv, metrics, opp, result, migration)
+        self.assertEqual(len(advisory["scenario_assessments"]), 1)
+        self.assertEqual(
+            advisory["scenario_assessments"][0]["decision_evidence"]["decision"],
+            "INSUFFICIENT_EVIDENCE",
+        )
+        self.assertEqual(advisory["scenario_assessments"][0]["denominators"][
+            "resolved_pairs"], len(metrics["resolved_pairs"]))
+
+    def test_collision_does_not_rename_or_force_weak_alternative(self):
+        sources = {
+            **SOURCES,
+            "src/orchard/earth/view.py": "value = 1\n",
+            "src/orchard/sky/presenter.py":
+                "from orchard.earth.model import Model\n",
+        }
+        edges = CONCENTRATED + (edge("sky/presenter", "earth/model"),)
+        result = compare(sources=sources, edges=edges)
+        self.assertEqual(result["candidates"], [])
+        self.assertEqual(result["rejected"][0]["reason"], "TARGET_COLLISION")
+        self.assertEqual(result["rejected"][0]["collision_witnesses"][0][
+            "proposed_target_path"], "src/orchard/earth/view.py")
+
     def test_known_new_forbidden_boundary_blocks_candidate(self):
         _, _, opportunities, _ = reports(edges=CONCENTRATED)
         qid = opportunities["question_opportunities"][0]["opportunity_id"]
