@@ -126,6 +126,21 @@ class MixedLanguageCoverageTests(unittest.TestCase):
         self.assertEqual(report.selected_status, "none")
         self.assertEqual(report.analyzed_languages, ())
 
+    def test_all_excluded_selection_has_no_complete_coverage(self):
+        manifest = deepcopy(self.manifest)
+        for entry in manifest["files"]:
+            entry["selection"] = "excluded"
+            entry["exclusion_reason"] = "caller_excluded"
+        # A caller's complete-inventory attestation cannot certify any analysis.
+        manifest["discovery"]["inventory_complete"] = True
+        report = self.evaluate(manifest=manifest, graphs={}, capabilities={})
+        self.assertEqual(report.selected_status, "none")
+        self.assertEqual(report.inventory_confidence, "caller_attested")
+        self.assertEqual(report.analyzed_languages, ())
+        self.assertEqual(report.unsupported_languages, ())
+        self.assertTrue(all(item.status == "excluded" for item in report.files))
+        self.assertIn("NOT_A_REPOSITORY_QUALITY_VERDICT", report.assurance)
+
     def test_missing_python_capability_and_manual_rust_golden_cannot_pass(self):
         with self.assertRaises(SourceSelectionError):
             self.evaluate(capabilities={}, graphs={"python": self.graph})
