@@ -43,6 +43,9 @@ from codeqa.evaluation.architecture.test_behavior_candidates import (
 from codeqa.evaluation.architecture.bounded_disposition import (
     assess_bounded_disposition, render_bounded_disposition_markdown,
 )
+from codeqa.evaluation.architecture.edge_review_worklist import (
+    build_edge_review_worklist, render_edge_review_worklist_markdown,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / ".github" / "scripts"
@@ -274,6 +277,19 @@ def main() -> None:
                 or context["decision"] != "NOT_EVALUATED"):
             raise ValueError("B8 caller context identity or denominator drift")
         write(output / "architecture-callsite-context.json", context)
+        # Correlate all measured edges with bounded callsite and test candidates.
+        # This is a review worklist, not a semantic classification or move gate.
+        worklist = build_edge_review_worklist(
+            responsibility, test_candidates, context, disposition,
+        )
+        if (worklist["source_identity"]["snapshot_sha"] != head
+                or worklist["observed_cross_role_pairs"] != len(selection["pairs"])
+                or worklist["decision"] != "NOT_EVALUATED"
+                or worklist["recommended_action"] != "NO_AUTOMATIC_MOVE"):
+            raise ValueError("B8 edge review worklist provenance drift")
+        write(output / "architecture-edge-review-worklist.json", worklist)
+        with (output / "architecture-self-diagnostic.md").open("a", encoding="utf-8") as handle:
+            handle.write("\n" + render_edge_review_worklist_markdown(worklist))
         with (output / "architecture-self-diagnostic.md").open("a", encoding="utf-8") as handle:
             handle.write(
                 "\n## Bounded static/runtime pair correlation\n\n"
