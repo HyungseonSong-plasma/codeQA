@@ -229,6 +229,9 @@ def build_edge_review_worklist(
                         raise EdgeReviewWorklistError("untrusted lexical syntax context")
             sites = test["candidate_test_paths"]
             test_functions = sum(len(site["candidate_tests"]) for site in sites)
+            fixture_candidates = sum(
+                len(site.get("fixture_call_candidates", [])) for site in sites
+            )
             assertion_operand_pairs = sum(
                 len(t["assertion_operand_pairs"])
                 for site in sites for t in site["candidate_tests"]
@@ -278,6 +281,7 @@ def build_edge_review_worklist(
                     "enclosing_statement_kind": w["enclosing_statement_kind"],
                 } for w in witnesses[:5]],
                 "candidate_test_functions": test_functions,
+                "fixture_call_candidate_sites": fixture_candidates,
                 "assertion_operand_candidates": assertion_operand_pairs,
                 "candidate_test_paths": [site["test_path"] for site in sites],
                 "review_focus": focus,
@@ -315,6 +319,8 @@ def build_edge_review_worklist(
                    != test_candidates["candidate_test_functions_across_edges"]
                 or sum(r["assertion_operand_candidates"] for r in rows)
                    != test_candidates["assertion_operand_candidate_pairs_across_edges"]
+                or sum(r["fixture_call_candidate_sites"] for r in rows)
+                   != test_candidates.get("fixture_call_candidate_sites_across_edges", 0)
                 or sum(r["direct_python_calls"] > 0 for r in rows)
                    != callsite_context["direct_call_observed_pairs"]):
             raise EdgeReviewWorklistError("cross-report count mismatch")
@@ -339,6 +345,7 @@ def build_edge_review_worklist(
                 "a direct sampled Python call does not prove import execution or intentional composition",
                 "no sampled call does not prove a dead dependency",
                 "test assertion proximity is not behavioral coverage of a downstream edge",
+                "setup-shaped test fixture calls do not prove fixture execution or edge traversal",
                 "collision rejection is not a global KEEP decision",
                 "external consumers, public API and semantic ownership remain NOT_EVALUATED",
             ],
@@ -421,6 +428,7 @@ def render_edge_review_worklist_markdown(report: Mapping[str, Any]) -> str:
                 + ("; use-mode=" + row["lexical_use_mode"]
                    if "lexical_use_mode" in row else "")
                 + "; test-candidates=" + str(row["candidate_test_functions"])
+                + "; fixture-call-candidates=" + str(row["fixture_call_candidate_sites"])
                 + "; assertion-operand-candidates=" + str(row["assertion_operand_candidates"])
                 + "; signal=" + row["signal_disposition"] + "]"
             )
