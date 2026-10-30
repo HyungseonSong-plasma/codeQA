@@ -118,22 +118,54 @@ def assess_bounded_disposition(
                     verdict = "KEEP"  # only compared alternatives, not architecture
             rejected_witnesses = []
             for candidate in rejected:
+                if candidate["originating_signal_ids"] != linked[0]["originating_signal_ids"]:
+                    raise BoundedDispositionError("rejection belongs to another signal")
                 if candidate["reason"] != "TARGET_COLLISION":
                     continue
                 witnesses = candidate.get("collision_witnesses", [])
-                if not witnesses:
+                if not isinstance(witnesses, list) or not witnesses:
                     raise BoundedDispositionError("collision without witness")
+                seen_witnesses: set[tuple[str, str, str]] = set()
+                duplicate_groups: dict[str, list[dict[str, Any]]] = {}
                 for w in witnesses:
                     path = w["source_path"]
+                    target = w["proposed_target_path"]
+                    kind = w["collision_kind"]
+                    key = (path, target, kind)
                     if (path not in tracked
                             or w["source_sha256"] != tracked[path]["source_sha256"]
-                            or w["proposed_target_path"] not in tracked):
+                            or not isinstance(target, str) or path == target
+                            or key in seen_witnesses):
                         raise BoundedDispositionError("unbound collision witness")
+                    seen_witnesses.add(key)
+                    if kind == "OCCUPIED_TARGET":
+                        if (target not in tracked
+                                or w.get("occupied_target_sha256")
+                                != tracked[target]["source_sha256"]
+                                or "conflicting_sources" in w):
+                            raise BoundedDispositionError("unverified occupied target")
+                    elif kind == "DUPLICATE_DESTINATION":
+                        if ("occupied_target_sha256" in w
+                                or not isinstance(w.get("conflicting_sources"), list)):
+                            raise BoundedDispositionError("unverified duplicate target")
+                        duplicate_groups.setdefault(target, []).append(w)
+                    else:
+                        raise BoundedDispositionError("unknown collision kind")
                     rejected_witnesses.append({
                         "source_path": path,
-                        "proposed_target_path": w["proposed_target_path"],
+                        "proposed_target_path": target,
                         "source_sha256": w["source_sha256"],
+                        "collision_kind": kind,
                     })
+                for target, group in duplicate_groups.items():
+                    sources = {w["source_path"] for w in group}
+                    if len(sources) < 2 or len(sources) != len(group):
+                        raise BoundedDispositionError("incomplete duplicate destination group")
+                    for w in group:
+                        if w["conflicting_sources"] != sorted(
+                            sources - {w["source_path"]}
+                        ):
+                            raise BoundedDispositionError("unbound conflicting sources")
             records.append({
                 "signal_id": sid,
                 "source_role": signal["source_role"],
