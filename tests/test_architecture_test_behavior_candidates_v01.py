@@ -379,9 +379,12 @@ class TestBehaviorCandidateTests(unittest.TestCase):
             "        assert True\n"
         )
         report = census_test_behavior_candidates(*reports(text))
-        report["edges"][0]["candidate_test_paths"][0]["fixture_call_candidates"][0][
-            "evidence_class"
-        ] = "BEHAVIORAL_COVERAGE_PASS"
+        site = next(
+            site for edge in report["edges"]
+            for site in edge["candidate_test_paths"]
+            if site["fixture_call_candidates"]
+        )
+        site["fixture_call_candidates"][0]["evidence_class"] = "BEHAVIORAL_COVERAGE_PASS"
         with self.assertRaises(TestBehaviorCandidateError):
             render_test_behavior_candidates_markdown(report)
 
