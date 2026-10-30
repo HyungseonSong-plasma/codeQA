@@ -102,7 +102,7 @@ class MigrationImpactTests(unittest.TestCase):
         # B4 sees an unoccupied view.py target, but creating that module can
         # shadow the existing namespace directory and its importable child.
         inv, scenarios, sources = setup(extra={
-            "src/orchard/earth/view/child.py": "value = 1\\n",
+            "src/orchard/earth/view/child.py": "value = 1\n",
         })
         self.assertEqual(len(scenarios["candidates"]), 1)
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
@@ -113,7 +113,7 @@ class MigrationImpactTests(unittest.TestCase):
 
     def test_similarly_named_sibling_directory_is_not_namespace_collision(self):
         inv, scenarios, sources = setup(extra={
-            "src/orchard/earth/view_helpers/child.py": "value = 1\\n",
+            "src/orchard/earth/view_helpers/child.py": "value = 1\n",
         })
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
         self.assertEqual(impact["namespace_collisions"], [])
