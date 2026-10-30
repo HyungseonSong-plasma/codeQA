@@ -191,12 +191,20 @@ class ArchitectureScenarioTests(unittest.TestCase):
         # A second, independently witnessed source can still be compared.
         sources = {
             **SOURCES,
+            "src/orchard/sky/view.py":
+                "from orchard.earth.model import Model\n"
+                "from orchard.earth.helper import Helper\n",
             "src/orchard/earth/view.py": "value = 1\n",
             "src/orchard/sky/presenter.py":
                 "from orchard.earth.model import Model\n"
                 "from orchard.earth.other import Other\n",
         }
         edges = CONCENTRATED + (
+            StaticDependency(
+                "src/orchard/sky/view.py",
+                "src/orchard/earth/helper.py", 2,
+                "from orchard.earth.helper import Helper", "top_level",
+            ),
             edge("sky/presenter", "earth/model"),
             StaticDependency(
                 "src/orchard/sky/presenter.py",
