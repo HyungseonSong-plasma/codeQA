@@ -74,6 +74,41 @@ class SourceReviewPacketTests(unittest.TestCase):
         with self.assertRaises(SourceReviewPacketError):
             build_source_review_packets(changed, blobs)
 
+    def test_reject_resealed_packet_review_and_excerpt_forgery(self):
+        worklist, blobs = pack()
+        original = build_source_review_packets(worklist, blobs)
+
+        def reseal(report):
+            report["packets_id"] = sha256(json.dumps(
+                {k: v for k, v in report.items() if k != "packets_id"},
+                sort_keys=True, separators=(",", ":"),
+            ).encode()).hexdigest()
+
+        for field, forged in (
+            ("review_status", "APPROVED"),
+            ("semantic_ownership", "INTENTIONAL_COMPOSITION"),
+            ("public_api_compatibility", "PASS"),
+        ):
+            with self.subTest(field=field):
+                changed = deepcopy(original)
+                changed["packets"][0][field] = forged
+                reseal(changed)
+                with self.assertRaises(SourceReviewPacketError):
+                    render_source_review_packets_markdown(changed)
+
+        changed = deepcopy(original)
+        changed["packets"][1]["source_path"] = changed["packets"][0]["source_path"]
+        changed["packets"][1]["target_path"] = changed["packets"][0]["target_path"]
+        reseal(changed)
+        with self.assertRaises(SourceReviewPacketError):
+            render_source_review_packets_markdown(changed)
+
+        changed = deepcopy(original)
+        changed["packets"][0]["import_excerpts"][0]["witness_line"] = 999
+        reseal(changed)
+        with self.assertRaises(SourceReviewPacketError):
+            render_source_review_packets_markdown(changed)
+
     def test_reject_resealed_report_with_false_decision(self):
         worklist, blobs = pack()
         result = build_source_review_packets(worklist, blobs)
