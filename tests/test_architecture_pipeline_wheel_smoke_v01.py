@@ -7,6 +7,8 @@ not from the checkout's editable install.
 """
 from __future__ import annotations
 
+from hashlib import sha256
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -58,11 +60,51 @@ class PipelineWheelSmokeTests(unittest.TestCase):
                 f"wheel install failed:\n{install.stdout}\n{install.stderr}",
             )
 
+            # Check behavior against the same source/profile on the checkout.
+            # This is a bounded regression, not external-consumer certification.
+            from codeqa.infrastructure.resources import ResourceRegistry
+            from codeqa.pipeline.python import analyze_python as checkout_analyze
+
+            registry = ResourceRegistry(ROOT)
+            ccg_schema = registry.load_json("ccg_schema")
+            mechanical_profile = registry.load_json("mechanical_profile")
+            cases = [
+                {
+                    "src/pkg/a.py": "def helper():\n    return 1\n",
+                    "src/pkg/b.py": (
+                        "from pkg.a import helper\n\ndef run():\n"
+                        "    return helper()\n"
+                    ),
+                },
+                {
+                    "src/pkg/a.py": "def helper():\n    return 1\n",
+                    "src/pkg/b.py": "def broken(",
+                },
+            ]
+            expected = [
+                checkout_analyze(
+                    sources, snapshot_id="git:wheel-behavior-v01",
+                    ccg_schema=ccg_schema, mechanical_profile=mechanical_profile,
+                ).to_document()
+                for sources in cases
+            ]
+            self.assertEqual(expected[0]["summary"]["source"]["coverage"], "complete")
+            self.assertEqual(expected[1]["summary"]["source"]["coverage"], "partial")
+            payload = {
+                "cases": cases, "ccg_schema": ccg_schema,
+                "mechanical_profile": mechanical_profile,
+            }
+            expected_digest = sha256(json.dumps(
+                expected, sort_keys=True, separators=(",", ":"),
+            ).encode()).hexdigest()
+
             # -I excludes PYTHONPATH and the current directory; the target
             # installation is prepended explicitly and its origin asserted.
             consumer = r"""
 import importlib.util
 import inspect
+from hashlib import sha256
+import json
 from pathlib import Path
 import sys
 
@@ -86,17 +128,31 @@ inspect.signature(analyze_python_request).bind(object())
 assert importlib.util.find_spec(
     "codeqa.pipeline.__definitely_missing_module__"
 ) is None
+payload = json.loads(sys.stdin.read())
+documents = [
+    pipeline.analyze_python(
+        sources, snapshot_id="git:wheel-behavior-v01",
+        ccg_schema=payload["ccg_schema"],
+        mechanical_profile=payload["mechanical_profile"],
+    ).to_document()
+    for sources in payload["cases"]
+]
+print(sha256(json.dumps(
+    documents, sort_keys=True, separators=(",", ":"),
+).encode()).hexdigest())
 """
             result = subprocess.run(
                 [sys.executable, "-I", "-c", consumer, str(installed)],
                 cwd=scratch, capture_output=True, text=True, timeout=60,
-                check=False,
+                input=json.dumps(payload), check=False,
             )
             self.assertEqual(
                 result.returncode, 0,
                 f"isolated installed-wheel consumer failed:\n"
                 f"{result.stdout}\n{result.stderr}",
             )
+            self.assertEqual(result.stdout.strip(), expected_digest,
+                             "installed wheel changed the known Pipeline analysis document")
 
 
 if __name__ == "__main__":
