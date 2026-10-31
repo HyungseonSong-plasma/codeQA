@@ -85,17 +85,17 @@ class MigrationImpactTests(unittest.TestCase):
         # from-imports or module aliases, without claiming runtime binding.
         inv, scenarios, sources = setup(extra={
             "src/orchard/earth/dynamic_client.py": (
-                "from importlib import import_module as load\\n"
-                "import importlib as module_loader\\n"
-                "from pkgutil import resolve_name as resolve\\n"
-                "first = load('orchard.sky.view')\\n"
-                "second = module_loader.import_module('orchard.sky.view')\\n"
-                "third = resolve('orchard.sky.view:View')\\n"
-                "fourth = load(dynamic_name)\\n"
+                "from importlib import import_module as load\n"
+                "import importlib as module_loader\n"
+                "from pkgutil import resolve_name as resolve\n"
+                "first = load('orchard.sky.view')\n"
+                "second = module_loader.import_module('orchard.sky.view')\n"
+                "third = resolve('orchard.sky.view:View')\n"
+                "fourth = load(dynamic_name)\n"
             ),
             "src/orchard/earth/unrelated.py": (
-                "def import_module(name): return name\\n"
-                "value = import_module('orchard.sky.view')\\n"
+                "def import_module(name): return name\n"
+                "value = import_module('orchard.sky.view')\n"
             ),
         })
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
