@@ -114,6 +114,34 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertIn("EXTERNAL_CONSUMERS_UNOBSERVED", impact["unknowns"])
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_keyword_name_dynamic_import_targets_are_witnessed(self):
+        # Python import helpers accept a keyword target. An analyzer that
+        # reads only args[0] misses these known consumers during migration.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/keyword_client.py": (
+                "import importlib as loader\n"
+                "from pkgutil import resolve_name as resolve\n"
+                "first = loader.import_module(name='orchard.sky.view')\n"
+                "second = resolve(name='orchard.sky.view:View')\n"
+                "third = __import__(name='orchard.sky.view')\n"
+                "fourth = loader.import_module(name=runtime_target)\n"
+                "fifth = loader.import_module(**kwargs)\n"
+                "sixth = loader.import_module(name='elsewhere.module')\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/keyword_client.py"]
+        self.assertEqual(
+            [(site["line"], site["expression"]) for site in sites],
+            [(3, "orchard.sky.view"), (4, "orchard.sky.view:View"),
+             (5, "orchard.sky.view")],
+        )
+        self.assertIn("DYNAMIC_IMPORT_TARGET_UNKNOWN", impact["unknowns"])
+        self.assertIn("DYNAMIC_IMPORT_REVIEW", impact["unknowns"])
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_dynamic_helper_aliases_do_not_leak_across_lexical_scopes(self):
         # B5 must not claim a consumer from an alias imported only in
         # another function, or from a shadowed argument/local/builtin.
