@@ -473,6 +473,36 @@ class ArchitectureScenarioTests(unittest.TestCase):
         self.assertEqual(dict(Counter(p["target_role"] for p in cross)), {
             "core": 19, "adapters": 11, "infrastructure": 7, "evaluation": 6,
         })
+        # #184: account for every observed pipeline source, including the
+        # seven provenance/Naming composition modules previously untriaged.
+        by_source = Counter(p["source_path"].removeprefix(
+            "src/codeqa/pipeline/") for p in cross)
+        self.assertEqual(dict(by_source), {
+            "python.py": 18,
+            "naming_product.py": 4,
+            "source_coverage.py": 2,
+            "analysis_request.py": 1,
+            "naming_field_evidence_v03.py": 3,
+            "naming_internal_import_census_v04.py": 3,
+            "naming_official_adoption_v05.py": 2,
+            "naming_official_policy_v05.py": 3,
+            "naming_rule_inventory_v03.py": 3,
+            "naming_scope_discovery_v04.py": 2,
+            "naming_snapshot_coverage_v03.py": 2,
+        })
+        provenance = {
+            "naming_field_evidence_v03.py",
+            "naming_internal_import_census_v04.py",
+            "naming_official_adoption_v05.py",
+            "naming_official_policy_v05.py",
+            "naming_rule_inventory_v03.py",
+            "naming_scope_discovery_v04.py",
+            "naming_snapshot_coverage_v03.py",
+        }
+        self.assertEqual(dict(Counter(
+            p["target_role"] for p in cross
+            if p["source_path"].removeprefix("src/codeqa/pipeline/") in provenance
+        )), {"core": 11, "infrastructure": 7})
         for pair in cross:
             self.assertNotIn(
                 pair["target_role"], policy["roles"]["pipeline"]["forbidden_imports"]
