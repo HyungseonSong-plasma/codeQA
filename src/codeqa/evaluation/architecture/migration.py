@@ -309,9 +309,14 @@ def assess_architecture_migration(
                     if helper not in {"__import__", "importlib.import_module",
                                       "pkgutil.resolve_name"}:
                         continue
-                    value = (node.args[0].value if node.args and isinstance(
-                        node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
-                        else None)
+                    # The first import target can be positional or supplied as
+                    # the public 'name=' keyword on these three helpers.
+                    # A starred/unknown expression is not a literal witness.
+                    first_arg = (node.args[0] if node.args else next(
+                        (kw.value for kw in node.keywords if kw.arg == "name"), None
+                    ))
+                    value = (first_arg.value if isinstance(first_arg, ast.Constant)
+                             and isinstance(first_arg.value, str) else None)
                     # pkgutil.resolve_name accepts 'module:object' as well as
                     # dotted module names. Keep the full literal as evidence.
                     target = (value.split(":", 1)[0]
