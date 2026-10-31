@@ -253,6 +253,55 @@ class MigrationImpactTests(unittest.TestCase):
                           (10, "orchard.sky.view")])
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_exception_pattern_and_delete_bindings_do_not_forge_dynamic_imports(self):
+        # Except aliases, match captures and del targets bind without
+        # ast.Name(Store). They must not masquerade as import-helper calls.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/binding_client.py": (
+                "from importlib import import_module as load\n"
+                "from pkgutil import resolve_name as resolve\n"
+                "import importlib as loader\n"
+                "def except_shadow():\n"
+                "    from importlib import import_module as local_load\n"
+                "    try:\n"
+                "        raise RuntimeError()\n"
+                "    except RuntimeError as local_load:\n"
+                "        return local_load('orchard.sky.view')\n"
+                "def match_capture():\n"
+                "    from pkgutil import resolve_name as local_resolve\n"
+                "    match ['value']:\n"
+                "        case [local_resolve]:\n"
+                "            return local_resolve('orchard.sky.view:View')\n"
+                "def match_star():\n"
+                "    from importlib import import_module as local_load\n"
+                "    match [1, 2]:\n"
+                "        case [*local_load]:\n"
+                "            return local_load('orchard.sky.view')\n"
+                "def match_mapping():\n"
+                "    import importlib as local_loader\n"
+                "    match {'a': 1}:\n"
+                "        case {'a': _, **local_loader}:\n"
+                "            return local_loader.import_module('orchard.sky.view')\n"
+                "def deleted_alias():\n"
+                "    from importlib import import_module as local_load\n"
+                "    del local_load\n"
+                "    return local_load('orchard.sky.view')\n"
+                "good = load('orchard.sky.view')\n"
+                "good_resolve = resolve('orchard.sky.view:View')\n"
+                "good_loader = loader.import_module('orchard.sky.view')\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/binding_client.py"]
+        self.assertEqual(
+            [(site["line"], site["expression"]) for site in sites],
+            [(29, "orchard.sky.view"), (30, "orchard.sky.view:View"),
+             (31, "orchard.sky.view")],
+        )
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_no_question_means_no_candidate(self):
         inv, scenarios, sources = setup(edges=())
         self.assertEqual(scenarios["candidates"], [])

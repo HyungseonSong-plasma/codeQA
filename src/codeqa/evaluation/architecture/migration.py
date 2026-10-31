@@ -121,13 +121,22 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
                               or (node.module == "pkgutil" and alias.name == "resolve_name")
                           ) else None)
                 bind(scope, name, target)
-        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            # Deletion invalidates a previously imported helper in this scope.
             binding_scope = scope
             if node in walrus_targets:
                 while isinstance(binding_scope, (ast.ListComp, ast.SetComp,
                                                  ast.DictComp, ast.GeneratorExp)):
                     binding_scope = parents[binding_scope]
             bind(binding_scope, node.id, None)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            # Exception aliases are stored as strings, not ast.Name(Store).
+            bind(scope, node.name, None)
+        elif isinstance(node, (ast.MatchAs, ast.MatchStar)) and node.name:
+            # Capture patterns also bind string names rather than Name(Store).
+            bind(scope, node.name, None)
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            bind(scope, node.rest, None)
         elif isinstance(node, ast.arg):
             bind(scope, node.arg, None)
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
