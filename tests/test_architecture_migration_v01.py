@@ -114,6 +114,39 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertIn("EXTERNAL_CONSUMERS_UNOBSERVED", impact["unknowns"])
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_dynamic_helper_aliases_do_not_leak_across_lexical_scopes(self):
+        # B5 must not claim a consumer from an alias imported only in
+        # another function, or from a shadowed argument/local/builtin.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/scoped_client.py": (
+                "from importlib import import_module as load\n"
+                "import importlib as loader\n"
+                "module_call = load('orchard.sky.view')\n"
+                "def local():\n"
+                "    from pkgutil import resolve_name as resolve\n"
+                "    return resolve('orchard.sky.view:View')\n"
+                "def unrelated():\n"
+                "    return resolve('orchard.sky.view:View')\n"
+                "def shadow(load, loader):\n"
+                "    load('orchard.sky.view')\n"
+                "    return loader.import_module('orchard.sky.view')\n"
+                "def rebind():\n"
+                "    load = lambda name: name\n"
+                "    return load('orchard.sky.view')\n"
+                "def __import__(name): return name\n"
+                "bad = __import__('orchard.sky.view')\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/scoped_client.py"]
+        self.assertEqual(
+            [(site["line"], site["expression"]) for site in sites],
+            [(3, "orchard.sky.view"), (6, "orchard.sky.view:View")],
+        )
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_no_question_means_no_candidate(self):
         inv, scenarios, sources = setup(edges=())
         self.assertEqual(scenarios["candidates"], [])
