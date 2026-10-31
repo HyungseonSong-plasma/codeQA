@@ -167,6 +167,28 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             bind(scope, node.name, None)
 
+    # A global/nonlocal directive redirects stores into an enclosing scope.
+    # The initial binding inventory is scope-local, so conservatively taint
+    # the target scope when a nested declaration also writes the helper name.
+    # Without this, a mutation in a nested function could forge a known
+    # dynamic-import consumer in an unrelated reader of the same binding.
+    for node, scope in containing.items():
+        if isinstance(node, ast.Global):
+            for name in node.names:
+                if name in bindings[scope]:
+                    bind(tree, name, None)
+        elif isinstance(node, ast.Nonlocal):
+            for name in node.names:
+                if name not in bindings[scope]:
+                    continue
+                outer = parents[scope]
+                while outer is not None:
+                    if (isinstance(outer, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                           ast.Lambda)) and name in bindings[outer]):
+                        bind(outer, name, None)
+                        break
+                    outer = parents[outer]
+
     def resolve(name: str, scope: ast.AST) -> str | None:
         current: ast.AST | None = scope
         in_function = isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef,
