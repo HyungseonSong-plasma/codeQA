@@ -53,6 +53,84 @@ def _record(path: str, line: int, kind: str, detail: str, digest: str,
     }
 
 
+def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
+    """Identify dynamic-import call syntax without leaking aliases across scopes.
+
+    Conflicting local bindings are unresolved, not assumed to be import helpers.
+    This remains static syntax evidence, not runtime binding verification.
+    """
+    scope_types = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef,
+                   ast.ClassDef, ast.Lambda)
+    parents: dict[ast.AST, ast.AST | None] = {tree: None}
+    containing: dict[ast.AST, ast.AST] = {}
+
+    def locate(node: ast.AST, scope: ast.AST) -> None:
+        containing[node] = scope
+        nested = node if isinstance(node, scope_types) else scope
+        if nested is not scope:
+            parents[node] = scope
+        for child in ast.iter_child_nodes(node):
+            locate(child, nested)
+
+    locate(tree, tree)
+    bindings: dict[ast.AST, dict[str, str | None]] = {
+        scope: {} for scope in parents
+    }
+
+    def bind(scope: ast.AST, name: str, target: str | None) -> None:
+        local = bindings[scope]
+        if name not in local:
+            local[name] = target
+        elif local[name] != target:
+            local[name] = None
+
+    for node, scope in containing.items():
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.asname or alias.name.split(".")[0]
+                target = alias.name if alias.name in {"importlib", "pkgutil"} else None
+                bind(scope, name, target)
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                name = alias.asname or alias.name
+                target = (node.module + "." + alias.name
+                          if node.level == 0 and (
+                              (node.module == "importlib" and alias.name == "import_module")
+                              or (node.module == "pkgutil" and alias.name == "resolve_name")
+                          ) else None)
+                bind(scope, name, target)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            bind(scope, node.id, None)
+        elif isinstance(node, ast.arg):
+            bind(scope, node.arg, None)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bind(scope, node.name, None)
+
+    def resolve(name: str, scope: ast.AST) -> str | None:
+        current: ast.AST | None = scope
+        while current is not None:
+            if name in bindings[current]:
+                return bindings[current][name]
+            current = parents[current]
+        return "__import__" if name == "__import__" else None
+
+    calls: dict[ast.Call, str] = {}
+    for node, scope in containing.items():
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name):
+            helper = resolve(func.id, scope)
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            module = resolve(func.value.id, scope)
+            helper = module + "." + func.attr if module in {"importlib", "pkgutil"} else None
+        else:
+            helper = None
+        if helper in {"__import__", "importlib.import_module", "pkgutil.resolve_name"}:
+            calls[node] = helper
+    return calls
+
+
 def assess_architecture_migration(
     inventory: Mapping[str, Any],
     scenarios: Mapping[str, Any],
@@ -180,26 +258,7 @@ def assess_architecture_migration(
                 continue
             package = source_module if path.endswith("/__init__.py") else source_module.rpartition(".")[0]
             moved_source = path in path_map
-            # A module can expose import helpers through explicit aliases.
-            # These are syntax candidates only: lexical rebinding and runtime
-            # import success remain outside this static migration assessment.
-            dynamic_modules = {"importlib": "importlib", "pkgutil": "pkgutil"}
-            dynamic_names = {"__import__": "__import__"}
-            for binding in ast.walk(tree):
-                if isinstance(binding, ast.Import):
-                    for alias in binding.names:
-                        if alias.name in ("importlib", "pkgutil"):
-                            dynamic_modules[alias.asname or alias.name] = alias.name
-                elif (isinstance(binding, ast.ImportFrom)
-                      and binding.level == 0
-                      and binding.module in ("importlib", "pkgutil")):
-                    helper = ("import_module" if binding.module == "importlib"
-                              else "resolve_name")
-                    for alias in binding.names:
-                        if alias.name == helper:
-                            dynamic_names[alias.asname or alias.name] = (
-                                binding.module + "." + helper
-                            )
+            dynamic_calls = _dynamic_helpers(tree)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
@@ -240,15 +299,7 @@ def assess_architecture_migration(
                                     exported_paths.add(path)
                                     risk_flags.add("INIT_REEXPORT_REVIEW")
                 elif isinstance(node, ast.Call):
-                    f = node.func
-                    if isinstance(f, ast.Name):
-                        helper = dynamic_names.get(f.id)
-                    elif (isinstance(f, ast.Attribute)
-                          and isinstance(f.value, ast.Name)):
-                        module = dynamic_modules.get(f.value.id)
-                        helper = module + "." + f.attr if module else None
-                    else:
-                        helper = None
+                    helper = dynamic_calls.get(node)
                     if helper not in {"__import__", "importlib.import_module",
                                       "pkgutil.resolve_name"}:
                         continue
