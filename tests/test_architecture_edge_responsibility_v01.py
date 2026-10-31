@@ -112,6 +112,54 @@ class EdgeResponsibilityTests(unittest.TestCase):
         with self.assertRaises(EdgeResponsibilityEvidenceError):
             census_edge_responsibility(inv, metrics, forged, consumers, policy)
 
+    def test_resealed_consumer_claims_must_match_measured_import_pairs(self):
+        # Recomputing the census digest cannot turn a changed importer into
+        # a source-backed B2 pair. All four variants used to be accepted.
+        inv, metrics, triage = with_test_importer()
+        consumers = census_internal_consumers(inv, metrics, triage)
+        self.assertEqual(
+            census_edge_responsibility(inv, metrics, triage, consumers, POLICY)[
+                "observed_cross_role_pairs"
+            ], 3,
+        )
+        tracked = {f["path"]: f for f in inv["files"]}
+        for mutation in ("category", "line", "unmeasured", "duplicate"):
+            with self.subTest(mutation=mutation):
+                forged = deepcopy(consumers)
+                module = next(m for m in forged["modules"]
+                              if m["module_path"] == "src/orchard/sky/view.py")
+                importer = next(i for i in module["importers"]
+                                if i["importer_path"] == "tests/test_view.py")
+                if mutation == "category":
+                    importer["importer_category"] = "PACKAGE_SOURCE"
+                    module["known_test_path_importer_pairs"] -= 1
+                    forged["known_test_path_importer_pairs"] -= 1
+                elif mutation == "line":
+                    importer["source_witnesses"][0]["line"] += 1
+                elif mutation == "unmeasured":
+                    fake_path = "src/orchard/sky/view.py"
+                    importer["importer_path"] = fake_path
+                    importer["importer_category"] = "PACKAGE_SOURCE"
+                    importer["source_witnesses"][0]["source_path"] = fake_path
+                    importer["source_witnesses"][0]["source_sha256"] = (
+                        tracked[fake_path]["source_sha256"]
+                    )
+                    module["known_test_path_importer_pairs"] -= 1
+                    forged["known_test_path_importer_pairs"] -= 1
+                else:
+                    module["importers"].append(deepcopy(importer))
+                    module["known_static_importer_pairs"] += 1
+                    module["known_test_path_importer_pairs"] += 1
+                    forged["known_static_importer_pairs"] += 1
+                    forged["known_test_path_importer_pairs"] += 1
+                forged["census_id"] = digest({
+                    k: v for k, v in forged.items() if k != "census_id"
+                })
+                with self.assertRaises(EdgeResponsibilityEvidenceError):
+                    census_edge_responsibility(
+                        inv, metrics, triage, forged, POLICY,
+                    )
+
     def test_renderer_rejects_modified_counts(self):
         report = census_edge_responsibility(*evidence())
         changed = deepcopy(report)
