@@ -80,6 +80,40 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertTrue(all(s["rewrite_status"] == "REVIEW_REQUIRED"
                             for s in impact["observed_sites"]))
 
+    def test_aliased_dynamic_imports_are_migration_consumer_witnesses(self):
+        # Static evidence must include import helpers brought into scope via
+        # from-imports or module aliases, without claiming runtime binding.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/dynamic_client.py": (
+                "from importlib import import_module as load\\n"
+                "import importlib as module_loader\\n"
+                "from pkgutil import resolve_name as resolve\\n"
+                "first = load('orchard.sky.view')\\n"
+                "second = module_loader.import_module('orchard.sky.view')\\n"
+                "third = resolve('orchard.sky.view:View')\\n"
+                "fourth = load(dynamic_name)\\n"
+            ),
+            "src/orchard/earth/unrelated.py": (
+                "def import_module(name): return name\\n"
+                "value = import_module('orchard.sky.view')\\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"]
+        self.assertEqual(
+            [(site["path"], site["line"], site["expression"]) for site in sites],
+            [
+                ("src/orchard/earth/dynamic_client.py", 4, "orchard.sky.view"),
+                ("src/orchard/earth/dynamic_client.py", 5, "orchard.sky.view"),
+                ("src/orchard/earth/dynamic_client.py", 6, "orchard.sky.view:View"),
+            ],
+        )
+        self.assertIn("DYNAMIC_IMPORT_TARGET_UNKNOWN", impact["unknowns"])
+        self.assertIn("DYNAMIC_IMPORT_REVIEW", impact["unknowns"])
+        self.assertIn("EXTERNAL_CONSUMERS_UNOBSERVED", impact["unknowns"])
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_no_question_means_no_candidate(self):
         inv, scenarios, sources = setup(edges=())
         self.assertEqual(scenarios["candidates"], [])
