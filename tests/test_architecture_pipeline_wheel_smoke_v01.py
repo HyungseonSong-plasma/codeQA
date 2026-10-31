@@ -25,12 +25,13 @@ class PipelineWheelSmokeTests(unittest.TestCase):
             wheel_dir.mkdir()
             installed = scratch / "installed"
 
-            # Do not download build tools or dependencies. The CI interpreter
-            # already has the package's runtime requirements installed.
+            # Build isolation obtains the declared setuptools backend from
+            # pyproject.toml. Python 3.12 runners need not preinstall it.
+            # Runtime dependencies are not resolved by this wheel build.
             build = subprocess.run(
                 [
-                    sys.executable, "-m", "pip", "wheel", "--no-index",
-                    "--no-deps", "--no-build-isolation", "--no-cache-dir",
+                    sys.executable, "-m", "pip", "wheel",
+                    "--no-deps", "--no-cache-dir",
                     "--wheel-dir", str(wheel_dir), str(ROOT),
                 ],
                 cwd=scratch, capture_output=True, text=True, timeout=120,
