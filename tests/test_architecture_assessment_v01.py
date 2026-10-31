@@ -98,6 +98,40 @@ class ArchitectureDecisionTests(unittest.TestCase):
         self.assertEqual(compare({"cross_boundary_pairs": 2})["decision"],
                          "REVIEW_REQUIRED")
 
+    def test_untyped_relationship_evidence_cannot_promote_preference(self):
+        # Without independent verification, a path-only proxy gain needs
+        # review. A truthy string/int must not silently become proof.
+        self.assertEqual(
+            compare({"cross_boundary_pairs": 4})["decision"], "REVIEW_REQUIRED"
+        )
+        for untrusted in ("verified", 1, None, [], {"checked": True}):
+            with self.subTest(untrusted=repr(untrusted)):
+                with self.assertRaises(ArchitectureAssessmentError):
+                    compare(
+                        {"cross_boundary_pairs": 4},
+                        relationship_changes_verified=untrusted,
+                    )
+        self.assertEqual(
+            compare({"cross_boundary_pairs": 4},
+                    relationship_changes_verified=True)["decision"], "PREFER"
+        )
+
+    def test_untyped_ownership_dispute_is_not_silently_accepted(self):
+        # In particular, 0/None previously suppressed the review gate.
+        for untrusted in ("false", 0, None, [], {}):
+            with self.subTest(untrusted=repr(untrusted)):
+                with self.assertRaises(ArchitectureAssessmentError):
+                    compare(
+                        {"cross_boundary_pairs": 4},
+                        relationship_changes_verified=True,
+                        ownership_disputed=untrusted,
+                    )
+        self.assertEqual(
+            compare({"cross_boundary_pairs": 4},
+                    relationship_changes_verified=True,
+                    ownership_disputed=True)["decision"], "REVIEW_REQUIRED"
+        )
+
     def test_missing_or_inconsistent_source_denominators_fail_closed(self):
         other = {**IDENTITY, "snapshot_sha": "f" * 40}
         result = compare_bounded_layouts(
