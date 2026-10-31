@@ -85,6 +85,25 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
                 locate(child.target, nested)
                 for condition in child.ifs:
                     locate(condition, nested)
+            elif (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                    ast.ClassDef)) and (
+                    child in node.decorator_list
+                    or (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        and child is node.returns)
+                    or (isinstance(node, ast.ClassDef)
+                        and (child in node.bases or child in node.keywords)))):
+                # Decorators, bases, keywords and return annotations are
+                # evaluated in the enclosing definition scope, not the
+                # new function/class body scope.
+                locate(child, scope)
+            elif (isinstance(node, ast.arguments)
+                  and (child in node.defaults or child in node.kw_defaults)):
+                # Default values execute before function/lambda entry.
+                locate(child, parents[scope])
+            elif isinstance(node, ast.arg) and child is node.annotation:
+                # Argument annotations use the enclosing definition scope
+                # (or are deferred); parameters cannot shadow them here.
+                locate(child, parents[scope])
             else:
                 locate(child, nested)
 
@@ -110,7 +129,13 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 name = alias.asname or alias.name.split(".")[0]
-                target = alias.name if alias.name in {"importlib", "pkgutil"} else None
+                # Unaliased dotted imports bind their root package:
+                # 'import importlib.util' makes 'importlib' available, while
+                # 'import importlib.util as util' binds only 'util'.
+                root = alias.name.split(".")[0]
+                target = (alias.name if alias.name in {"importlib", "pkgutil"}
+                          else root if alias.asname is None
+                          and root in {"importlib", "pkgutil"} else None)
                 bind(scope, name, target)
         elif isinstance(node, ast.ImportFrom):
             for alias in node.names:
