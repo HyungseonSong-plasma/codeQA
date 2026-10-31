@@ -188,18 +188,18 @@ class MigrationImpactTests(unittest.TestCase):
         # A class-local helper is not visible inside a comprehension body.
         inv, scenarios, sources = setup(extra={
             "src/orchard/earth/comprehension_client.py": (
-                "import importlib as loader\\n"
-                "from importlib import import_module as load\\n"
-                "bad_list = [loader.import_module('orchard.sky.view') for loader in (1,)]\\n"
-                "bad_set = {load('orchard.sky.view') for load in (lambda x: x,)}\\n"
-                "bad_dict = {loader: loader.import_module('orchard.sky.view') for loader in (1,)}\\n"
-                "bad_gen = (load('orchard.sky.view') for load in (lambda x: x,))\\n"
-                "good = loader.import_module('orchard.sky.view')\\n"
-                "good_alias = load('orchard.sky.view')\\n"
-                "good_inner = [load('orchard.sky.view') for item in range(1)]\\n"
-                "class Holder:\\n"
-                "    import importlib as class_loader\\n"
-                "    bad_class = [class_loader.import_module('orchard.sky.view') for item in range(1)]\\n"
+                "import importlib as loader\n"
+                "from importlib import import_module as load\n"
+                "bad_list = [loader.import_module('orchard.sky.view') for loader in (1,)]\n"
+                "bad_set = {load('orchard.sky.view') for load in (lambda x: x,)}\n"
+                "bad_dict = {loader: loader.import_module('orchard.sky.view') for loader in (1,)}\n"
+                "bad_gen = (load('orchard.sky.view') for load in (lambda x: x,))\n"
+                "good = loader.import_module('orchard.sky.view')\n"
+                "good_alias = load('orchard.sky.view')\n"
+                "good_inner = [load('orchard.sky.view') for item in range(1)]\n"
+                "class Holder:\n"
+                "    import importlib as class_loader\n"
+                "    bad_class = [class_loader.import_module('orchard.sky.view') for item in range(1)]\n"
             ),
         })
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
