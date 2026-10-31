@@ -181,6 +181,38 @@ class MigrationImpactTests(unittest.TestCase):
         )
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+
+    def test_comprehension_targets_do_not_shadow_outer_import_helpers(self):
+        # Comprehension assignment targets have implicit local scope. A
+        # same-named target must not erase genuine module-level consumers.
+        # A class-local helper is not visible inside a comprehension body.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/comprehension_client.py": (
+                "import importlib as loader\\n"
+                "from importlib import import_module as load\\n"
+                "bad_list = [loader.import_module('orchard.sky.view') for loader in (1,)]\\n"
+                "bad_set = {load('orchard.sky.view') for load in (lambda x: x,)}\\n"
+                "bad_dict = {loader: loader.import_module('orchard.sky.view') for loader in (1,)}\\n"
+                "bad_gen = (load('orchard.sky.view') for load in (lambda x: x,))\\n"
+                "good = loader.import_module('orchard.sky.view')\\n"
+                "good_alias = load('orchard.sky.view')\\n"
+                "good_inner = [load('orchard.sky.view') for item in range(1)]\\n"
+                "class Holder:\\n"
+                "    import importlib as class_loader\\n"
+                "    bad_class = [class_loader.import_module('orchard.sky.view') for item in range(1)]\\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/comprehension_client.py"]
+        self.assertEqual(
+            [(site["line"], site["expression"]) for site in sites],
+            [(7, "orchard.sky.view"), (8, "orchard.sky.view"),
+             (9, "orchard.sky.view")],
+        )
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_no_question_means_no_candidate(self):
         inv, scenarios, sources = setup(edges=())
         self.assertEqual(scenarios["candidates"], [])
