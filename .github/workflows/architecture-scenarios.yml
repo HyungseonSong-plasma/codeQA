@@ -25,7 +25,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-          fetch-depth: 0  # historical #184 source-baseline regression needs pinned commit
       - name: Python
         uses: actions/setup-python@v5
         with:
