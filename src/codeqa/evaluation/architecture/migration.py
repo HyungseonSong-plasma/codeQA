@@ -180,6 +180,26 @@ def assess_architecture_migration(
                 continue
             package = source_module if path.endswith("/__init__.py") else source_module.rpartition(".")[0]
             moved_source = path in path_map
+            # A module can expose import helpers through explicit aliases.
+            # These are syntax candidates only: lexical rebinding and runtime
+            # import success remain outside this static migration assessment.
+            dynamic_modules = {"importlib": "importlib", "pkgutil": "pkgutil"}
+            dynamic_names = {"__import__": "__import__"}
+            for binding in ast.walk(tree):
+                if isinstance(binding, ast.Import):
+                    for alias in binding.names:
+                        if alias.name in ("importlib", "pkgutil"):
+                            dynamic_modules[alias.asname or alias.name] = alias.name
+                elif (isinstance(binding, ast.ImportFrom)
+                      and binding.level == 0
+                      and binding.module in ("importlib", "pkgutil")):
+                    helper = ("import_module" if binding.module == "importlib"
+                              else "resolve_name")
+                    for alias in binding.names:
+                        if alias.name == helper:
+                            dynamic_names[alias.asname or alias.name] = (
+                                binding.module + "." + helper
+                            )
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
@@ -221,18 +241,29 @@ def assess_architecture_migration(
                                     risk_flags.add("INIT_REEXPORT_REVIEW")
                 elif isinstance(node, ast.Call):
                     f = node.func
-                    func = f.id if isinstance(f, ast.Name) else (
-                        f.value.id + "." + f.attr if isinstance(f, ast.Attribute)
-                        and isinstance(f.value, ast.Name) else "")
-                    if func not in {"__import__", "importlib.import_module", "pkgutil.resolve_name"}:
+                    if isinstance(f, ast.Name):
+                        helper = dynamic_names.get(f.id)
+                    elif (isinstance(f, ast.Attribute)
+                          and isinstance(f.value, ast.Name)):
+                        module = dynamic_modules.get(f.value.id)
+                        helper = module + "." + f.attr if module else None
+                    else:
+                        helper = None
+                    if helper not in {"__import__", "importlib.import_module",
+                                      "pkgutil.resolve_name"}:
                         continue
                     value = (node.args[0].value if node.args and isinstance(
                         node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
                         else None)
+                    # pkgutil.resolve_name accepts 'module:object' as well as
+                    # dotted module names. Keep the full literal as evidence.
+                    target = (value.split(":", 1)[0]
+                              if value is not None and helper == "pkgutil.resolve_name"
+                              else value)
                     for old, new in old_to_new.items():
                         if value is None:
                             risk_flags.add("DYNAMIC_IMPORT_TARGET_UNKNOWN")
-                        elif _matches(value, old):
+                        elif _matches(target, old):
                             sites.append(_record(path, node.lineno, "DYNAMIC_IMPORT_LITERAL",
                                 value, hashes[path], old, new, "REVIEW_REQUIRED"))
                             risk_flags.add("DYNAMIC_IMPORT_REVIEW")
