@@ -407,12 +407,12 @@ class ArchitectureScenarioTests(unittest.TestCase):
         reader = GitReader(ROOT)
         entries = subprocess.check_output(
             ["git", "ls-tree", "-rz", baseline_sha], cwd=ROOT,
-        ).split(b"\\0")
+        ).split(bytes([0]))
         paths, blobs, symlinks, failed = [], {}, [], []
         for entry in entries:
             if not entry:
                 continue
-            metadata, raw_path = entry.split(b"\\t", 1)
+            metadata, raw_path = entry.split(bytes([9]), 1)
             mode, kind, _ = metadata.split(b" ")
             path = raw_path.decode("utf-8")
             paths.append(path)
