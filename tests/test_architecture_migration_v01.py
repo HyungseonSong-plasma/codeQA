@@ -302,6 +302,49 @@ class MigrationImpactTests(unittest.TestCase):
         )
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_definition_time_expressions_use_enclosing_scope(self):
+        # Function/lambda defaults and annotations, decorators, and class
+        # headers run before entering the new scope. A parameter with the
+        # same name must not erase a real outer-scope migration witness.
+        # Unaliased dotted imports also bind their root package.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/definition_client.py": (
+                "from importlib import import_module as load\\n"
+                "def defaulted(load, x=load('orchard.sky.view')):\\n"
+                "    return load('orchard.sky.view')\\n"
+                "@load('orchard.sky.view').decorator\\n"
+                "def decorated(load):\\n"
+                "    return load('orchard.sky.view')\\n"
+                "def annotated(x: load('orchard.sky.view')) -> load('orchard.sky.view'):\\n"
+                "    return x\\n"
+                "f = lambda load, x=load('orchard.sky.view'): load('orchard.sky.view')\\n"
+                "class Holder:\\n"
+                "    from importlib import import_module as class_load\\n"
+                "    @class_load('orchard.sky.view').decorator\\n"
+                "    def method(class_load):\\n"
+                "        return class_load('orchard.sky.view')\\n"
+                "    def default(self, class_load=class_load('orchard.sky.view')):\\n"
+                "        return class_load('orchard.sky.view')\\n"
+                "    nested = lambda class_load=class_load('orchard.sky.view'): class_load\\n"
+                "    class Child(class_load('orchard.sky.view').View):\\n"
+                "        pass\\n"
+                "    @class_load('orchard.sky.view').decorator\\n"
+                "    class Inner:\\n"
+                "        pass\\n"
+                "import importlib.util\\n"
+                "module = importlib.import_module('orchard.sky.view')\\n"
+                "import importlib.util as util_loader\\n"
+                "bad = util_loader.import_module('orchard.sky.view')\\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/definition_client.py"]
+        self.assertEqual(sorted(site["line"] for site in sites),
+                         sorted([2, 4, 7, 7, 9, 12, 15, 17, 18, 20, 24]))
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_no_question_means_no_candidate(self):
         inv, scenarios, sources = setup(edges=())
         self.assertEqual(scenarios["candidates"], [])
