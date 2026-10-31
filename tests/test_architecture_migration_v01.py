@@ -345,6 +345,45 @@ class MigrationImpactTests(unittest.TestCase):
                          sorted([2, 4, 7, 7, 9, 12, 15, 17, 18, 20, 24]))
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_global_nonlocal_mutations_invalidate_outer_helper_bindings(self):
+        # global/nonlocal directives redirect writes into an enclosing scope.
+        # Static evidence must not claim a known helper after such a write.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/directive_client.py": (
+                "from importlib import import_module as module_load\n"
+                "from importlib import import_module as keep\n"
+                "def global_writer():\n"
+                "    global module_load\n"
+                "    module_load = lambda name: name\n"
+                "def global_reader():\n"
+                "    global module_load\n"
+                "    return module_load('orchard.sky.view')\n"
+                "def outer():\n"
+                "    from importlib import import_module as nested_load\n"
+                "    def mutate():\n"
+                "        nonlocal nested_load\n"
+                "        nested_load = lambda name: name\n"
+                "    return nested_load('orchard.sky.view')\n"
+                "def safe_outer():\n"
+                "    from importlib import import_module as read_only\n"
+                "    def inner():\n"
+                "        nonlocal read_only\n"
+                "        return read_only('orchard.sky.view')\n"
+                "    return inner()\n"
+                "positive = keep('orchard.sky.view')\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/directive_client.py"]
+        self.assertEqual(
+            [(site["line"], site["expression"]) for site in sites],
+            [(19, "orchard.sky.view"), (21, "orchard.sky.view")],
+        )
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
+
     def test_no_question_means_no_candidate(self):
         inv, scenarios, sources = setup(edges=())
         self.assertEqual(scenarios["candidates"], [])
