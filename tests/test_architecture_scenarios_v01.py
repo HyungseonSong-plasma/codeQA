@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -11,7 +12,10 @@ import unittest
 from jsonschema import Draft202012Validator
 
 from codeqa.core.dependency import DependencyGraph, StaticDependency
-from codeqa.adapters.python_dependencies import extract_python_dependencies
+from codeqa.adapters.python_dependencies import (
+    extract_python_dependencies, extract_parsed_dependencies,
+)
+from codeqa.adapters.python_snapshot import parse_python_snapshot
 from codeqa.evaluation.architecture.inventory import analyze_architecture_inventory
 from codeqa.evaluation.architecture.metrics import analyze_architecture_metrics
 from codeqa.evaluation.architecture.opportunities import discover_architecture_opportunities
@@ -391,6 +395,117 @@ class ArchitectureScenarioTests(unittest.TestCase):
         self.assertTrue(all(c["decision"] == "NOT_EVALUATED"
                             for c in scenarios["candidates"]))
 
+
+    def test_exact_head_pipeline_pressure_and_rejected_moves_are_reproducible(self):
+        """#184 exact-head source-bound guard, not a global KEEP verdict.
+
+        A shallow checkout must suffice: use the checked-out source commit,
+        not an unavailable historical tree. Changes to pipeline boundaries
+        must be reviewed rather than silently promoted to a move decision.
+        """
+        baseline_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+        ).strip()
+        reader = GitReader(ROOT)
+        entries = subprocess.check_output(
+            ["git", "ls-tree", "-rz", baseline_sha], cwd=ROOT,
+        ).split(bytes([0]))
+        paths, blobs, symlinks, failed = [], {}, [], []
+        for entry in entries:
+            if not entry:
+                continue
+            metadata, raw_path = entry.split(bytes([9]), 1)
+            mode, kind, _ = metadata.split(b" ")
+            path = raw_path.decode("utf-8")
+            paths.append(path)
+            if mode == b"120000":
+                symlinks.append(path)
+            elif mode == b"160000" or kind != b"blob":
+                failed.append(path)
+            else:
+                blobs[path] = reader.read_file(baseline_sha, path)
+
+        policy = json.loads(reader.read_file(
+            baseline_sha, "profiles/semantic-directory-roles-v0.1.json"
+        ))
+        profile = DependencyMetricsProfile.from_mapping(json.loads(
+            reader.read_file(baseline_sha, "profiles/dependency-metrics-v0.1.json")
+        ))
+        inventory = analyze_architecture_inventory(
+            baseline_sha, paths, blobs, policy,
+            symlink_paths=symlinks, failed_paths=failed,
+        )
+        python_sources, unreadable = {}, []
+        for item in inventory["files"]:
+            if item["language"] != "python" or item["read_state"] != "READ":
+                continue
+            path = item["path"]
+            raw = blobs[path]
+            self.assertEqual(sha256(raw).hexdigest(), item["source_sha256"])
+            try:
+                python_sources[path] = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                unreadable.append(path)
+        parsed = parse_python_snapshot(python_sources)
+        graph = extract_parsed_dependencies(parsed, snapshot_id=baseline_sha)
+        graph = replace(
+            graph, unprocessed_paths=tuple(sorted(
+                set(graph.unprocessed_paths) | set(unreadable)
+            )),
+        )
+        metrics = analyze_architecture_metrics(inventory, graph, policy, profile)
+        opportunities = discover_architecture_opportunities(inventory, metrics)
+        scenarios = generate_virtual_layout_scenarios(
+            inventory, metrics, opportunities, policy,
+        )
+
+        self.assertEqual(scenarios["snapshot_sha"], baseline_sha)
+        self.assertEqual(scenarios["baseline"]["source_files"], len(inventory["files"]))
+        self.assertEqual(scenarios["baseline"]["resolved_pairs"],
+                         len(metrics["resolved_pairs"]))
+        cross = [
+            pair for pair in metrics["resolved_pairs"]
+            if pair["source_role"] == "pipeline"
+            and pair["target_role"] not in ("pipeline", "UNCLASSIFIED", "OUT_OF_SCOPE")
+        ]
+        self.assertEqual(len(cross), 43)
+        from collections import Counter
+        self.assertEqual(dict(Counter(p["target_role"] for p in cross)), {
+            "core": 19, "adapters": 11, "infrastructure": 7, "evaluation": 6,
+        })
+        for pair in cross:
+            self.assertNotIn(
+                pair["target_role"], policy["roles"]["pipeline"]["forbidden_imports"]
+            )
+            self.assertTrue(pair["witnesses"])
+            for witness in pair["witnesses"]:
+                self.assertEqual(
+                    witness["source_sha256"],
+                    next(f["source_sha256"] for f in inventory["files"]
+                         if f["path"] == pair["source_path"]),
+                )
+        self.assertEqual(scenarios["candidates"], [])
+        self.assertEqual(len(scenarios["rejected"]), 5)
+        self.assertEqual(
+            dict(Counter(r["reason"] for r in scenarios["rejected"])),
+            {"TARGET_COLLISION": 3, "NEW_DECLARED_BOUNDARY_VIOLATION": 2},
+        )
+        collisions = {
+            (w["source_path"], w["proposed_target_path"])
+            for r in scenarios["rejected"] if r["reason"] == "TARGET_COLLISION"
+            for w in r["collision_witnesses"]
+        }
+        self.assertEqual(collisions, {
+            ("src/codeqa/pipeline/python.py", "src/codeqa/adapters/python.py"),
+            ("src/codeqa/pipeline/naming_field_evidence_v03.py",
+             "src/codeqa/core/naming_field_evidence_v03.py"),
+            ("src/codeqa/pipeline/naming_official_policy_v05.py",
+             "src/codeqa/core/naming_official_policy_v05.py"),
+        })
+        self.assertEqual(scenarios["decision"], "NOT_EVALUATED")
+        self.assertEqual(scenarios["evidence_status"], "INCOMPLETE")
+        # Declared-allowed static edges and rejected moves cannot prove
+        # intentional composition, public API safety or a global KEEP/PASS.
 
 if __name__ == "__main__":
     unittest.main()
