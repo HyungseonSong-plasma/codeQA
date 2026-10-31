@@ -73,7 +73,20 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
         if nested is not scope:
             parents[node] = scope
         for child in ast.iter_child_nodes(node):
-            locate(child, nested)
+            if (isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp,
+                                  ast.GeneratorExp)) and node.generators
+                    and child is node.generators[0]):
+                # Python evaluates the leftmost iterable in the enclosing
+                # scope, before binding the comprehension's first target.
+                # The target and its filters, like later generators and the
+                # result expression, execute in the comprehension scope.
+                containing[child] = nested
+                locate(child.iter, scope)
+                locate(child.target, nested)
+                for condition in child.ifs:
+                    locate(condition, nested)
+            else:
+                locate(child, nested)
 
     locate(tree, tree)
     # PEP 572: a named-expression target in a comprehension binds in the
