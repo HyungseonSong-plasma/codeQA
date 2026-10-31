@@ -155,6 +155,39 @@ class BoundedDispositionTests(unittest.TestCase):
         with self.assertRaises(BoundedDispositionError):
             assess_bounded_disposition(inv, triage, responsibility, forged)
 
+    def test_resealed_b7_verdict_must_replay_from_same_source_metrics(self):
+        # A digest is not a trusted comparator execution. These edits used to
+        # promote a forged KEEP/PREFER or silently accept incompatible metrics.
+        inv, triage, responsibility, assessment = fixture()
+        self.assertTrue(assessment["scenario_assessments"])
+        self.assertEqual(
+            assess_bounded_disposition(inv, triage, responsibility, assessment)[
+                "signal_dispositions"
+            ][0]["disposition"], "INSUFFICIENT_EVIDENCE",
+        )
+        for mutation in ("verdict", "comparable", "metric_delta", "signal", "migration"):
+            with self.subTest(mutation=mutation):
+                forged = deepcopy(assessment)
+                candidate = forged["scenario_assessments"][0]
+                evidence = candidate["decision_evidence"]
+                if mutation == "verdict":
+                    evidence["decision"] = "KEEP"
+                elif mutation == "comparable":
+                    evidence["comparable"] = False
+                elif mutation == "metric_delta":
+                    evidence["metric_delta"]["cross_boundary_pairs"] = -999
+                elif mutation == "signal":
+                    candidate["originating_signal_ids"] = ["0" * 64]
+                else:
+                    candidate["migration_id"] = "0" * 64
+                forged["assessment_id"] = _digest({
+                    k: v for k, v in forged.items() if k != "assessment_id"
+                })
+                with self.assertRaises(BoundedDispositionError):
+                    assess_bounded_disposition(
+                        inv, triage, responsibility, forged,
+                    )
+
     def test_renderer_rejects_mutated_disposition(self):
         report = assess_bounded_disposition(*fixture())
         report["signal_dispositions"][0]["disposition"] = "PREFER"
