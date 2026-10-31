@@ -201,6 +201,11 @@ class MigrationImpactTests(unittest.TestCase):
                 "    import importlib as class_loader\n"
                 "    bad_class = [class_loader.import_module('orchard.sky.view') for item in range(1)]\n"
             ),
+            "src/orchard/earth/walrus_client.py": (
+                "from importlib import import_module as load\n"
+                "values = [(load := (lambda name: name))('orchard.sky.view') for _ in range(1)]\n"
+                "after = load('orchard.sky.view')\n"
+            ),
         })
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
         sites = [site for site in impact["observed_sites"]
@@ -211,6 +216,12 @@ class MigrationImpactTests(unittest.TestCase):
             [(7, "orchard.sky.view"), (8, "orchard.sky.view"),
              (9, "orchard.sky.view")],
         )
+        # A comprehension walrus target binds in the containing scope:
+        # the later call is not safely attributable to the original import.
+        walrus_sites = [site for site in impact["observed_sites"]
+                        if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                        and site["path"] == "src/orchard/earth/walrus_client.py"]
+        self.assertEqual(walrus_sites, [])
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
     def test_no_question_means_no_candidate(self):
