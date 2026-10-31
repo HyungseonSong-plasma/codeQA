@@ -141,6 +141,28 @@ class MixedLanguageCoverageTests(unittest.TestCase):
         self.assertTrue(all(item.status == "excluded" for item in report.files))
         self.assertIn("NOT_A_REPOSITORY_QUALITY_VERDICT", report.assurance)
 
+    def test_excluding_unsupported_files_preserves_complete_selected_coverage(self):
+        # The zero-denominator guard must not demote a genuinely analyzed
+        # nonempty selection simply because other inventory files are excluded.
+        manifest = deepcopy(self.manifest)
+        for entry in manifest["files"]:
+            if entry["language"] != "python":
+                entry["selection"] = "excluded"
+                entry["exclusion_reason"] = "caller_excluded"
+        report = self.evaluate(manifest=manifest)
+        self.assertEqual(report.selected_status, "complete")
+        self.assertEqual(report.analyzed_languages, ("python",))
+        self.assertEqual(report.unsupported_languages, ())
+        self.assertEqual(
+            [item.path for item in report.files if item.status == "analyzed"],
+            ["ci/guards/physics_dependency_guard.py"],
+        )
+        self.assertTrue(all(
+            item.status == "excluded" for item in report.files
+            if item.language != "python"
+        ))
+        self.assertIn("NOT_A_REPOSITORY_QUALITY_VERDICT", report.assurance)
+
     def test_missing_python_capability_and_manual_rust_golden_cannot_pass(self):
         with self.assertRaises(SourceSelectionError):
             self.evaluate(capabilities={}, graphs={"python": self.graph})
