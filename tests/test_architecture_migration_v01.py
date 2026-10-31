@@ -135,6 +135,11 @@ class MigrationImpactTests(unittest.TestCase):
                 "    return load('orchard.sky.view')\n"
                 "def __import__(name): return name\n"
                 "bad = __import__('orchard.sky.view')\n"
+                "class Holder:\n"
+                "    from importlib import import_module as class_load\n"
+                "    body = class_load('orchard.sky.view')\n"
+                "    def method(self):\n"
+                "        return class_load('orchard.sky.view')\n"
             ),
         })
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
@@ -143,7 +148,8 @@ class MigrationImpactTests(unittest.TestCase):
                  and site["path"] == "src/orchard/earth/scoped_client.py"]
         self.assertEqual(
             [(site["line"], site["expression"]) for site in sites],
-            [(3, "orchard.sky.view"), (6, "orchard.sky.view:View")],
+            [(3, "orchard.sky.view"), (6, "orchard.sky.view:View"),
+             (19, "orchard.sky.view")],
         )
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
