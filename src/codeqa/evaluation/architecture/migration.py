@@ -59,8 +59,11 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
     Conflicting local bindings are unresolved, not assumed to be import helpers.
     This remains static syntax evidence, not runtime binding verification.
     """
+    # Comprehension targets bind in an implicit inner scope, never the outer
+    # module/function. Otherwise they can suppress unrelated import witnesses.
     scope_types = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef,
-                   ast.ClassDef, ast.Lambda)
+                   ast.ClassDef, ast.Lambda, ast.ListComp, ast.SetComp,
+                   ast.DictComp, ast.GeneratorExp)
     parents: dict[ast.AST, ast.AST | None] = {tree: None}
     containing: dict[ast.AST, ast.AST] = {}
 
@@ -109,13 +112,16 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
     def resolve(name: str, scope: ast.AST) -> str | None:
         current: ast.AST | None = scope
         in_function = isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                         ast.Lambda))
+                                         ast.Lambda, ast.ListComp, ast.SetComp,
+                                         ast.DictComp, ast.GeneratorExp))
         while current is not None:
             # Python methods do not capture names assigned in a class body.
             if not (in_function and isinstance(current, ast.ClassDef)):
                 if name in bindings[current]:
                     return bindings[current][name]
-            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                    ast.Lambda, ast.ListComp, ast.SetComp,
+                                    ast.DictComp, ast.GeneratorExp)):
                 in_function = True
             current = parents[current]
         return "__import__" if name == "__import__" else None
