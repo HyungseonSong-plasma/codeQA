@@ -87,6 +87,42 @@ def census_edge_responsibility(
                     m["known_test_path_importer_pairs"] for m in module_consumers.values()
                 )):
             raise EdgeResponsibilityEvidenceError("duplicate or inconsistent inputs")
+        # A self-sealed consumer census is not independent proof that its
+        # importers are the B2-observed pairs. Rebind every claimed importer
+        # (including non-test consumers) to the measured source snapshot.
+        scope = inventory["source_scope"] + "/"
+        for module_path, module in module_consumers.items():
+            if module_path not in tracked:
+                raise EdgeResponsibilityEvidenceError("untracked consumer target")
+            importers = module["importers"]
+            if (module["known_static_importer_pairs"] != len(importers)
+                    or module["known_test_path_importer_pairs"] != sum(
+                        item["importer_category"] == "TEST_PATH_HEURISTIC"
+                        for item in importers
+                    )
+                    or len({item["importer_path"] for item in importers}) != len(importers)):
+                raise EdgeResponsibilityEvidenceError("inconsistent importer census")
+            for importer in importers:
+                importer_path = importer["importer_path"]
+                pair = measured.get((importer_path, module_path))
+                category = (
+                    "TEST_PATH_HEURISTIC" if importer_path.startswith("tests/")
+                    else "PACKAGE_SOURCE" if importer_path.startswith(scope)
+                    else "OTHER_TRACKED_SOURCE"
+                )
+                if (importer_path not in tracked or pair is None
+                        or importer["importer_category"] != category
+                        or not pair["witnesses"]
+                        or importer["source_witnesses"] != pair["witnesses"]):
+                    raise EdgeResponsibilityEvidenceError("unbound importer evidence")
+                for witness in importer["source_witnesses"]:
+                    if (witness["source_path"] != importer_path
+                            or witness["target_path"] != module_path
+                            or witness["source_sha256"]
+                               != tracked[importer_path]["source_sha256"]
+                            or type(witness["line"]) is not int
+                            or witness["line"] < 1):
+                        raise EdgeResponsibilityEvidenceError("unbound importer witness")
         records = []
         seen_signals: set[str] = set()
         for signal in triage["signal_triage"]:
