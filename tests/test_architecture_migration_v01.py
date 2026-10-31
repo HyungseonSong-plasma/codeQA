@@ -224,6 +224,35 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertEqual(walrus_sites, [])
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_leftmost_comprehension_iterable_uses_enclosing_scope(self):
+        # Python evaluates the first 'in' expression outside the implicit
+        # comprehension scope. Its own target cannot shadow a helper there,
+        # including in a class body. Body calls remain correctly shadowed.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/first_iter_client.py": (
+                "from importlib import import_module as load\n"
+                "import importlib as loader\n"
+                "list_comp = [v for load in (load('orchard.sky.view'),) for v in (1,)]\n"
+                "set_comp = {v for loader in (loader.import_module('orchard.sky.view'),) for v in (1,)}\n"
+                "dict_comp = {v: v for load in (load('orchard.sky.view'),) for v in (1,)}\n"
+                "gen_comp = (v for loader in (loader.import_module('orchard.sky.view'),) for v in (1,))\n"
+                "bad_body = [load('orchard.sky.view') for load in (lambda x: x,)]\n"
+                "class Holder:\n"
+                "    from importlib import import_module as class_load\n"
+                "    first_iter = [v for class_load in (class_load('orchard.sky.view'),) for v in (1,)]\n"
+                "    bad_body = [class_load('orchard.sky.view') for v in (1,)]\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/first_iter_client.py"]
+        self.assertEqual([(site["line"], site["expression"]) for site in sites],
+                         [(3, "orchard.sky.view"), (4, "orchard.sky.view"),
+                          (5, "orchard.sky.view"), (6, "orchard.sky.view"),
+                          (10, "orchard.sky.view")])
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_no_question_means_no_candidate(self):
         inv, scenarios, sources = setup(edges=())
         self.assertEqual(scenarios["candidates"], [])
