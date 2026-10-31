@@ -76,6 +76,12 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
             locate(child, nested)
 
     locate(tree, tree)
+    # PEP 572: a named-expression target in a comprehension binds in the
+    # containing scope, unlike an ordinary comprehension iteration target.
+    walrus_targets = {
+        node.target for node in containing
+        if isinstance(node, ast.NamedExpr) and isinstance(node.target, ast.Name)
+    }
     bindings: dict[ast.AST, dict[str, str | None]] = {
         scope: {} for scope in parents
     }
@@ -103,7 +109,12 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
                           ) else None)
                 bind(scope, name, target)
         elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
-            bind(scope, node.id, None)
+            binding_scope = scope
+            if node in walrus_targets:
+                while isinstance(binding_scope, (ast.ListComp, ast.SetComp,
+                                                 ast.DictComp, ast.GeneratorExp)):
+                    binding_scope = parents[binding_scope]
+            bind(binding_scope, node.id, None)
         elif isinstance(node, ast.arg):
             bind(scope, node.arg, None)
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
