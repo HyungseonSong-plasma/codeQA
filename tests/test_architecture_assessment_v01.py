@@ -236,6 +236,39 @@ class ArchitectureDecisionTests(unittest.TestCase):
         with self.assertRaises(ArchitectureAssessmentError):
             assemble_architecture_advisory(inv, metrics, opportunities, scenarios, changed)
 
+    def test_duplicate_b4_scenario_id_cannot_hide_unassessed_move(self):
+        # A report digest alone is not a uniqueness guarantee. If B4 repeats
+        # an ID, a dict keyed by scenario_id silently drops one candidate.
+        # Even a consistently rehashed B4/B5 pair must fail closed.
+        inv, metrics, opportunities, policy = reports(edges=CONCENTRATED)
+        scenarios = generate_virtual_layout_scenarios(
+            inv, metrics, opportunities, policy,
+        )
+        migration = assess_architecture_migration(inv, scenarios, SOURCES)
+        self.assertEqual(len(scenarios["candidates"]), 1)
+        self.assertEqual(len(assemble_architecture_advisory(
+            inv, metrics, opportunities, scenarios, migration,
+        )["scenario_assessments"]), 1)
+
+        duplicated = deepcopy(scenarios)
+        duplicated["candidates"].append(deepcopy(duplicated["candidates"][0]))
+        duplicated["scenarios_id"] = sha256(json.dumps(
+            {k: v for k, v in duplicated.items() if k != "scenarios_id"},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        linked = deepcopy(migration)
+        linked["scenarios_id"] = duplicated["scenarios_id"]
+        linked["migration_id"] = sha256(json.dumps(
+            {k: v for k, v in linked.items() if k != "migration_id"},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        with self.assertRaisesRegex(
+            ArchitectureAssessmentError, "untrustworthy B1--B5"
+        ):
+            assemble_architecture_advisory(
+                inv, metrics, opportunities, duplicated, linked,
+            )
+
     def test_explicit_request_does_not_contaminate_discovery(self):
         result = assess_explicit_question(
             "Should this boundary change?", BASE, BASE,
