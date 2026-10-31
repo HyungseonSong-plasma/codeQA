@@ -205,7 +205,9 @@ def assemble_architecture_advisory(
             raise ArchitectureAssessmentError("orphan/duplicate question or signal")
         by_migration = {c["scenario_id"]: c for c in migration["candidates"]}
         by_scenario = {c["scenario_id"]: c for c in scenarios["candidates"]}
-        if set(by_migration) != set(by_scenario) or len(by_migration) != len(migration["candidates"]):
+        if (set(by_migration) != set(by_scenario)
+                or len(by_migration) != len(migration["candidates"])
+                or len(by_scenario) != len(scenarios["candidates"])):
             raise ArchitectureAssessmentError("B4/B5 candidate set mismatch")
         if any(c["opportunity_id"] not in questions for c in by_scenario.values()):
             raise ArchitectureAssessmentError("candidate without discovered question")
