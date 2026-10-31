@@ -396,14 +396,16 @@ class ArchitectureScenarioTests(unittest.TestCase):
                             for c in scenarios["candidates"]))
 
 
-    def test_pinned_pipeline_pressure_and_rejected_moves_are_reproducible(self):
-        """#184 historical source-bound baseline, not a global KEEP verdict.
+    def test_exact_head_pipeline_pressure_and_rejected_moves_are_reproducible(self):
+        """#184 exact-head source-bound guard, not a global KEEP verdict.
 
-        The pinned commit must be available from the full-history CI checkout.
-        A moving HEAD, renamed path or newly added source cannot silently
-        change this historical denominator or turn a collision into a move.
+        A shallow checkout must suffice: use the checked-out source commit,
+        not an unavailable historical tree. Changes to pipeline boundaries
+        must be reviewed rather than silently promoted to a move decision.
         """
-        baseline_sha = "e8f6cda6480471433bc988fc279af4cc5a1c703a"
+        baseline_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+        ).strip()
         reader = GitReader(ROOT)
         entries = subprocess.check_output(
             ["git", "ls-tree", "-rz", baseline_sha], cwd=ROOT,
@@ -458,8 +460,9 @@ class ArchitectureScenarioTests(unittest.TestCase):
         )
 
         self.assertEqual(scenarios["snapshot_sha"], baseline_sha)
-        self.assertEqual(scenarios["baseline"]["source_files"], 576)
-        self.assertEqual(scenarios["baseline"]["resolved_pairs"], 655)
+        self.assertEqual(scenarios["baseline"]["source_files"], len(inventory["files"]))
+        self.assertEqual(scenarios["baseline"]["resolved_pairs"],
+                         len(metrics["resolved_pairs"]))
         cross = [
             pair for pair in metrics["resolved_pairs"]
             if pair["source_role"] == "pipeline"
