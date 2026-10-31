@@ -108,9 +108,15 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
 
     def resolve(name: str, scope: ast.AST) -> str | None:
         current: ast.AST | None = scope
+        in_function = isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                         ast.Lambda))
         while current is not None:
-            if name in bindings[current]:
-                return bindings[current][name]
+            # Python methods do not capture names assigned in a class body.
+            if not (in_function and isinstance(current, ast.ClassDef)):
+                if name in bindings[current]:
+                    return bindings[current][name]
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                in_function = True
             current = parents[current]
         return "__import__" if name == "__import__" else None
 
