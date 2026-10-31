@@ -61,6 +61,10 @@ def compare_bounded_layouts(
             or not isinstance(baseline_denominators, Mapping)
             or not isinstance(candidate_denominators, Mapping)
             or migration_risk not in ("NONE", "MITIGATED", "LOW", "MEDIUM", "HIGH", "BLOCKED")
+            # A truthy string or integer is not independent relationship proof.
+            # Do not let malformed caller flags bypass the path-only review gate.
+            or type(relationship_changes_verified) is not bool
+            or type(ownership_disputed) is not bool
             or type(material_delta) is not int or material_delta < 1):
         raise ArchitectureAssessmentError("invalid comparison input")
     if any(type(v) is not str for v in (*hard_violations, *critical_unknowns)):
