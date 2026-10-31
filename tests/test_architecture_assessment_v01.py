@@ -132,6 +132,56 @@ class ArchitectureDecisionTests(unittest.TestCase):
                     ownership_disputed=True)["decision"], "REVIEW_REQUIRED"
         )
 
+    def test_numeric_lookalike_denominators_cannot_promote_preference(self):
+        # Bool and float compare equal to int in Python, but are not measured
+        # source counts. The two compared evidence sets must be exactly typed.
+        counts = {"tracked_files": 1, "resolved_pairs": 0}
+        invalid = (
+            {"tracked_files": True, "resolved_pairs": False},
+            {"tracked_files": 1.0, "resolved_pairs": 0.0},
+        )
+        for proposed in invalid:
+            for baseline, candidate in ((counts, proposed), (proposed, counts)):
+                with self.subTest(baseline=baseline, candidate=candidate):
+                    result = compare_bounded_layouts(
+                        BASE, {**BASE, "cross_boundary_pairs": 0},
+                        baseline_identity=IDENTITY, candidate_identity=IDENTITY,
+                        baseline_denominators=baseline,
+                        candidate_denominators=candidate,
+                        relationship_changes_verified=True,
+                    )
+                    self.assertEqual(result["decision"], "INSUFFICIENT_EVIDENCE")
+                    self.assertFalse(result["comparable"])
+                    self.assertEqual(result["metric_delta"], {})
+        valid = compare_bounded_layouts(
+            BASE, {**BASE, "cross_boundary_pairs": 0},
+            baseline_identity=IDENTITY, candidate_identity=IDENTITY,
+            baseline_denominators=counts, candidate_denominators=dict(counts),
+            relationship_changes_verified=True,
+        )
+        self.assertEqual(valid["decision"], "PREFER")
+
+    def test_constraint_and_unknown_evidence_require_typed_nonempty_tuples(self):
+        for field in ("hard_violations", "critical_unknowns"):
+            for invalid in ("TARGET_COLLISION", ["TARGET_COLLISION"],
+                            ("",), ("  ",), (True,), None):
+                with self.subTest(field=field, invalid=repr(invalid)):
+                    with self.assertRaises(ArchitectureAssessmentError):
+                        compare({"cross_boundary_pairs": 0},
+                                relationship_changes_verified=True,
+                                **{field: invalid})
+        self.assertEqual(
+            compare({"cross_boundary_pairs": 0},
+                    relationship_changes_verified=True,
+                    hard_violations=("TARGET_COLLISION",))["decision"], "KEEP"
+        )
+        self.assertEqual(
+            compare({"cross_boundary_pairs": 0},
+                    relationship_changes_verified=True,
+                    critical_unknowns=("EXTERNAL_CONSUMERS_NOT_EVALUATED",)
+                    )["decision"], "INSUFFICIENT_EVIDENCE"
+        )
+
     def test_missing_or_inconsistent_source_denominators_fail_closed(self):
         other = {**IDENTITY, "snapshot_sha": "f" * 40}
         result = compare_bounded_layouts(

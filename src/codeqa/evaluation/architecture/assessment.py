@@ -67,15 +67,24 @@ def compare_bounded_layouts(
             or type(ownership_disputed) is not bool
             or type(material_delta) is not int or material_delta < 1):
         raise ArchitectureAssessmentError("invalid comparison input")
-    if any(type(v) is not str for v in (*hard_violations, *critical_unknowns)):
+    if (type(hard_violations) is not tuple or type(critical_unknowns) is not tuple
+            or any(type(v) is not str or not v.strip()
+                   for v in (*hard_violations, *critical_unknowns))):
         raise ArchitectureAssessmentError("invalid constraint/unknown entry")
     reasons: list[str] = []
     comparable = (
         all(isinstance(baseline_identity.get(k), str) and baseline_identity.get(k)
             == candidate_identity.get(k) for k in IDENTITY)
-        and baseline_denominators == candidate_denominators
         and bool(baseline_denominators)
-        and all(type(v) is int and v >= 0 for v in baseline_denominators.values())
+        and set(baseline_denominators) == set(candidate_denominators)
+        # Python treats True == 1 and False == 0. A Boolean denominator
+        # must never masquerade as a measured source-count denominator.
+        and all(type(k) is str and bool(k)
+                and type(baseline_denominators[k]) is int
+                and type(candidate_denominators[k]) is int
+                and baseline_denominators[k] >= 0
+                and candidate_denominators[k] == baseline_denominators[k]
+                for k in baseline_denominators)
         and all(type(current.get(k)) is int and current[k] >= 0
                 and type(candidate.get(k)) is int and candidate[k] >= 0
                 for k in OBJECTIVES)
