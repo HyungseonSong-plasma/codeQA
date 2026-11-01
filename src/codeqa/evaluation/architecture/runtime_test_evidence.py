@@ -46,6 +46,20 @@ class _ReceiptResult(unittest.TestResult):
         super().addError(test, err)
         self.outcomes[test.id()] = "ERROR"
 
+    def addSubTest(
+        self, test: unittest.case.TestCase, subtest: unittest.case.TestCase,
+        err: Any,
+    ) -> None:
+        # unittest reports failed subtests here, not through addFailure.
+        # Without this hook a failed method remains misleadingly STARTED.
+        super().addSubTest(test, subtest, err)
+        if err is not None:
+            status = ("FAILED" if issubclass(err[0], test.failureException)
+                      else "ERROR")
+            # A later assertion failure must not mask an earlier subtest error.
+            if self.outcomes.get(test.id()) != "ERROR":
+                self.outcomes[test.id()] = status
+
     def addSkip(self, test: unittest.case.TestCase, reason: str) -> None:
         super().addSkip(test, reason)
         self.outcomes[test.id()] = "SKIPPED"
