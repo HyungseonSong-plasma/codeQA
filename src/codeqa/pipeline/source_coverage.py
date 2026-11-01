@@ -148,7 +148,8 @@ def aggregate_source_coverage(
         results.append(SourceOutcome(path, language, item["category"], status, reason))
     included = [x for x in results if x.status != "excluded"]
     n = sum(x.status == "analyzed" for x in included)
-    status = "complete" if n == len(included) else "partial" if n else "none"
+    # Zero included files means zero evaluated coverage, not a complete audit.
+    status = "complete" if included and n == len(included) else "partial" if n else "none"
     return SourceCoverageReport(
         snapshot_id=snapshot_id,
         files=tuple(results),
