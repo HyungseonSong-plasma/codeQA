@@ -197,6 +197,41 @@ class RuntimeReceiptTests(unittest.TestCase):
         with self.assertRaises(RuntimeTestEvidenceError):
             correlate_runtime_test_candidates(candidates, stale)
 
+    def test_rehashed_invalid_outcomes_are_rejected(self):
+        # A caller can recompute the receipt digest: the parser must still
+        # reject status values that unittest never emits.
+        candidates, receipt = fixture()
+        for bad in ("PASSED_BUT_UNVERIFIED", None, 7, ["PASSED"]):
+            with self.subTest(bad=repr(bad)):
+                forged = deepcopy(receipt)
+                forged["executed_tests"][0]["outcome"] = bad
+                forged["all_passed"] = False
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
+    def test_rehashed_inconsistent_summary_and_identity_are_rejected(self):
+        candidates, receipt = fixture()
+        for variant in ("false_summary", "numeric_summary",
+                        "boolean_test_count", "empty_test_id"):
+            with self.subTest(variant=variant):
+                forged = deepcopy(receipt)
+                if variant == "false_summary":
+                    forged["all_passed"] = False
+                elif variant == "numeric_summary":
+                    forged["all_passed"] = 1
+                elif variant == "boolean_test_count":
+                    forged["tests_run"] = True
+                else:
+                    forged["executed_tests"][0]["test_id"] = ""
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
     def test_duplicate_method_names_are_ambiguous(self):
         candidates, receipt = fixture()
         other = deepcopy(receipt["executed_tests"][0])
