@@ -185,10 +185,11 @@ def assess_bounded_disposition(
                         if (src not in tracked or dst not in tracked
                                 or (src, dst) in seen_pairs
                                 or not isinstance(source_role, str)
-                                or not source_role.isidentifier()
+                                or not source_role or "/" in source_role
+                                or "\\" in source_role
                                 or not isinstance(target_role, str)
-                                or not target_role.isidentifier()
-                                or source_role == target_role):
+                                or not target_role or "/" in target_role
+                                or "\\" in target_role):
                             raise BoundedDispositionError("unbound declared-boundary witness")
                         seen_pairs.add((src, dst))
                     continue
