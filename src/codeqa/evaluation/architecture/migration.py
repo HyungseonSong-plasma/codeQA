@@ -408,8 +408,31 @@ def assess_architecture_migration(
                     target = (value.split(":", 1)[0]
                               if value is not None and helper == "pkgutil.resolve_name"
                               else value)
+                    if (helper == "importlib.import_module" and value is not None
+                            and value.startswith(".")):
+                        # import_module('.child', package='pkg.parent') is an
+                        # absolute consumer of pkg.parent.child. Without a
+                        # literal package the target is not statically known.
+                        package_arg = (node.args[1] if len(node.args) > 1 else next(
+                            (kw.value for kw in node.keywords if kw.arg == "package"),
+                            None
+                        ))
+                        package_name = (package_arg.value
+                                        if isinstance(package_arg, ast.Constant)
+                                        and isinstance(package_arg.value, str) else None)
+                        dots = len(value) - len(value.lstrip("."))
+                        parts = package_name.split(".") if package_name else []
+                        suffix = value[dots:]
+                        if (parts and all(part.isidentifier() for part in parts)
+                                and dots <= len(parts)
+                                and (not suffix or all(part.isidentifier()
+                                                       for part in suffix.split(".")))):
+                            target = ".".join(parts[:len(parts) - dots + 1]
+                                              + (suffix.split(".") if suffix else []))
+                        else:
+                            target = None
                     for old, new in old_to_new.items():
-                        if value is None:
+                        if target is None:
                             risk_flags.add("DYNAMIC_IMPORT_TARGET_UNKNOWN")
                         elif _matches(target, old):
                             sites.append(_record(path, node.lineno, "DYNAMIC_IMPORT_LITERAL",
