@@ -142,6 +142,33 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertIn("DYNAMIC_IMPORT_REVIEW", impact["unknowns"])
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_relative_dynamic_imports_require_literal_package_witnesses(self):
+        # importlib.import_module resolves leading dots against package=.
+        # A literal relative name without a literal valid package must not
+        # be reported as a known migration consumer.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/relative_client.py": (
+                "import importlib as loader\n"
+                "known_keyword = loader.import_module('.view', package='orchard.sky')\n"
+                "known_positional = loader.import_module('..sky.view', 'orchard.earth')\n"
+                "unknown_package = loader.import_module('.view', package=runtime_package)\n"
+                "missing_package = loader.import_module('.view')\n"
+                "unrelated = loader.import_module('.model', package='orchard.earth')\n"
+                "invalid_depth = loader.import_module('...view', package='orchard.sky')\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/relative_client.py"]
+        self.assertEqual(
+            [(site["line"], site["expression"]) for site in sites],
+            [(2, ".view"), (3, "..sky.view")],
+        )
+        self.assertIn("DYNAMIC_IMPORT_TARGET_UNKNOWN", impact["unknowns"])
+        self.assertIn("DYNAMIC_IMPORT_REVIEW", impact["unknowns"])
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_dynamic_helper_aliases_do_not_leak_across_lexical_scopes(self):
         # B5 must not claim a consumer from an alias imported only in
         # another function, or from a shadowed argument/local/builtin.
