@@ -130,6 +130,53 @@ class RuntimeReceiptTests(unittest.TestCase):
         self.assertFalse(receipt["all_passed"])
         self.assertEqual(receipt["edge_traversal"], "NOT_EVALUATED")
 
+    def test_multiple_unittest_callbacks_keep_error_and_failure_precedence(self):
+        # unittest can call multiple result hooks for a single test method:
+        # a failing tearDown must not downgrade an earlier ERROR, and a
+        # skipped tearDown must not hide a prior ERROR or FAILED outcome.
+        class ErrorThenFailure(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.fail("controlled tearDown failure")
+
+        class ErrorThenSkip(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        class FailureThenSkip(unittest.TestCase):
+            def test_case(self):
+                self.fail("controlled body failure")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        suite = unittest.TestSuite([
+            ErrorThenFailure("test_case"), ErrorThenSkip("test_case"),
+            FailureThenSkip("test_case"),
+        ])
+        receipt = capture_unittest_execution(
+            suite, snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in receipt["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "ErrorThenFailure": "ERROR", "ErrorThenSkip": "ERROR",
+            "FailureThenSkip": "FAILED",
+        })
+        self.assertEqual(receipt["tests_run"], 3)
+        self.assertFalse(receipt["all_passed"])
+        self.assertEqual(receipt["edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(receipt["semantic_ownership"], "NOT_EVALUATED")
+
     def test_wrong_source_hash_rejected_before_execution(self):
         with self.assertRaises(RuntimeTestEvidenceError):
             capture_unittest_execution(

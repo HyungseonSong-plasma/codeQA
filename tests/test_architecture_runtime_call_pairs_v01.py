@@ -141,6 +141,50 @@ class CallPairTests(unittest.TestCase):
         self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
         self.assertIsNone(sys.getprofile())
 
+    def test_multiple_unittest_callbacks_keep_error_and_failure_precedence(self):
+        # unittest can call multiple result hooks for a single test method:
+        # a failing tearDown must not downgrade an earlier ERROR, and a
+        # skipped tearDown must not hide a prior ERROR or FAILED outcome.
+        class ErrorThenFailure(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.fail("controlled tearDown failure")
+
+        class ErrorThenSkip(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        class FailureThenSkip(unittest.TestCase):
+            def test_case(self):
+                self.fail("controlled body failure")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        suite = unittest.TestSuite([
+            ErrorThenFailure("test_case"), ErrorThenSkip("test_case"),
+            FailureThenSkip("test_case"),
+        ])
+        report = self.observe(suite=suite)
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in report["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "ErrorThenFailure": "ERROR", "ErrorThenSkip": "ERROR",
+            "FailureThenSkip": "FAILED",
+        })
+        self.assertEqual(report["tests_run"], 3)
+        self.assertFalse(report["suite_was_successful"])
+        self.assertEqual(report["static_import_edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+        self.assertIsNone(sys.getprofile())
+
     def test_profile_restored_after_test_failure(self):
         class Failing(unittest.TestCase):
             def test_fail(self):

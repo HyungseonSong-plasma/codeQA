@@ -50,7 +50,10 @@ class _ObservedTests(unittest.TestResult):
 
     def addFailure(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addFailure(test, err)
-        self.outcomes[test.id()] = "FAILED"
+        # A test can error in its body and then fail in tearDown. Retain
+        # the more severe result while preserving unittest's own accounting.
+        if self.outcomes.get(test.id()) != "ERROR":
+            self.outcomes[test.id()] = "FAILED"
 
     def addError(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addError(test, err)
@@ -72,7 +75,9 @@ class _ObservedTests(unittest.TestResult):
 
     def addSkip(self, test: unittest.case.TestCase, reason: str) -> None:
         super().addSkip(test, reason)
-        self.outcomes[test.id()] = "SKIPPED"
+        # A skip raised during tearDown must not hide an earlier error/failure.
+        if self.outcomes.get(test.id()) not in {"ERROR", "FAILED"}:
+            self.outcomes[test.id()] = "SKIPPED"
 
     def addExpectedFailure(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addExpectedFailure(test, err)
