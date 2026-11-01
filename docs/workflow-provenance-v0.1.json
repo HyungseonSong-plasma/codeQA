@@ -34,7 +34,7 @@
     },
     {
       "path": ".github/workflows/architecture-self-diagnostic.yml",
-      "blob_sha": "6ad77df7170a1f7b474699a0987b3136909ed24c"
+      "blob_sha": "2fb2af52456482cff2c4e1690afe5bd15abda2c5"
     },
     {
       "path": ".github/workflows/layout.yml",
