@@ -77,6 +77,59 @@ class RuntimeReceiptTests(unittest.TestCase):
         self.assertFalse(receipt["all_passed"])
         self.assertEqual([x["outcome"] for x in receipt["executed_tests"]], ["FAILED", "SKIPPED"])
 
+    def test_failing_subtest_is_reported_as_failed_not_started(self):
+        class SubtestFailure(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="failing"):
+                    self.assertEqual(1, 2)
+                with self.subTest(case="passing"):
+                    self.assertEqual(2, 2)
+
+        receipt = capture_unittest_execution(
+            unittest.TestSuite([SubtestFailure("test_cases")]),
+            snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        self.assertEqual(receipt["tests_run"], 1)
+        self.assertEqual(receipt["executed_tests"][0]["outcome"], "FAILED")
+        self.assertFalse(receipt["all_passed"])
+        self.assertEqual(receipt["edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(receipt["semantic_ownership"], "NOT_EVALUATED")
+
+    def test_subtest_error_precedes_later_failure_and_pass_control(self):
+        class ErrorThenFailure(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="error"):
+                    raise RuntimeError("controlled subtest error")
+                with self.subTest(case="failure"):
+                    self.fail("controlled subtest failure")
+
+        class PassingSubtests(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="passing"):
+                    self.assertTrue(True)
+
+        receipt = capture_unittest_execution(
+            unittest.TestSuite([
+                ErrorThenFailure("test_cases"),
+                PassingSubtests("test_cases"),
+            ]),
+            snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in receipt["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "ErrorThenFailure": "ERROR", "PassingSubtests": "PASSED",
+        })
+        self.assertEqual(receipt["tests_run"], 2)
+        self.assertFalse(receipt["all_passed"])
+        self.assertEqual(receipt["edge_traversal"], "NOT_EVALUATED")
+
     def test_wrong_source_hash_rejected_before_execution(self):
         with self.assertRaises(RuntimeTestEvidenceError):
             capture_unittest_execution(
