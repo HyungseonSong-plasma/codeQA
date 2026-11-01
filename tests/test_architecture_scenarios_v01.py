@@ -370,6 +370,59 @@ class ArchitectureScenarioTests(unittest.TestCase):
         self.assertEqual(result["candidates"][0]["decision"], "NOT_EVALUATED")
         self.assertEqual(result["evidence_status"], "INCOMPLETE")
 
+    def test_duplicate_import_sites_are_not_independent_fallback_pairs(self):
+        # B3 records both import sites, but B2 resolves them to one distinct
+        # module pair. Two statements importing the same target must not
+        # make presenter eligible for a >=2-pair fallback.
+        sources = {
+            **SOURCES,
+            "src/orchard/earth/view.py": "value = 1\\n",
+        }
+        edges = []
+        for name, targets in (
+            ("view", ("earth/model", "earth/other",
+                      "earth/helper", "rain/flow")),
+            ("presenter", ("earth/model", "earth/model")),
+        ):
+            path = "src/orchard/sky/" + name + ".py"
+            expressions = [
+                "import orchard." + target.replace("/", ".")
+                for target in targets
+            ]
+            sources[path] = "\\n".join(expressions) + "\\n"
+            for line, (target, expression) in enumerate(
+                zip(targets, expressions), 1
+            ):
+                edges.append(StaticDependency(
+                    path, "src/orchard/" + target + ".py",
+                    line, expression, "top_level",
+                ))
+        inventory, metrics, opportunities, policy = reports(
+            sources=sources, edges=tuple(edges),
+        )
+        self.assertEqual(
+            sum(p["source_path"] == "src/orchard/sky/presenter.py"
+                for p in metrics["resolved_pairs"]), 1,
+        )
+        signal = next(s for s in opportunities["architecture_signals"]
+                      if s["family"] == "CROSS_BOUNDARY_CONCENTRATION")
+        self.assertEqual(
+            sum(w["source_path"] == "src/orchard/sky/presenter.py"
+                for w in signal["source_witnesses"]), 2,
+        )
+        result = generate_virtual_layout_scenarios(
+            inventory, metrics, opportunities, policy,
+        )
+        self.assertEqual(result["candidates"], [])
+        self.assertTrue(any(
+            r["reason"] == "TARGET_COLLISION"
+            and any(w["proposed_target_path"] ==
+                    "src/orchard/earth/view.py"
+                    for w in r["collision_witnesses"])
+            for r in result["rejected"]
+        ))
+        self.assertEqual(result["decision"], "NOT_EVALUATED")
+
     def test_cycle_only_does_not_invent_path_fix(self):
         result = compare(edges=(edge("sky/view", "sky/other"),
                                 edge("sky/other", "sky/view")))
