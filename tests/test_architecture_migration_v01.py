@@ -80,6 +80,38 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertTrue(all(s["rewrite_status"] == "REVIEW_REQUIRED"
                             for s in impact["observed_sites"]))
 
+    def test_split_from_imports_in_tests_and_scripts_are_consumers(self):
+        # The moved module name is absent as a contiguous string in these
+        # source lines, so a plain-text scan alone misses the consumer.
+        inv, scenarios, sources = setup(extra={
+            "tests/split_consumer.py": (
+                "from orchard.sky import view as renamed\\n"
+                "from orchard.sky import unrelated\\n"
+                "from orchard.sky.view import View\\n"
+            ),
+            "scripts/split_consumer.py": "from orchard.sky import view\\n",
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [
+            site for site in impact["observed_sites"]
+            if site["kind"] == "TEST_OR_SCRIPT_REFERENCE"
+            and site["path"] in {"tests/split_consumer.py", "scripts/split_consumer.py"}
+        ]
+        self.assertEqual(
+            [(site["path"], site["line"], site["expression"]) for site in sites],
+            [
+                ("scripts/split_consumer.py", 1, "orchard.sky:view"),
+                ("tests/split_consumer.py", 1, "orchard.sky:view"),
+                ("tests/split_consumer.py", 3, "from orchard.sky.view import View"),
+            ],
+        )
+        self.assertTrue(all(
+            site["source_sha256"] == sha256(sources[site["path"]].encode()).hexdigest()
+            and site["rewrite_status"] == "REVIEW_REQUIRED"
+            for site in sites
+        ))
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_aliased_dynamic_imports_are_migration_consumer_witnesses(self):
         # Static evidence must include import helpers brought into scope via
         # from-imports or module aliases, without claiming runtime binding.
