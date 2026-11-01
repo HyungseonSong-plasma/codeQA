@@ -363,6 +363,22 @@ def assess_architecture_migration(
                     base = node.module or ""
                     for alias in node.names:
                         if alias.name == "*":
+                            # A star import from the moved module is already
+                            # visible to the text scan. A star import from an
+                            # ancestor package is not: it could re-export the
+                            # moved child through __all__ or initializer code.
+                            # This is a potential compatibility risk, NOT
+                            # proof that the child is actually exported.
+                            for old, new in old_to_new.items():
+                                if _matches(base, old):
+                                    risk_flags.add("STAR_IMPORT_REVIEW")
+                                elif base and old.startswith(base + "."):
+                                    sites.append(_record(
+                                        path, node.lineno, "STAR_IMPORT",
+                                        base + ":*", hashes[path],
+                                        old, new, "REVIEW_REQUIRED",
+                                    ))
+                                    risk_flags.add("STAR_IMPORT_REVIEW")
                             continue
                         target = base + "." + alias.name if base else alias.name
                         for old, new in old_to_new.items():
