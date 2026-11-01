@@ -58,6 +58,20 @@ def _load_syntax_context(
             attribute = True
         if isinstance(parent, (ast.If, ast.IfExp)) and field in ("body", "orelse"):
             conditional = True
+        # Review evidence must not treat loads in loop/handler/match/with
+        # bodies as unguarded. This is syntactic reachability only: the
+        # imported binding, runtime execution and ownership remain unknown.
+        if (isinstance(parent, (ast.For, ast.AsyncFor, ast.While,
+                                ast.With, ast.AsyncWith))
+                and field in ("body", "orelse")):
+            conditional = True
+        if (isinstance(parent, (ast.Try, ast.TryStar))
+                and field in ("handlers", "orelse")):
+            conditional = True
+        if isinstance(parent, ast.ExceptHandler) and field == "body":
+            conditional = True
+        if isinstance(parent, ast.match_case) and field in ("pattern", "guard", "body"):
+            conditional = True
         if isinstance(parent, ast.Call):
             on_receiver_spine = on_receiver_spine and field == "func"
         elif isinstance(parent, (ast.Attribute, ast.Subscript)):
