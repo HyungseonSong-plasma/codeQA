@@ -6,6 +6,7 @@ on:
       - 'src/codeqa/evaluation/architecture/**'
       - 'contracts/qa/architecture-self-diagnostic-v0.1.schema.json'
       - 'tests/test_architecture_self_diagnostic_v01.py'
+      - 'tests/test_architecture_import_binding_usage_v01.py'
       - 'docs/architecture-self-diagnostic-v0.1.md'
       - '.github/scripts/architecture_self_diagnostic_e2e.py'
       - '.github/workflows/architecture-self-diagnostic.yml'
