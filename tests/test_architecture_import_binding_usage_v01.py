@@ -171,6 +171,44 @@ class ImportBindingUsageTests(unittest.TestCase):
         self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
         self.assertEqual(report["public_api_compatibility"], "NOT_EVALUATED")
 
+    def test_guarded_loop_exception_match_and_with_loads_are_not_unconditional(self):
+        # The loop iterable and finally suite are not conditionally reached
+        # merely because their parent statements have guarded branches.
+        # Syntax context is review evidence, never resolved import identity.
+        source = (
+            "from demo.core.a import Alpha\\n"
+            "for item in Alpha():\\n"
+            "    Alpha.run()\\n"
+            "try:\\n"
+            "    maybe_fail()\\n"
+            "except ValueError:\\n"
+            "    Alpha()\\n"
+            "finally:\\n"
+            "    Alpha()\\n"
+            "match state:\\n"
+            "    case 1 if Alpha.ready:\\n"
+            "        Alpha.run()\\n"
+            "with manager():\\n"
+            "    Alpha()\\n"
+            "Alpha()\\n"
+        )
+        s, r, b = inputs(1, source)
+        report = census_b8_import_binding_uses(s, r, b)
+        row = report["records"][0]
+        binding = row["candidate_bindings"][0]
+        self.assertEqual(binding["lexical_load_count"], 8)
+        self.assertEqual(binding["syntax_context_counts"], {
+            "ANNOTATION_SYNTAX": 0,
+            "CALL_TARGET_SYNTAX": 7,
+            "ATTRIBUTE_ACCESS_SYNTAX": 1,
+            "OTHER_LOAD_SYNTAX": 0,
+        })
+        self.assertEqual(binding["conditional_load_candidates"], 5)
+        self.assertEqual(row["conditional_load_candidates"], 5)
+        self.assertEqual(report["conditional_load_candidates"], 5)
+        self.assertEqual(report["decision"], "NOT_EVALUATED")
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
     def test_method_call_is_call_syntax_not_attribute_only(self):
         s, r, b = inputs(1, "from demo.core.a import Alpha\nAlpha.run()\n")
         report = census_b8_import_binding_uses(s, r, b)
