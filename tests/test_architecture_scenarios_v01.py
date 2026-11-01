@@ -313,6 +313,63 @@ class ArchitectureScenarioTests(unittest.TestCase):
                          "PROJECTED_PATH_ROLE_PROXY_ONLY")
         self.assertEqual(result["evidence_status"], "INCOMPLETE")
 
+    def test_fallback_budget_counts_distinct_sources_not_target_roles(self):
+        # A top-ranked view move collides. Alpha and beta each have two
+        # independently witnessed target-role hypotheses, but both proposed
+        # moves violate declared boundaries. Gamma is the third *source*
+        # alternative and must not be lost to a four-trial mapping budget.
+        policy = deepcopy(POLICY)
+        policy["roles"]["earth"]["forbidden_imports"] = ["sky", "rain"]
+        policy["roles"]["rain"]["forbidden_imports"] = ["earth"]
+        source_targets = {
+            "sky/view": ("earth/model", "earth/other", "earth/helper"),
+            "sky/alpha": ("earth/model", "earth/other",
+                          "rain/flow", "rain/stream"),
+            "sky/beta": ("earth/model", "earth/other",
+                         "rain/flow", "rain/stream"),
+            "sky/gamma": ("earth/model", "earth/other"),
+        }
+        sources = {
+            **SOURCES,
+            "src/orchard/earth/view.py": "value = 1\\n",
+            "src/orchard/rain/stream.py": "value = 1\\n",
+        }
+        edges = []
+        for source, targets in source_targets.items():
+            path = "src/orchard/" + source + ".py"
+            expressions = [
+                "import orchard." + target.replace("/", ".")
+                for target in targets
+            ]
+            sources[path] = "\\n".join(expressions) + "\\n"
+            for line, (target, expression) in enumerate(
+                zip(targets, expressions), 1
+            ):
+                edges.append(StaticDependency(
+                    path, "src/orchard/" + target + ".py",
+                    line, expression, "top_level",
+                ))
+        result = compare(sources=sources, policy=policy, edges=tuple(edges))
+        self.assertEqual(
+            [(move["from"], move["to"])
+             for candidate in result["candidates"]
+             for move in candidate["path_mapping"]],
+            [("src/orchard/sky/gamma.py", "src/orchard/earth/gamma.py")],
+        )
+        self.assertEqual(
+            sum(r["reason"] == "NEW_DECLARED_BOUNDARY_VIOLATION"
+                for r in result["rejected"]), 4,
+        )
+        self.assertTrue(any(
+            r["reason"] == "TARGET_COLLISION"
+            and any(w["source_path"] == "src/orchard/sky/view.py"
+                    and w["proposed_target_path"] == "src/orchard/earth/view.py"
+                    for w in r["collision_witnesses"])
+            for r in result["rejected"]
+        ))
+        self.assertEqual(result["candidates"][0]["decision"], "NOT_EVALUATED")
+        self.assertEqual(result["evidence_status"], "INCOMPLETE")
+
     def test_cycle_only_does_not_invent_path_fix(self):
         result = compare(edges=(edge("sky/view", "sky/other"),
                                 edge("sky/other", "sky/view")))
