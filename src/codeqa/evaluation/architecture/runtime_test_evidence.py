@@ -172,6 +172,29 @@ def correlate_runtime_test_candidates(
         path = receipt["source_identity"]["test_path"]
         source_hash = receipt["source_identity"]["test_source_sha256"]
         outcomes = receipt["executed_tests"]
+        # A digest is only an integrity checksum, not a trusted signature.
+        # Reject internally impossible unittest claims even when a caller
+        # recomputes receipt_id after modifying the payload.
+        valid_outcomes = {
+            "STARTED", "PASSED", "FAILED", "ERROR", "SKIPPED",
+            "EXPECTED_FAILURE", "UNEXPECTED_SUCCESS",
+        }
+        if (not isinstance(outcomes, list)
+                or type(receipt["tests_run"]) is not int
+                or type(receipt["all_passed"]) is not bool
+                or any(
+                    not isinstance(row, Mapping)
+                    or not isinstance(row.get("test_id"), str)
+                    or not row["test_id"]
+                    or not isinstance(row.get("outcome"), str)
+                    or row["outcome"] not in valid_outcomes
+                    for row in outcomes
+                )
+                or receipt["all_passed"] != (
+                    bool(outcomes)
+                    and all(row["outcome"] == "PASSED" for row in outcomes)
+                )):
+            raise RuntimeTestEvidenceError("inconsistent unittest outcomes")
         if len({r["test_id"] for r in outcomes}) != len(outcomes):
             raise RuntimeTestEvidenceError("duplicate executed test ID")
         matches = []
