@@ -145,7 +145,6 @@ def assess_bounded_disposition(
                 else:
                     verdict = "KEEP"  # only compared alternatives, not architecture
             rejected_witnesses = []
-            boundary_witnesses = []
             # B4's hard rejections must not be silently relabelled or lose
             # their source-backed witnesses when a B7 digest is resealed.
             known_rejections = {
@@ -192,12 +191,6 @@ def assess_bounded_disposition(
                                 or source_role == target_role):
                             raise BoundedDispositionError("unbound declared-boundary witness")
                         seen_pairs.add((src, dst))
-                        boundary_witnesses.append({
-                            "source_path": src, "target_path": dst,
-                            "source_sha256": tracked[src]["source_sha256"],
-                            "source_role": source_role, "target_role": target_role,
-                            "evidence_class": "DECLARED_POLICY",
-                        })
                     continue
                 if "witness_pairs" in candidate:
                     raise BoundedDispositionError("unexpected declared-boundary witnesses")
@@ -266,7 +259,6 @@ def assess_bounded_disposition(
                     for c in rejected
                 ],
                 "collision_witnesses": rejected_witnesses,
-                "boundary_violation_witnesses": boundary_witnesses,
                 "disposition": verdict,
                 "current_action": "NO_MOVE",
                 "semantic_ownership": "NOT_EVALUATED",
@@ -337,14 +329,6 @@ def render_bounded_disposition_markdown(report: Mapping[str, Any]) -> str:
                     + witness["source_path"] + " -> "
                     + witness["proposed_target_path"] + " sha256="
                     + witness["source_sha256"]
-                )
-            for witness in item["boundary_violation_witnesses"]:
-                lines.append(
-                    "    - NEW_DECLARED_BOUNDARY_VIOLATION: "
-                    + witness["source_path"] + " -> " + witness["target_path"]
-                    + " virtual roles " + witness["source_role"] + " -> "
-                    + witness["target_role"] + " sha256=" + witness["source_sha256"]
-                    + " (declared-policy witness; semantic impact NOT_EVALUATED)"
                 )
         if not report["signal_dispositions"]:
             lines.append("- No concentration signals; no forced question or KEEP/PASS.")
