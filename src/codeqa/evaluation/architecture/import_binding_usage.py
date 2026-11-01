@@ -68,6 +68,16 @@ def _load_syntax_context(
         if (isinstance(parent, (ast.Try, ast.TryStar))
                 and field in ("handlers", "orelse")):
             conditional = True
+        # Later boolean operands and chained comparisons can be skipped by
+        # short-circuit evaluation. The first operand/comparator is reached
+        # whenever the containing expression is evaluated; this is only
+        # lexical reachability evidence, not runtime execution proof.
+        if (isinstance(parent, ast.BoolOp) and field == "values"
+                and parent.values[0] is not child):
+            conditional = True
+        if (isinstance(parent, ast.Compare) and field == "comparators"
+                and parent.comparators[0] is not child):
+            conditional = True
         if isinstance(parent, ast.ExceptHandler) and field == "body":
             conditional = True
         if isinstance(parent, ast.match_case) and field in ("pattern", "guard", "body"):
