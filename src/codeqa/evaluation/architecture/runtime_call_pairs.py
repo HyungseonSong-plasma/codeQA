@@ -56,6 +56,20 @@ class _ObservedTests(unittest.TestResult):
         super().addError(test, err)
         self.outcomes[test.id()] = "ERROR"
 
+    def addSubTest(
+        self, test: unittest.case.TestCase, subtest: unittest.case.TestCase,
+        err: Any,
+    ) -> None:
+        # unittest reports failed subtests through this hook, not addFailure.
+        # Preserve the actual method outcome in the B8 runtime pair receipt.
+        super().addSubTest(test, subtest, err)
+        if err is not None:
+            status = ("FAILED" if issubclass(err[0], test.failureException)
+                      else "ERROR")
+            # A later assertion must not overwrite an earlier subtest error.
+            if self.outcomes.get(test.id()) != "ERROR":
+                self.outcomes[test.id()] = status
+
     def addSkip(self, test: unittest.case.TestCase, reason: str) -> None:
         super().addSkip(test, reason)
         self.outcomes[test.id()] = "SKIPPED"
