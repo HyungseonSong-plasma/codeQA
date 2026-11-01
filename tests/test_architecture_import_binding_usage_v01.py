@@ -286,13 +286,13 @@ class ImportBindingUsageTests(unittest.TestCase):
         # filters and later iterable expressions are conditional lexical
         # candidates; the first iterable and an outside call are controls.
         source = (
-            "from demo.core.a import Alpha\\n"
-            "items = [Alpha() for item in Alpha]\\n"
-            "filtered = [item for item in items if Alpha.ready]\\n"
-            "mapping = {Alpha.key: Alpha() for item in items}\\n"
-            "nested = [item for outer in Alpha for inner in Alpha()]\\n"
-            "generator = (Alpha() for item in Alpha)\\n"
-            "outside = Alpha()\\n"
+            "from demo.core.a import Alpha\n"
+            "items = [Alpha() for item in Alpha]\n"
+            "filtered = [item for item in items if Alpha.ready]\n"
+            "mapping = {Alpha.key: Alpha() for item in items}\n"
+            "nested = [item for outer in Alpha for inner in Alpha()]\n"
+            "generator = (Alpha() for item in Alpha)\n"
+            "outside = Alpha()\n"
         )
         s, r, b = inputs(1, source)
         report = census_b8_import_binding_uses(s, r, b)
