@@ -408,6 +408,22 @@ def assess_architecture_migration(
                     target = (value.split(":", 1)[0]
                               if value is not None and helper == "pkgutil.resolve_name"
                               else value)
+                    if helper == "__import__":
+                        # The fifth positional / level= argument changes
+                        # __import__ from an absolute import into a relative
+                        # import. A relative or dynamic level is not evidence
+                        # that the literal names the proposed old module.
+                        level_arg = (node.args[4] if len(node.args) > 4 else next(
+                            (kw.value for kw in node.keywords if kw.arg == "level"),
+                            None
+                        ))
+                        if (any(isinstance(arg, ast.Starred) for arg in node.args)
+                                or any(kw.arg is None for kw in node.keywords)
+                                or (level_arg is not None and (
+                                    not isinstance(level_arg, ast.Constant)
+                                    or type(level_arg.value) is not int
+                                    or level_arg.value != 0))):
+                            target = None
                     if (helper == "importlib.import_module" and value is not None
                             and value.startswith(".")):
                         # import_module('.child', package='pkg.parent') is an
