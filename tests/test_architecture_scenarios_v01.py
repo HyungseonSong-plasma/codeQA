@@ -274,6 +274,155 @@ class ArchitectureScenarioTests(unittest.TestCase):
         self.assertEqual(changed["rejected"][0]["reason"],
                          "NEW_DECLARED_BOUNDARY_VIOLATION")
 
+    def test_policy_rejected_primary_can_compare_independent_source(self):
+        # Moving view to earth would newly forbid its rain import. The
+        # independently witnessed presenter has a distinct, viable target.
+        policy = deepcopy(POLICY)
+        policy["roles"]["earth"]["forbidden_imports"] = ["rain", "sky"]
+        sources = {
+            **SOURCES,
+            "src/orchard/sky/presenter.py":
+                "from orchard.earth.model import Model\n"
+                "from orchard.earth.other import Other\n",
+        }
+        edges = CONCENTRATED + (
+            edge("sky/view", "earth/helper"),
+            edge("sky/presenter", "earth/model"),
+            edge("sky/presenter", "earth/other"),
+        )
+        result = compare(sources=sources, policy=policy, edges=edges)
+        self.assertTrue(any(
+            item["reason"] == "NEW_DECLARED_BOUNDARY_VIOLATION"
+            and any(
+                witness["source_path"] == "src/orchard/sky/view.py"
+                and witness["target_path"] == "src/orchard/rain/flow.py"
+                and witness["source_role"] == "earth"
+                and witness["target_role"] == "rain"
+                for witness in item["witness_pairs"]
+            )
+            for item in result["rejected"]
+        ))
+        self.assertEqual(len(result["candidates"]), 1)
+        self.assertEqual(
+            [(move["from"], move["to"])
+             for move in result["candidates"][0]["path_mapping"]],
+            [("src/orchard/sky/presenter.py", "src/orchard/earth/presenter.py")],
+        )
+        self.assertEqual(result["candidates"][0]["decision"], "NOT_EVALUATED")
+        self.assertEqual(result["candidates"][0]["evidence_class"],
+                         "PROJECTED_PATH_ROLE_PROXY_ONLY")
+        self.assertEqual(result["evidence_status"], "INCOMPLETE")
+
+    def test_fallback_budget_counts_distinct_sources_not_target_roles(self):
+        # A top-ranked view move collides. Alpha and beta each have two
+        # independently witnessed target-role hypotheses, but both proposed
+        # moves violate declared boundaries. Gamma is the third *source*
+        # alternative and must not be lost to a four-trial mapping budget.
+        policy = deepcopy(POLICY)
+        policy["roles"]["earth"]["forbidden_imports"] = ["sky", "rain"]
+        policy["roles"]["rain"]["forbidden_imports"] = ["earth"]
+        source_targets = {
+            "sky/view": ("earth/model", "earth/other", "earth/helper"),
+            "sky/alpha": ("earth/model", "earth/other",
+                          "rain/flow", "rain/stream"),
+            "sky/beta": ("earth/model", "earth/other",
+                         "rain/flow", "rain/stream"),
+            "sky/gamma": ("earth/model", "earth/other"),
+        }
+        sources = {
+            **SOURCES,
+            "src/orchard/earth/view.py": "value = 1\n",
+            "src/orchard/rain/stream.py": "value = 1\n",
+        }
+        edges = []
+        for source, targets in source_targets.items():
+            path = "src/orchard/" + source + ".py"
+            expressions = [
+                "import orchard." + target.replace("/", ".")
+                for target in targets
+            ]
+            sources[path] = "\n".join(expressions) + "\n"
+            for line, (target, expression) in enumerate(
+                zip(targets, expressions), 1
+            ):
+                edges.append(StaticDependency(
+                    path, "src/orchard/" + target + ".py",
+                    line, expression, "top_level",
+                ))
+        result = compare(sources=sources, policy=policy, edges=tuple(edges))
+        self.assertEqual(
+            [(move["from"], move["to"])
+             for candidate in result["candidates"]
+             for move in candidate["path_mapping"]],
+            [("src/orchard/sky/gamma.py", "src/orchard/earth/gamma.py")],
+        )
+        self.assertEqual(
+            sum(r["reason"] == "NEW_DECLARED_BOUNDARY_VIOLATION"
+                for r in result["rejected"]), 4,
+        )
+        self.assertTrue(any(
+            r["reason"] == "TARGET_COLLISION"
+            and any(w["source_path"] == "src/orchard/sky/view.py"
+                    and w["proposed_target_path"] == "src/orchard/earth/view.py"
+                    for w in r["collision_witnesses"])
+            for r in result["rejected"]
+        ))
+        self.assertEqual(result["candidates"][0]["decision"], "NOT_EVALUATED")
+        self.assertEqual(result["evidence_status"], "INCOMPLETE")
+
+    def test_duplicate_import_sites_are_not_independent_fallback_pairs(self):
+        # B3 records both import sites, but B2 resolves them to one distinct
+        # module pair. Two statements importing the same target must not
+        # make presenter eligible for a >=2-pair fallback.
+        sources = {
+            **SOURCES,
+            "src/orchard/earth/view.py": "value = 1\n",
+        }
+        edges = []
+        for name, targets in (
+            ("view", ("earth/model", "earth/other",
+                      "earth/helper", "rain/flow")),
+            ("presenter", ("earth/model", "earth/model")),
+        ):
+            path = "src/orchard/sky/" + name + ".py"
+            expressions = [
+                "import orchard." + target.replace("/", ".")
+                for target in targets
+            ]
+            sources[path] = "\n".join(expressions) + "\n"
+            for line, (target, expression) in enumerate(
+                zip(targets, expressions), 1
+            ):
+                edges.append(StaticDependency(
+                    path, "src/orchard/" + target + ".py",
+                    line, expression, "top_level",
+                ))
+        inventory, metrics, opportunities, policy = reports(
+            sources=sources, edges=tuple(edges),
+        )
+        self.assertEqual(
+            sum(p["source_path"] == "src/orchard/sky/presenter.py"
+                for p in metrics["resolved_pairs"]), 1,
+        )
+        signal = next(s for s in opportunities["architecture_signals"]
+                      if s["family"] == "CROSS_BOUNDARY_CONCENTRATION")
+        self.assertEqual(
+            sum(w["source_path"] == "src/orchard/sky/presenter.py"
+                for w in signal["source_witnesses"]), 2,
+        )
+        result = generate_virtual_layout_scenarios(
+            inventory, metrics, opportunities, policy,
+        )
+        self.assertEqual(result["candidates"], [])
+        self.assertTrue(any(
+            r["reason"] == "TARGET_COLLISION"
+            and any(w["proposed_target_path"] ==
+                    "src/orchard/earth/view.py"
+                    for w in r["collision_witnesses"])
+            for r in result["rejected"]
+        ))
+        self.assertEqual(result["decision"], "NOT_EVALUATED")
+
     def test_cycle_only_does_not_invent_path_fix(self):
         result = compare(edges=(edge("sky/view", "sky/other"),
                                 edge("sky/other", "sky/view")))

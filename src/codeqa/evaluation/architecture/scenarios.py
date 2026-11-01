@@ -52,14 +52,20 @@ def _ranked_automatic_mappings(
     }:
         return []
     counts: Counter[tuple[str, str]] = Counter()
+    # B3 may provide several import-site witnesses for one resolved module
+    # pair. Count distinct source/target pairs, not import statements: a
+    # duplicated import cannot establish an independent fallback witness.
+    seen_pairs: set[tuple[str, str]] = set()
     for witness in signal["source_witnesses"]:
         src, dst = witness["source_path"], witness["target_path"]
         if (src not in inventory_files or dst not in inventory_files
-                or not src.endswith(".py") or src.endswith("/__init__.py")):
+                or not src.endswith(".py") or src.endswith("/__init__.py")
+                or (src, dst) in seen_pairs):
             continue
         sr, dr = _role(src, scope, roles), _role(dst, scope, roles)
         if sr in roles and dr in roles and sr != dr:
             counts[(src, dr)] += 1
+            seen_pairs.add((src, dst))
     return [
         (src, count, {
             src: scope + "/" + target_role + "/" + src.rsplit("/", 1)[-1],
@@ -315,13 +321,15 @@ def generate_virtual_layout_scenarios(
         candidate["scenario_id"] = _digest(candidate)
         candidates.append(candidate)
 
-    # A top-ranked occupied target is still a hard rejection. Independently
-    # witnessed *other source files* may be assessed, but never rename the
-    # blocked source's destination to evade its collision. Limit exploration
-    # and retain every attempted rejection in the report.
+    # A top-ranked occupied target or newly forbidden boundary is a hard
+    # rejection. Independently witnessed *other source files* may still be
+    # assessed; never rename the rejected source's destination or relax its
+    # role policy to manufacture a viable move. Retain every rejection.
     if candidate_mappings is None:
         for primary in tuple(rejected):
-            if primary["reason"] != "TARGET_COLLISION":
+            if primary["reason"] not in {
+                "TARGET_COLLISION", "NEW_DECLARED_BOUNDARY_VIOLATION",
+            }:
                 continue
             qid = primary["opportunity_id"]
             question = next(q for q in questions if q["opportunity_id"] == qid)
@@ -330,13 +338,18 @@ def generate_virtual_layout_scenarios(
             if not ranked:
                 continue
             primary_source = ranked[0][0]
-            attempts = 0
+            # The search budget counts independent source modules, not
+            # multiple target-role hypotheses for the same module. Otherwise
+            # four rejected roles for one module can hide the next source's
+            # independently witnessed, policy-compatible alternative.
+            attempted_sources: set[str] = set()
             for source, count, alternative in ranked[1:]:
                 if source == primary_source or count < 2:
                     continue
-                attempts += 1
-                if attempts > 4:
-                    break
+                if source not in attempted_sources:
+                    if len(attempted_sources) >= 4:
+                        break
+                    attempted_sources.add(source)
                 trial = generate_virtual_layout_scenarios(
                     inventory, metrics, opportunities, role_policy,
                     candidate_mappings={qid: alternative},
