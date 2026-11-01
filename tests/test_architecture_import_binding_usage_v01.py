@@ -229,6 +229,58 @@ class ImportBindingUsageTests(unittest.TestCase):
         self.assertEqual(report["decision"], "NOT_EVALUATED")
         self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
 
+    def test_short_circuit_boolean_and_chained_compare_loads_are_guarded(self):
+        # A later operand/comparator may never execute; first operands are
+        # controls. Nested boolean expressions inherit outer short-circuit
+        # guards. None of this establishes a runtime import binding.
+        source = (
+            "from demo.core.a import Alpha\\n"
+            "flag = True and Alpha()\\n"
+            "fallback = False or Alpha()\\n"
+            "nested = Alpha() and (Alpha.run() or Alpha())\\n"
+            "chain = 1 < Alpha() < Alpha()\\n"
+            "single = 1 < Alpha()\\n"
+            "if Alpha() and Alpha.ready:\\n"
+            "    pass\\n"
+        )
+        s, r, b = inputs(1, source)
+        report = census_b8_import_binding_uses(s, r, b)
+        binding = report["records"][0]["candidate_bindings"][0]
+        self.assertEqual(binding["lexical_load_count"], 10)
+        self.assertEqual(binding["conditional_load_candidates"], 6)
+        self.assertEqual(report["conditional_load_candidates"], 6)
+        self.assertEqual(binding["syntax_context_counts"], {
+            "ANNOTATION_SYNTAX": 0,
+            "CALL_TARGET_SYNTAX": 9,
+            "ATTRIBUTE_ACCESS_SYNTAX": 1,
+            "OTHER_LOAD_SYNTAX": 0,
+        })
+        tree = ast.parse(source)
+        parents = {
+            id(child): (node, field)
+            for node in ast.walk(tree)
+            for field, value in ast.iter_fields(node)
+            for child in (value if isinstance(value, list) else [value])
+            if isinstance(child, ast.AST)
+        }
+        guarded = sorted(
+            (node.lineno, node.col_offset, _load_syntax_context(node, parents)[1])
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name) and node.id == "Alpha"
+            and isinstance(node.ctx, ast.Load)
+        )
+        self.assertEqual(
+            [(line, guarded_flag) for line, _, guarded_flag in guarded],
+            [
+                (2, True), (3, True),
+                (4, False), (4, True), (4, True),
+                (5, False), (5, True), (6, False),
+                (7, False), (7, True),
+            ],
+        )
+        self.assertEqual(report["decision"], "NOT_EVALUATED")
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+
     def test_method_call_is_call_syntax_not_attribute_only(self):
         s, r, b = inputs(1, "from demo.core.a import Alpha\nAlpha.run()\n")
         report = census_b8_import_binding_uses(s, r, b)
