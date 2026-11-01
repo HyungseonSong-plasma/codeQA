@@ -332,13 +332,18 @@ def generate_virtual_layout_scenarios(
             if not ranked:
                 continue
             primary_source = ranked[0][0]
-            attempts = 0
+            # The search budget counts independent source modules, not
+            # multiple target-role hypotheses for the same module. Otherwise
+            # four rejected roles for one module can hide the next source's
+            # independently witnessed, policy-compatible alternative.
+            attempted_sources: set[str] = set()
             for source, count, alternative in ranked[1:]:
                 if source == primary_source or count < 2:
                     continue
-                attempts += 1
-                if attempts > 4:
-                    break
+                if source not in attempted_sources:
+                    if len(attempted_sources) >= 4:
+                        break
+                    attempted_sources.add(source)
                 trial = generate_virtual_layout_scenarios(
                     inventory, metrics, opportunities, role_policy,
                     candidate_mappings={qid: alternative},
