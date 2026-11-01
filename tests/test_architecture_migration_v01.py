@@ -175,14 +175,14 @@ class MigrationImpactTests(unittest.TestCase):
         # Nonliteral levels and unpacked arguments remain unknown.
         inv, scenarios, sources = setup(extra={
             "src/orchard/earth/builtin_relative_client.py": (
-                "known_default = __import__('orchard.sky.view')\\n"
-                "known_keyword = __import__(name='orchard.sky.view', level=0)\\n"
-                "known_positional = __import__('orchard.sky.view', None, None, (), 0)\\n"
-                "relative_keyword = __import__('orchard.sky.view', level=1)\\n"
-                "relative_positional = __import__('orchard.sky.view', None, None, (), 1)\\n"
-                "unknown_level = __import__('orchard.sky.view', level=runtime_level)\\n"
-                "unpacked = __import__('orchard.sky.view', *args)\\n"
-                "unrelated = __import__('orchard.earth.model', level=0)\\n"
+                "known_default = __import__('orchard.sky.view')\n"
+                "known_keyword = __import__(name='orchard.sky.view', level=0)\n"
+                "known_positional = __import__('orchard.sky.view', None, None, (), 0)\n"
+                "relative_keyword = __import__('orchard.sky.view', level=1)\n"
+                "relative_positional = __import__('orchard.sky.view', None, None, (), 1)\n"
+                "unknown_level = __import__('orchard.sky.view', level=runtime_level)\n"
+                "unpacked = __import__('orchard.sky.view', *args)\n"
+                "unrelated = __import__('orchard.earth.model', level=0)\n"
             ),
         })
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
