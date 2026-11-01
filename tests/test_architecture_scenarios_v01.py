@@ -331,8 +331,8 @@ class ArchitectureScenarioTests(unittest.TestCase):
         }
         sources = {
             **SOURCES,
-            "src/orchard/earth/view.py": "value = 1\\n",
-            "src/orchard/rain/stream.py": "value = 1\\n",
+            "src/orchard/earth/view.py": "value = 1\n",
+            "src/orchard/rain/stream.py": "value = 1\n",
         }
         edges = []
         for source, targets in source_targets.items():
@@ -341,7 +341,7 @@ class ArchitectureScenarioTests(unittest.TestCase):
                 "import orchard." + target.replace("/", ".")
                 for target in targets
             ]
-            sources[path] = "\\n".join(expressions) + "\\n"
+            sources[path] = "\n".join(expressions) + "\n"
             for line, (target, expression) in enumerate(
                 zip(targets, expressions), 1
             ):
