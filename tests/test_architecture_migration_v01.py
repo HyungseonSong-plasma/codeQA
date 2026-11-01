@@ -450,6 +450,25 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertEqual(impact["namespace_collisions"], [])
         self.assertNotEqual(impact["cost_band"], "BLOCKED")
 
+    def test_unread_inventory_paths_downgrade_migration_confidence(self):
+        # B1 may track a Python consumer without its source bytes. An unread
+        # file cannot establish the absence of migration/API references.
+        missing_path = "tests/unread_external.py"
+        inv, scenarios, sources = setup(
+            extra={missing_path: "from orchard.sky.view import View\n"},
+            missing=(missing_path,),
+        )
+        self.assertEqual(len(scenarios["candidates"]), 1)
+        unread = next(item for item in inv["files"]
+                      if item["path"] == missing_path)
+        self.assertEqual(unread["read_state"], "MISSING")
+        report = assess_architecture_migration(inv, scenarios, sources)
+        self.assertEqual(report["source_coverage"]["missing_read_source_texts"], [])
+        impact = report["candidates"][0]
+        self.assertIn("INVENTORY_UNREAD_PATHS", impact["unknowns"])
+        self.assertEqual(impact["confidence"], "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_missing_sources_do_not_claim_zero_external_references(self):
         inv, scenarios, sources = setup(extra={
             "tests/test_external.py": "from orchard.sky.view import View\n",
