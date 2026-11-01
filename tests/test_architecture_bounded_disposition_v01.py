@@ -194,25 +194,26 @@ class BoundedDispositionTests(unittest.TestCase):
                         inv, triage, responsibility, forged,
                     )
 
-    def test_new_forbidden_boundary_rejection_keeps_source_witnesses(self):
-        report = assess_bounded_disposition(*fixture(forbidden=True))
-        signal = report["signal_dispositions"][0]
-        self.assertEqual(signal["disposition"], "INSUFFICIENT_EVIDENCE")
-        self.assertEqual(signal["rejected_candidates"][0]["reason"],
-                         "NEW_DECLARED_BOUNDARY_VIOLATION")
-        self.assertEqual(signal["collision_witnesses"], [])
-        self.assertEqual(len(signal["boundary_violation_witnesses"]), 1)
-        witness = signal["boundary_violation_witnesses"][0]
+    def test_new_forbidden_boundary_rejection_is_validated_without_schema_change(self):
+        inv, triage, responsibility, assessment = fixture(forbidden=True)
+        witness = assessment["rejected_scenarios"][0]["witness_pairs"][0]
         self.assertEqual(
             (witness["source_path"], witness["target_path"]),
             ("src/orchard/sky/view.py", "src/orchard/sky/helper.py"),
         )
         self.assertEqual((witness["source_role"], witness["target_role"]),
                          ("earth", "sky"))
-        self.assertEqual(witness["evidence_class"], "DECLARED_POLICY")
-        rendered = render_bounded_disposition_markdown(report)
-        self.assertIn("NEW_DECLARED_BOUNDARY_VIOLATION:", rendered)
-        self.assertIn("semantic impact NOT_EVALUATED", rendered)
+        report = assess_bounded_disposition(
+            inv, triage, responsibility, assessment,
+        )
+        signal = report["signal_dispositions"][0]
+        self.assertEqual(signal["disposition"], "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(signal["rejected_candidates"][0]["reason"],
+                         "NEW_DECLARED_BOUNDARY_VIOLATION")
+        self.assertEqual(signal["collision_witnesses"], [])
+        # The opt-in v0.1 output contract stays unchanged; only evidence
+        # validation is hardened, without a new public field.
+        self.assertNotIn("boundary_violation_witnesses", signal)
 
     def test_resealed_forbidden_boundary_witness_forgery_is_rejected(self):
         inv, triage, responsibility, assessment = fixture(forbidden=True)
