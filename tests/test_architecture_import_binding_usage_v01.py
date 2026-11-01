@@ -7,7 +7,7 @@ import json
 import unittest
 
 from codeqa.evaluation.architecture.import_binding_usage import (
-    ImportBindingUsageError, census_b8_import_binding_uses,
+    ImportBindingUsageError, _load_syntax_context, census_b8_import_binding_uses,
 )
 
 
@@ -206,6 +206,26 @@ class ImportBindingUsageTests(unittest.TestCase):
         self.assertEqual(binding["conditional_load_candidates"], 5)
         self.assertEqual(row["conditional_load_candidates"], 5)
         self.assertEqual(report["conditional_load_candidates"], 5)
+        # Guarded status is attached to the correct source lines, not merely
+        # a matching aggregate. Iterable evaluation and finally are controls.
+        tree = ast.parse(source)
+        parents = {
+            id(child): (node, field)
+            for node in ast.walk(tree)
+            for field, value in ast.iter_fields(node)
+            for child in (value if isinstance(value, list) else [value])
+            if isinstance(child, ast.AST)
+        }
+        guarded = {
+            node.lineno: _load_syntax_context(node, parents)[1]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name) and node.id == "Alpha"
+            and isinstance(node.ctx, ast.Load)
+        }
+        self.assertEqual(guarded, {
+            2: False, 3: True, 7: True, 9: False,
+            11: True, 12: True, 14: True, 15: False,
+        })
         self.assertEqual(report["decision"], "NOT_EVALUATED")
         self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
 
