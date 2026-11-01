@@ -347,6 +347,28 @@ def assess_architecture_migration(
         for path, tree in trees.items():
             source_module = _module(path)
             if source_module is None:
+                # Tests and scripts outside src/ are still Python consumers.
+                # A textual search misses split from-imports because the
+                # complete old dotted name never appears on the source line:
+                #     from orchard.sky import view
+                # Record only these split imports here. Full dotted imports
+                # remain covered by the existing text-reference scan below,
+                # avoiding duplicate evidence for the same site.
+                for node in ast.walk(tree):
+                    if not isinstance(node, ast.ImportFrom) or node.level:
+                        continue
+                    base = node.module or ""
+                    for alias in node.names:
+                        if alias.name == "*":
+                            continue
+                        target = base + "." + alias.name if base else alias.name
+                        for old, new in old_to_new.items():
+                            if _matches(target, old) and not _matches(base, old):
+                                sites.append(_record(
+                                    path, node.lineno, "TEST_OR_SCRIPT_REFERENCE",
+                                    base + ":" + alias.name, hashes[path],
+                                    old, new, "REVIEW_REQUIRED",
+                                ))
                 continue
             package = source_module if path.endswith("/__init__.py") else source_module.rpartition(".")[0]
             moved_source = path in path_map
