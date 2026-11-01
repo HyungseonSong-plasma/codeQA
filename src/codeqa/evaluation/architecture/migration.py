@@ -514,7 +514,9 @@ def assess_architecture_migration(
                 "band_rules": "BLOCKED if namespace collision; HIGH if >10 sites or star/CLI/distribution risk; MEDIUM if >2 sites/multi-file or unresolved dynamic/metadata/export/relative; otherwise LOW",
             },
             "compatibility_status": "BLOCKED" if conflicts else "NOT_EVALUATED",
-            "confidence": "INSUFFICIENT_EVIDENCE" if missing or syntax_errors else "STATIC_PARTIAL",
+            "confidence": ("INSUFFICIENT_EVIDENCE" if missing or syntax_errors
+                           or "INVENTORY_UNREAD_PATHS" in risk_flags
+                           else "STATIC_PARTIAL"),
             "unknowns": sorted(risk_flags),
             "compatibility_options": [
                 "forwarding module or facade subject to independent import tests",
