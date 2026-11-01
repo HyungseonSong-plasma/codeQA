@@ -169,6 +169,34 @@ class MigrationImpactTests(unittest.TestCase):
         self.assertIn("DYNAMIC_IMPORT_REVIEW", impact["unknowns"])
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_builtin_import_relative_level_is_not_absolute_consumer(self):
+        # __import__(..., level>0) resolves relative to the calling package,
+        # so a dotted literal is not proof of an absolute old-module consumer.
+        # Nonliteral levels and unpacked arguments remain unknown.
+        inv, scenarios, sources = setup(extra={
+            "src/orchard/earth/builtin_relative_client.py": (
+                "known_default = __import__('orchard.sky.view')\\n"
+                "known_keyword = __import__(name='orchard.sky.view', level=0)\\n"
+                "known_positional = __import__('orchard.sky.view', None, None, (), 0)\\n"
+                "relative_keyword = __import__('orchard.sky.view', level=1)\\n"
+                "relative_positional = __import__('orchard.sky.view', None, None, (), 1)\\n"
+                "unknown_level = __import__('orchard.sky.view', level=runtime_level)\\n"
+                "unpacked = __import__('orchard.sky.view', *args)\\n"
+                "unrelated = __import__('orchard.earth.model', level=0)\\n"
+            ),
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["kind"] == "DYNAMIC_IMPORT_LITERAL"
+                 and site["path"] == "src/orchard/earth/builtin_relative_client.py"]
+        self.assertEqual(
+            [(site["line"], site["expression"]) for site in sites],
+            [(1, "orchard.sky.view"), (2, "orchard.sky.view"),
+             (3, "orchard.sky.view")],
+        )
+        self.assertIn("DYNAMIC_IMPORT_TARGET_UNKNOWN", impact["unknowns"])
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_dynamic_helper_aliases_do_not_leak_across_lexical_scopes(self):
         # B5 must not claim a consumer from an alias imported only in
         # another function, or from a shadowed argument/local/builtin.
