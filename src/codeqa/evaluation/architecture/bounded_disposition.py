@@ -182,7 +182,20 @@ def assess_bounded_disposition(
                             raise BoundedDispositionError("malformed declared-boundary witness")
                         src, dst = w["source_path"], w["target_path"]
                         source_role, target_role = w["source_role"], w["target_role"]
+                        # A newly forbidden edge must be a real,
+                        # distinct, readable Python pair whose *projected*
+                        # role differs at one endpoint from the original
+                        # B1 ownership. Otherwise it cannot be introduced by
+                        # a virtual move. This does not certify that the
+                        # claimed new role follows a particular path mapping.
                         if (src not in tracked or dst not in tracked
+                                or src == dst
+                                or tracked[src]["read_state"] != "READ"
+                                or tracked[dst]["read_state"] != "READ"
+                                or tracked[src]["language"] != "python"
+                                or tracked[dst]["language"] != "python"
+                                or (source_role == tracked[src]["declared_role"]
+                                    and target_role == tracked[dst]["declared_role"])
                                 or (src, dst) in seen_pairs
                                 or not isinstance(source_role, str)
                                 or not source_role or "/" in source_role

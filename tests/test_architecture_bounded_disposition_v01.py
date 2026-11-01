@@ -223,7 +223,7 @@ class BoundedDispositionTests(unittest.TestCase):
         )
         for mutation in ("missing", "unknown_path", "duplicate", "empty_role",
                          "invalid_role_segment", "unknown_reason",
-                         "wrong_witness_family"):
+                         "wrong_witness_family", "self_pair", "unchanged_roles"):
             with self.subTest(mutation=mutation):
                 forged = deepcopy(assessment)
                 rejection = forged["rejected_scenarios"][0]
@@ -240,6 +240,14 @@ class BoundedDispositionTests(unittest.TestCase):
                     witness["source_role"] = "earth/unsafe"
                 elif mutation == "unknown_reason":
                     rejection["reason"] = "UNSUPPORTED_UNVERIFIED_REJECTION"
+                elif mutation == "self_pair":
+                    # A source cannot statically import itself as a B2 pair.
+                    witness["target_path"] = witness["source_path"]
+                elif mutation == "unchanged_roles":
+                    # The original sky -> sky edge cannot be a *newly*
+                    # forbidden role edge without any projected role change.
+                    witness["source_role"] = "sky"
+                    witness["target_role"] = "sky"
                 else:
                     rejection["collision_witnesses"] = []
                 forged["assessment_id"] = _digest({
