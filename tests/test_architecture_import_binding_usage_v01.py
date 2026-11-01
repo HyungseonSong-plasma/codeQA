@@ -234,14 +234,14 @@ class ImportBindingUsageTests(unittest.TestCase):
         # controls. Nested boolean expressions inherit outer short-circuit
         # guards. None of this establishes a runtime import binding.
         source = (
-            "from demo.core.a import Alpha\\n"
-            "flag = True and Alpha()\\n"
-            "fallback = False or Alpha()\\n"
-            "nested = Alpha() and (Alpha.run() or Alpha())\\n"
-            "chain = 1 < Alpha() < Alpha()\\n"
-            "single = 1 < Alpha()\\n"
-            "if Alpha() and Alpha.ready:\\n"
-            "    pass\\n"
+            "from demo.core.a import Alpha\n"
+            "flag = True and Alpha()\n"
+            "fallback = False or Alpha()\n"
+            "nested = Alpha() and (Alpha.run() or Alpha())\n"
+            "chain = 1 < Alpha() < Alpha()\n"
+            "single = 1 < Alpha()\n"
+            "if Alpha() and Alpha.ready:\n"
+            "    pass\n"
         )
         s, r, b = inputs(1, source)
         report = census_b8_import_binding_uses(s, r, b)
