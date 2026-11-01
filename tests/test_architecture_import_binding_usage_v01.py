@@ -176,21 +176,21 @@ class ImportBindingUsageTests(unittest.TestCase):
         # merely because their parent statements have guarded branches.
         # Syntax context is review evidence, never resolved import identity.
         source = (
-            "from demo.core.a import Alpha\\n"
-            "for item in Alpha():\\n"
-            "    Alpha.run()\\n"
-            "try:\\n"
-            "    maybe_fail()\\n"
-            "except ValueError:\\n"
-            "    Alpha()\\n"
-            "finally:\\n"
-            "    Alpha()\\n"
-            "match state:\\n"
-            "    case 1 if Alpha.ready:\\n"
-            "        Alpha.run()\\n"
-            "with manager():\\n"
-            "    Alpha()\\n"
-            "Alpha()\\n"
+            "from demo.core.a import Alpha\n"
+            "for item in Alpha():\n"
+            "    Alpha.run()\n"
+            "try:\n"
+            "    maybe_fail()\n"
+            "except ValueError:\n"
+            "    Alpha()\n"
+            "finally:\n"
+            "    Alpha()\n"
+            "match state:\n"
+            "    case 1 if Alpha.ready:\n"
+            "        Alpha.run()\n"
+            "with manager():\n"
+            "    Alpha()\n"
+            "Alpha()\n"
         )
         s, r, b = inputs(1, source)
         report = census_b8_import_binding_uses(s, r, b)
