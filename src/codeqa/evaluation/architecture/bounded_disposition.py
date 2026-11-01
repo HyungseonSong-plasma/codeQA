@@ -145,10 +145,59 @@ def assess_bounded_disposition(
                 else:
                     verdict = "KEEP"  # only compared alternatives, not architecture
             rejected_witnesses = []
+            # B4's hard rejections must not be silently relabelled or lose
+            # their source-backed witnesses when a B7 digest is resealed.
+            known_rejections = {
+                "PATH_MOVE_CANNOT_REMOVE_STATIC_CYCLE",
+                "UNSUPPORTED_SIGNAL_FAMILY",
+                "NO_CLASSIFIED_MOVABLE_SOURCE_WITNESS",
+                "NO_VIABLE_NONEMPTY_MAPPING",
+                "INVALID_PATH",
+                "UNCLASSIFIED_OR_UNREAD_SOURCE",
+                "PACKAGE_INITIALIZER_MOVE_UNSUPPORTED",
+                "FROZEN_ROOT_OR_UNDECLARED_TARGET",
+                "NO_OP_MAPPING",
+                "TARGET_COLLISION",
+                "CYCLIC_OR_CHAINED_MAPPING",
+                "UNANALYZED_MOVED_MODULE",
+                "MAPPING_SOURCE_NOT_IN_ORIGINATING_SIGNAL",
+                "NEW_DECLARED_BOUNDARY_VIOLATION",
+            }
             for candidate in rejected:
                 if candidate["originating_signal_ids"] != linked[0]["originating_signal_ids"]:
                     raise BoundedDispositionError("rejection belongs to another signal")
-                if candidate["reason"] != "TARGET_COLLISION":
+                reason = candidate["reason"]
+                if reason not in known_rejections:
+                    raise BoundedDispositionError("unknown B4 rejection reason")
+                if reason == "NEW_DECLARED_BOUNDARY_VIOLATION":
+                    witnesses = candidate.get("witness_pairs")
+                    if ("collision_witnesses" in candidate
+                            or not isinstance(witnesses, list) or not witnesses):
+                        raise BoundedDispositionError("missing declared-boundary witnesses")
+                    seen_pairs: set[tuple[str, str]] = set()
+                    for w in witnesses:
+                        if not isinstance(w, Mapping) or set(w) != {
+                            "source_path", "target_path", "source_role", "target_role"
+                        }:
+                            raise BoundedDispositionError("malformed declared-boundary witness")
+                        src, dst = w["source_path"], w["target_path"]
+                        source_role, target_role = w["source_role"], w["target_role"]
+                        if (src not in tracked or dst not in tracked
+                                or (src, dst) in seen_pairs
+                                or not isinstance(source_role, str)
+                                or not source_role or "/" in source_role
+                                or "\\" in source_role
+                                or not isinstance(target_role, str)
+                                or not target_role or "/" in target_role
+                                or "\\" in target_role):
+                            raise BoundedDispositionError("unbound declared-boundary witness")
+                        seen_pairs.add((src, dst))
+                    continue
+                if "witness_pairs" in candidate:
+                    raise BoundedDispositionError("unexpected declared-boundary witnesses")
+                if reason != "TARGET_COLLISION":
+                    if "collision_witnesses" in candidate:
+                        raise BoundedDispositionError("unexpected collision witnesses")
                     continue
                 witnesses = candidate.get("collision_witnesses", [])
                 if not isinstance(witnesses, list) or not witnesses:

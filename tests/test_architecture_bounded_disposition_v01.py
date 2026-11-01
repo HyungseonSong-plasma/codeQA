@@ -26,15 +26,21 @@ def _digest(report):
     ).encode()).hexdigest()
 
 
-def fixture(*, edges=None, collision=False, duplicate=False):
+def fixture(*, edges=None, collision=False, duplicate=False, forbidden=False):
     if edges is None:
         inv, metrics, opportunities, policy = reports()
     else:
         inv, metrics, opportunities, policy = reports(edges=edges)
     mapping = None
-    if (collision or duplicate) and opportunities["question_opportunities"]:
+    if (collision or duplicate or forbidden) and opportunities["question_opportunities"]:
         qid = opportunities["question_opportunities"][0]["opportunity_id"]
-        if duplicate:
+        if forbidden:
+            # Moving the view into earth would introduce earth -> sky,
+            # which is forbidden by the declared orchard role policy.
+            mapping = {qid: {
+                "src/orchard/sky/view.py": "src/orchard/earth/new_view.py",
+            }}
+        elif duplicate:
             # A duplicate destination may be a *new*, unoccupied path.
             mapping = {qid: {
                 "src/orchard/sky/view.py": "src/orchard/rain/combined.py",
@@ -180,6 +186,62 @@ class BoundedDispositionTests(unittest.TestCase):
                     candidate["originating_signal_ids"] = ["0" * 64]
                 else:
                     candidate["migration_id"] = "0" * 64
+                forged["assessment_id"] = _digest({
+                    k: v for k, v in forged.items() if k != "assessment_id"
+                })
+                with self.assertRaises(BoundedDispositionError):
+                    assess_bounded_disposition(
+                        inv, triage, responsibility, forged,
+                    )
+
+    def test_new_forbidden_boundary_rejection_is_validated_without_schema_change(self):
+        inv, triage, responsibility, assessment = fixture(forbidden=True)
+        witness = assessment["rejected_scenarios"][0]["witness_pairs"][0]
+        self.assertEqual(
+            (witness["source_path"], witness["target_path"]),
+            ("src/orchard/sky/view.py", "src/orchard/sky/helper.py"),
+        )
+        self.assertEqual((witness["source_role"], witness["target_role"]),
+                         ("earth", "sky"))
+        report = assess_bounded_disposition(
+            inv, triage, responsibility, assessment,
+        )
+        signal = report["signal_dispositions"][0]
+        self.assertEqual(signal["disposition"], "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(signal["rejected_candidates"][0]["reason"],
+                         "NEW_DECLARED_BOUNDARY_VIOLATION")
+        self.assertEqual(signal["collision_witnesses"], [])
+        # The opt-in v0.1 output contract stays unchanged; only evidence
+        # validation is hardened, without a new public field.
+        self.assertNotIn("boundary_violation_witnesses", signal)
+
+    def test_resealed_forbidden_boundary_witness_forgery_is_rejected(self):
+        inv, triage, responsibility, assessment = fixture(forbidden=True)
+        self.assertEqual(
+            assessment["rejected_scenarios"][0]["reason"],
+            "NEW_DECLARED_BOUNDARY_VIOLATION",
+        )
+        for mutation in ("missing", "unknown_path", "duplicate", "empty_role",
+                         "invalid_role_segment", "unknown_reason",
+                         "wrong_witness_family"):
+            with self.subTest(mutation=mutation):
+                forged = deepcopy(assessment)
+                rejection = forged["rejected_scenarios"][0]
+                witness = rejection["witness_pairs"][0]
+                if mutation == "missing":
+                    rejection.pop("witness_pairs")
+                elif mutation == "unknown_path":
+                    witness["target_path"] = "src/orchard/sky/missing.py"
+                elif mutation == "duplicate":
+                    rejection["witness_pairs"].append(deepcopy(witness))
+                elif mutation == "empty_role":
+                    witness["source_role"] = ""
+                elif mutation == "invalid_role_segment":
+                    witness["source_role"] = "earth/unsafe"
+                elif mutation == "unknown_reason":
+                    rejection["reason"] = "UNSUPPORTED_UNVERIFIED_REJECTION"
+                else:
+                    rejection["collision_witnesses"] = []
                 forged["assessment_id"] = _digest({
                     k: v for k, v in forged.items() if k != "assessment_id"
                 })
