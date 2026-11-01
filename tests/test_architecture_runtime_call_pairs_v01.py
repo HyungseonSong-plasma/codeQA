@@ -100,6 +100,47 @@ class CallPairTests(unittest.TestCase):
             with self.subTest(pairs=pairs), self.assertRaises(RuntimeCallPairError):
                 self.observe(pairs=pairs)
 
+    def test_subtest_failures_and_errors_are_classified_in_runtime_receipt(self):
+        class FailingSubtests(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="failure"):
+                    self.assertEqual(1, 2)
+                with self.subTest(case="later-pass"):
+                    self.assertTrue(True)
+
+        class ErrorThenFailure(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="error"):
+                    raise RuntimeError("controlled subtest error")
+                with self.subTest(case="later-failure"):
+                    self.fail("controlled subtest failure")
+
+        class PassingSubtests(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="pass"):
+                    self.assertTrue(True)
+
+        suite = unittest.TestSuite([
+            FailingSubtests("test_cases"), ErrorThenFailure("test_cases"),
+            PassingSubtests("test_cases"),
+        ])
+        report = self.observe(suite=suite)
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in report["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "FailingSubtests": "FAILED",
+            "ErrorThenFailure": "ERROR",
+            "PassingSubtests": "PASSED",
+        })
+        self.assertEqual(report["tests_run"], 3)
+        self.assertFalse(report["suite_was_successful"])
+        self.assertEqual(report["observed_pairs"][0]["observed_direct_python_calls"], 0)
+        self.assertEqual(report["static_import_edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+        self.assertIsNone(sys.getprofile())
+
     def test_profile_restored_after_test_failure(self):
         class Failing(unittest.TestCase):
             def test_fail(self):
