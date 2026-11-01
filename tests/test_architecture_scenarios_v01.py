@@ -274,6 +274,45 @@ class ArchitectureScenarioTests(unittest.TestCase):
         self.assertEqual(changed["rejected"][0]["reason"],
                          "NEW_DECLARED_BOUNDARY_VIOLATION")
 
+    def test_policy_rejected_primary_can_compare_independent_source(self):
+        # Moving view to earth would newly forbid its rain import. The
+        # independently witnessed presenter has a distinct, viable target.
+        policy = deepcopy(POLICY)
+        policy["roles"]["earth"]["forbidden_imports"] = ["rain", "sky"]
+        sources = {
+            **SOURCES,
+            "src/orchard/sky/presenter.py":
+                "from orchard.earth.model import Model\n"
+                "from orchard.earth.other import Other\n",
+        }
+        edges = CONCENTRATED + (
+            edge("sky/view", "earth/helper"),
+            edge("sky/presenter", "earth/model"),
+            edge("sky/presenter", "earth/other"),
+        )
+        result = compare(sources=sources, policy=policy, edges=edges)
+        self.assertTrue(any(
+            item["reason"] == "NEW_DECLARED_BOUNDARY_VIOLATION"
+            and any(
+                witness["source_path"] == "src/orchard/sky/view.py"
+                and witness["target_path"] == "src/orchard/rain/flow.py"
+                and witness["source_role"] == "earth"
+                and witness["target_role"] == "rain"
+                for witness in item["witness_pairs"]
+            )
+            for item in result["rejected"]
+        ))
+        self.assertEqual(len(result["candidates"]), 1)
+        self.assertEqual(
+            [(move["from"], move["to"])
+             for move in result["candidates"][0]["path_mapping"]],
+            [("src/orchard/sky/presenter.py", "src/orchard/earth/presenter.py")],
+        )
+        self.assertEqual(result["candidates"][0]["decision"], "NOT_EVALUATED")
+        self.assertEqual(result["candidates"][0]["evidence_class"],
+                         "PROJECTED_PATH_ROLE_PROXY_ONLY")
+        self.assertEqual(result["evidence_status"], "INCOMPLETE")
+
     def test_cycle_only_does_not_invent_path_fix(self):
         result = compare(edges=(edge("sky/view", "sky/other"),
                                 edge("sky/other", "sky/view")))
