@@ -222,7 +222,8 @@ class BoundedDispositionTests(unittest.TestCase):
             "NEW_DECLARED_BOUNDARY_VIOLATION",
         )
         for mutation in ("missing", "unknown_path", "duplicate", "empty_role",
-                         "unknown_reason", "wrong_witness_family"):
+                         "invalid_role_segment", "unknown_reason",
+                         "wrong_witness_family"):
             with self.subTest(mutation=mutation):
                 forged = deepcopy(assessment)
                 rejection = forged["rejected_scenarios"][0]
@@ -235,6 +236,8 @@ class BoundedDispositionTests(unittest.TestCase):
                     rejection["witness_pairs"].append(deepcopy(witness))
                 elif mutation == "empty_role":
                     witness["source_role"] = ""
+                elif mutation == "invalid_role_segment":
+                    witness["source_role"] = "earth/unsafe"
                 elif mutation == "unknown_reason":
                     rejection["reason"] = "UNSUPPORTED_UNVERIFIED_REJECTION"
                 else:
