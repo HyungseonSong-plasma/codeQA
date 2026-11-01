@@ -315,13 +315,15 @@ def generate_virtual_layout_scenarios(
         candidate["scenario_id"] = _digest(candidate)
         candidates.append(candidate)
 
-    # A top-ranked occupied target is still a hard rejection. Independently
-    # witnessed *other source files* may be assessed, but never rename the
-    # blocked source's destination to evade its collision. Limit exploration
-    # and retain every attempted rejection in the report.
+    # A top-ranked occupied target or newly forbidden boundary is a hard
+    # rejection. Independently witnessed *other source files* may still be
+    # assessed; never rename the rejected source's destination or relax its
+    # role policy to manufacture a viable move. Retain every rejection.
     if candidate_mappings is None:
         for primary in tuple(rejected):
-            if primary["reason"] != "TARGET_COLLISION":
+            if primary["reason"] not in {
+                "TARGET_COLLISION", "NEW_DECLARED_BOUNDARY_VIOLATION",
+            }:
                 continue
             qid = primary["opportunity_id"]
             question = next(q for q in questions if q["opportunity_id"] == qid)
