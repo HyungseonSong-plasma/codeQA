@@ -57,6 +57,8 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
     """Identify dynamic-import call syntax without leaking aliases across scopes.
 
     Conflicting local bindings are unresolved, not assumed to be import helpers.
+    Explicit builtins.__import__ aliases follow the same level=0 rules as the
+    builtin function; unknown relative levels remain unresolved.
     This remains static syntax evidence, not runtime binding verification.
     """
     # Comprehension targets bind in an implicit inner scope, never the outer
@@ -133,9 +135,9 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
                 # 'import importlib.util' makes 'importlib' available, while
                 # 'import importlib.util as util' binds only 'util'.
                 root = alias.name.split(".")[0]
-                target = (alias.name if alias.name in {"importlib", "pkgutil"}
+                target = (alias.name if alias.name in {"importlib", "pkgutil", "builtins"}
                           else root if alias.asname is None
-                          and root in {"importlib", "pkgutil"} else None)
+                          and root in {"importlib", "pkgutil", "builtins"} else None)
                 bind(scope, name, target)
         elif isinstance(node, ast.ImportFrom):
             for alias in node.names:
@@ -144,6 +146,7 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
                           if node.level == 0 and (
                               (node.module == "importlib" and alias.name == "import_module")
                               or (node.module == "pkgutil" and alias.name == "resolve_name")
+                              or (node.module == "builtins" and alias.name == "__import__")
                           ) else None)
                 bind(scope, name, target)
         elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
@@ -215,10 +218,10 @@ def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
             helper = resolve(func.id, scope)
         elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
             module = resolve(func.value.id, scope)
-            helper = module + "." + func.attr if module in {"importlib", "pkgutil"} else None
+            helper = module + "." + func.attr if module in {"importlib", "pkgutil", "builtins"} else None
         else:
             helper = None
-        if helper in {"__import__", "importlib.import_module", "pkgutil.resolve_name"}:
+        if helper in {"__import__", "builtins.__import__", "importlib.import_module", "pkgutil.resolve_name"}:
             calls[node] = helper
     return calls
 
@@ -414,8 +417,8 @@ def assess_architecture_migration(
                                     risk_flags.add("INIT_REEXPORT_REVIEW")
                 elif isinstance(node, ast.Call):
                     helper = dynamic_calls.get(node)
-                    if helper not in {"__import__", "importlib.import_module",
-                                      "pkgutil.resolve_name"}:
+                    if helper not in {"__import__", "builtins.__import__",
+                                      "importlib.import_module", "pkgutil.resolve_name"}:
                         continue
                     # The first import target can be positional or supplied as
                     # the public 'name=' keyword on these three helpers.
@@ -430,7 +433,7 @@ def assess_architecture_migration(
                     target = (value.split(":", 1)[0]
                               if value is not None and helper == "pkgutil.resolve_name"
                               else value)
-                    if helper == "__import__":
+                    if helper in {"__import__", "builtins.__import__"}:
                         # The fifth positional / level= argument changes
                         # __import__ from an absolute import into a relative
                         # import. A relative or dynamic level is not evidence
