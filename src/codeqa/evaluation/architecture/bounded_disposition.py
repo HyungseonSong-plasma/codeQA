@@ -10,6 +10,8 @@ from hashlib import sha256
 import json
 from typing import Any
 
+from codeqa.evaluation.architecture.assessment import compare_bounded_layouts
+
 
 class BoundedDispositionError(ValueError):
     """Inputs do not describe the same authenticated architecture evidence."""
@@ -106,6 +108,32 @@ def assess_bounded_disposition(
             elif not compared:
                 verdict = "INSUFFICIENT_EVIDENCE"
             else:
+                # A resealed B7 report is not evidence that its verdict was
+                # actually derived from the stated same-source metrics. Replay
+                # the bounded comparator before using KEEP/PREFER for triage.
+                # This authenticates decision consistency, not the source
+                # metrics or the claimed external/semantic compatibility.
+                for candidate in compared:
+                    evidence = candidate["decision_evidence"]
+                    if (candidate["originating_signal_ids"]
+                            != linked[0]["originating_signal_ids"]
+                            or candidate["migration_id"]
+                               != assessment["analyzer_hashes"]["migration_id"]):
+                        raise BoundedDispositionError("unbound compared candidate")
+                    replay = compare_bounded_layouts(
+                        candidate["baseline"], candidate["candidate"],
+                        baseline_identity=a_source, candidate_identity=a_source,
+                        baseline_denominators=candidate["denominators"],
+                        candidate_denominators=candidate["denominators"],
+                        hard_violations=tuple(evidence["hard_violations"]),
+                        critical_unknowns=tuple(evidence["critical_unknowns"]),
+                        relationship_changes_verified=evidence[
+                            "relationship_changes_verified"
+                        ],
+                        migration_risk=evidence["migration_risk"],
+                    )
+                    if replay != evidence:
+                        raise BoundedDispositionError("B7 decision replay mismatch")
                 decisions = [s["decision_evidence"]["decision"] for s in compared]
                 if any(d not in ("PREFER", "KEEP", "REVIEW_REQUIRED",
                                  "INSUFFICIENT_EVIDENCE") for d in decisions):
