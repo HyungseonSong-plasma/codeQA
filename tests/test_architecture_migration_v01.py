@@ -85,11 +85,11 @@ class MigrationImpactTests(unittest.TestCase):
         # source lines, so a plain-text scan alone misses the consumer.
         inv, scenarios, sources = setup(extra={
             "tests/split_consumer.py": (
-                "from orchard.sky import view as renamed\\n"
-                "from orchard.sky import unrelated\\n"
-                "from orchard.sky.view import View\\n"
+                "from orchard.sky import view as renamed\n"
+                "from orchard.sky import unrelated\n"
+                "from orchard.sky.view import View\n"
             ),
-            "scripts/split_consumer.py": "from orchard.sky import view\\n",
+            "scripts/split_consumer.py": "from orchard.sky import view\n",
         })
         impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
         sites = [
