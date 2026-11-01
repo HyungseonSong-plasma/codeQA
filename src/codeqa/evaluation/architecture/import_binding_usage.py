@@ -82,6 +82,23 @@ def _load_syntax_context(
             conditional = True
         if isinstance(parent, ast.match_case) and field in ("pattern", "guard", "body"):
             conditional = True
+        # Comprehension results and filters may never be reached when an
+        # iterable is empty or a filter rejects an item. The first iterable
+        # expression is evaluated on entry (also for generator expressions);
+        # later iterable expressions depend on preceding iterations.
+        if (isinstance(parent, (ast.ListComp, ast.SetComp, ast.GeneratorExp))
+                and field == "elt"):
+            conditional = True
+        if isinstance(parent, ast.DictComp) and field in ("key", "value"):
+            conditional = True
+        if isinstance(parent, ast.comprehension):
+            if field in ("target", "ifs"):
+                conditional = True
+            elif field == "iter":
+                owner = parents.get(id(parent))
+                if (owner is not None and owner[1] == "generators"
+                        and owner[0].generators[0] is not parent):
+                    conditional = True
         if isinstance(parent, ast.Call):
             on_receiver_spine = on_receiver_spine and field == "func"
         elif isinstance(parent, (ast.Attribute, ast.Subscript)):
