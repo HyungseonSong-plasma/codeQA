@@ -112,6 +112,40 @@ class MigrationImpactTests(unittest.TestCase):
         ))
         self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
 
+    def test_test_and_script_star_imports_preserve_potential_reexport_risk(self):
+        # A star import of the parent package can expose a moved child via
+        # __all__ / initializer re-exports. It is a review witness, not proof
+        # of an actual runtime consumer. Direct star imports are already
+        # captured by the text scan and must not be duplicated.
+        inv, scenarios, sources = setup(extra={
+            "tests/star_consumer.py": (
+                "from orchard.sky import *\n"
+                "from orchard.sky.view import *\n"
+                "from orchard.earth import *\n"
+            ),
+            "scripts/star_consumer.py": "from orchard.sky import *\n",
+        })
+        impact = assess_architecture_migration(inv, scenarios, sources)["candidates"][0]
+        sites = [site for site in impact["observed_sites"]
+                 if site["path"] in {"tests/star_consumer.py",
+                                     "scripts/star_consumer.py"}]
+        self.assertEqual(
+            [(s["path"], s["line"], s["kind"], s["expression"]) for s in sites],
+            [
+                ("scripts/star_consumer.py", 1, "STAR_IMPORT", "orchard.sky:*"),
+                ("tests/star_consumer.py", 1, "STAR_IMPORT", "orchard.sky:*"),
+                ("tests/star_consumer.py", 2, "TEST_OR_SCRIPT_REFERENCE",
+                 "from orchard.sky.view import *"),
+            ],
+        )
+        self.assertIn("STAR_IMPORT_REVIEW", impact["unknowns"])
+        self.assertTrue(all(
+            s["source_sha256"] == sha256(sources[s["path"]].encode()).hexdigest()
+            and s["rewrite_status"] == "REVIEW_REQUIRED"
+            for s in sites
+        ))
+        self.assertEqual(impact["compatibility_status"], "NOT_EVALUATED")
+
     def test_aliased_dynamic_imports_are_migration_consumer_witnesses(self):
         # Static evidence must include import helpers brought into scope via
         # from-imports or module aliases, without claiming runtime binding.
