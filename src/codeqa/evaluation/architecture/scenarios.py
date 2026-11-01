@@ -52,14 +52,20 @@ def _ranked_automatic_mappings(
     }:
         return []
     counts: Counter[tuple[str, str]] = Counter()
+    # B3 may provide several import-site witnesses for one resolved module
+    # pair. Count distinct source/target pairs, not import statements: a
+    # duplicated import cannot establish an independent fallback witness.
+    seen_pairs: set[tuple[str, str]] = set()
     for witness in signal["source_witnesses"]:
         src, dst = witness["source_path"], witness["target_path"]
         if (src not in inventory_files or dst not in inventory_files
-                or not src.endswith(".py") or src.endswith("/__init__.py")):
+                or not src.endswith(".py") or src.endswith("/__init__.py")
+                or (src, dst) in seen_pairs):
             continue
         sr, dr = _role(src, scope, roles), _role(dst, scope, roles)
         if sr in roles and dr in roles and sr != dr:
             counts[(src, dr)] += 1
+            seen_pairs.add((src, dst))
     return [
         (src, count, {
             src: scope + "/" + target_role + "/" + src.rsplit("/", 1)[-1],
