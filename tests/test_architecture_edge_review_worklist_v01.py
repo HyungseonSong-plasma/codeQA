@@ -199,6 +199,34 @@ class EdgeReviewWorklistTests(unittest.TestCase):
         with self.assertRaises(EdgeReviewWorklistError):
             build_edge_review_worklist(r, t, changed, d)
 
+    def test_resealed_disposition_cannot_promote_keep_or_change_review_scope(self):
+        r, t, ctx, d = inputs()
+        self.assertTrue(d["signal_dispositions"])
+        self.assertEqual(d["signal_dispositions"][0]["disposition"],
+                         "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(build_edge_review_worklist(r, t, ctx, d)["edges"][0][
+            "signal_disposition"], "INSUFFICIENT_EVIDENCE")
+        # A new digest cannot turn an unproved mapping into a KEEP verdict,
+        # erase measured edges, or claim semantic/public compatibility.
+        mutations = (
+            ("disposition", "KEEP"),
+            ("current_action", "MOVE"),
+            ("source_role", "unmeasured_role"),
+            ("observed_cross_pairs", 0),
+            ("observed_outgoing_pairs", 0),
+            ("semantic_ownership", "PASS"),
+            ("external_consumers", "PASS"),
+            ("behavioral_test_coverage", "PASS"),
+            ("scope", "GLOBAL_ARCHITECTURE"),
+        )
+        for field, value in mutations:
+            with self.subTest(field=field):
+                forged = deepcopy(d)
+                forged["signal_dispositions"][0][field] = value
+                seal(forged, "disposition_id")
+                with self.assertRaises(EdgeReviewWorklistError):
+                    build_edge_review_worklist(r, t, ctx, forged)
+
     def test_lexical_census_join_preserves_unknowns_and_denominator(self):
         r, t, ctx, d = inputs()
         lexical = lexical_census(r)
