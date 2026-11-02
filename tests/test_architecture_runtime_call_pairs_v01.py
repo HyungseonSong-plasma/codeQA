@@ -204,6 +204,8 @@ class CallPairTests(unittest.TestCase):
         report = self.observe(suite=unittest.TestSuite([SetupError("test_never_started")]))
         self.assertFalse(report["suite_was_successful"])
         self.assertEqual(report["tests_run"], 0)
+        # setUpClass failure is a suite error, not an executed test ID.
+        self.assertEqual(report["executed_tests"], [])
         self.assertEqual(report["decision"], "NOT_EVALUATED")
 
     def test_existing_profiler_is_not_overwritten(self):
