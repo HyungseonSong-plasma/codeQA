@@ -197,6 +197,46 @@ class RuntimeReceiptTests(unittest.TestCase):
         with self.assertRaises(RuntimeTestEvidenceError):
             correlate_runtime_test_candidates(candidates, stale)
 
+    def test_suite_fixture_error_after_pass_does_not_claim_all_passed(self):
+        # A setUpClass failure is recorded by unittest without a started test
+        # ID. One passing test must not conceal that suite-level failure.
+        class BrokenFixture(unittest.TestCase):
+            @classmethod
+            def setUpClass(cls):
+                raise RuntimeError("controlled setUpClass error")
+
+            def test_never_runs(self):
+                self.fail("not reached")
+
+        candidates, _ = fixture()
+        receipt = capture_unittest_execution(
+            unittest.TestSuite([
+                PassCase("test_example"), BrokenFixture("test_never_runs"),
+            ]),
+            snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        self.assertEqual(receipt["tests_run"], 1)
+        self.assertEqual([r["outcome"] for r in receipt["executed_tests"]], ["PASSED"])
+        self.assertFalse(receipt["suite_was_successful"])
+        self.assertFalse(receipt["all_passed"])
+        correlated = correlate_runtime_test_candidates(candidates, receipt)
+        self.assertEqual(correlated["matched_candidates"][0]["match_state"], "UNIQUE")
+        self.assertEqual(correlated["decision"], "NOT_EVALUATED")
+
+    def test_rehashed_suite_success_contradiction_is_rejected(self):
+        candidates, receipt = fixture()
+        for bad in (False, 1, "true"):
+            with self.subTest(bad=bad):
+                forged = deepcopy(receipt)
+                forged["suite_was_successful"] = bad
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
     def test_rehashed_invalid_outcomes_are_rejected(self):
         # A caller can recompute the receipt digest: the parser must still
         # reject status values that unittest never emits.
