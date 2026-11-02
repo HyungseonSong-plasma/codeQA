@@ -50,15 +50,37 @@ class _ObservedTests(unittest.TestResult):
 
     def addFailure(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addFailure(test, err)
-        self.outcomes[test.id()] = "FAILED"
+        # A test can error in its body and then fail in tearDown. Retain
+        # the more severe result while preserving unittest's own accounting.
+        if test.id() in self.outcomes and self.outcomes[test.id()] != "ERROR":
+            self.outcomes[test.id()] = "FAILED"
 
     def addError(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addError(test, err)
-        self.outcomes[test.id()] = "ERROR"
+        # unittest uses synthetic _ErrorHolder objects for setUpClass/tearDownClass
+        # failures. They are suite errors, not executed test methods.
+        if test.id() in self.outcomes:
+            self.outcomes[test.id()] = "ERROR"
+
+    def addSubTest(
+        self, test: unittest.case.TestCase, subtest: unittest.case.TestCase,
+        err: Any,
+    ) -> None:
+        # unittest reports failed subtests through this hook, not addFailure.
+        # Preserve the actual method outcome in the B8 runtime pair receipt.
+        super().addSubTest(test, subtest, err)
+        if err is not None:
+            status = ("FAILED" if issubclass(err[0], test.failureException)
+                      else "ERROR")
+            # A later assertion must not overwrite an earlier subtest error.
+            if test.id() in self.outcomes and self.outcomes[test.id()] != "ERROR":
+                self.outcomes[test.id()] = status
 
     def addSkip(self, test: unittest.case.TestCase, reason: str) -> None:
         super().addSkip(test, reason)
-        self.outcomes[test.id()] = "SKIPPED"
+        # A skip raised during tearDown must not hide an earlier error/failure.
+        if test.id() in self.outcomes and self.outcomes[test.id()] not in {"ERROR", "FAILED"}:
+            self.outcomes[test.id()] = "SKIPPED"
 
     def addExpectedFailure(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addExpectedFailure(test, err)

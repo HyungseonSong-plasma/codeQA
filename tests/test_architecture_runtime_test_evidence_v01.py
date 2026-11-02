@@ -77,6 +77,106 @@ class RuntimeReceiptTests(unittest.TestCase):
         self.assertFalse(receipt["all_passed"])
         self.assertEqual([x["outcome"] for x in receipt["executed_tests"]], ["FAILED", "SKIPPED"])
 
+    def test_failing_subtest_is_reported_as_failed_not_started(self):
+        class SubtestFailure(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="failing"):
+                    self.assertEqual(1, 2)
+                with self.subTest(case="passing"):
+                    self.assertEqual(2, 2)
+
+        receipt = capture_unittest_execution(
+            unittest.TestSuite([SubtestFailure("test_cases")]),
+            snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        self.assertEqual(receipt["tests_run"], 1)
+        self.assertEqual(receipt["executed_tests"][0]["outcome"], "FAILED")
+        self.assertFalse(receipt["all_passed"])
+        self.assertEqual(receipt["edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(receipt["semantic_ownership"], "NOT_EVALUATED")
+
+    def test_subtest_error_precedes_later_failure_and_pass_control(self):
+        class ErrorThenFailure(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="error"):
+                    raise RuntimeError("controlled subtest error")
+                with self.subTest(case="failure"):
+                    self.fail("controlled subtest failure")
+
+        class PassingSubtests(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="passing"):
+                    self.assertTrue(True)
+
+        receipt = capture_unittest_execution(
+            unittest.TestSuite([
+                ErrorThenFailure("test_cases"),
+                PassingSubtests("test_cases"),
+            ]),
+            snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in receipt["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "ErrorThenFailure": "ERROR", "PassingSubtests": "PASSED",
+        })
+        self.assertEqual(receipt["tests_run"], 2)
+        self.assertFalse(receipt["all_passed"])
+        self.assertEqual(receipt["edge_traversal"], "NOT_EVALUATED")
+
+    def test_multiple_unittest_callbacks_keep_error_and_failure_precedence(self):
+        # unittest can call multiple result hooks for a single test method:
+        # a failing tearDown must not downgrade an earlier ERROR, and a
+        # skipped tearDown must not hide a prior ERROR or FAILED outcome.
+        class ErrorThenFailure(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.fail("controlled tearDown failure")
+
+        class ErrorThenSkip(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        class FailureThenSkip(unittest.TestCase):
+            def test_case(self):
+                self.fail("controlled body failure")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        suite = unittest.TestSuite([
+            ErrorThenFailure("test_case"), ErrorThenSkip("test_case"),
+            FailureThenSkip("test_case"),
+        ])
+        receipt = capture_unittest_execution(
+            suite, snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in receipt["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "ErrorThenFailure": "ERROR", "ErrorThenSkip": "ERROR",
+            "FailureThenSkip": "FAILED",
+        })
+        self.assertEqual(receipt["tests_run"], 3)
+        self.assertFalse(receipt["all_passed"])
+        self.assertEqual(receipt["edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(receipt["semantic_ownership"], "NOT_EVALUATED")
+
     def test_wrong_source_hash_rejected_before_execution(self):
         with self.assertRaises(RuntimeTestEvidenceError):
             capture_unittest_execution(
@@ -96,6 +196,146 @@ class RuntimeReceiptTests(unittest.TestCase):
         stale["receipt_id"] = digest({k: v for k, v in stale.items() if k != "receipt_id"})
         with self.assertRaises(RuntimeTestEvidenceError):
             correlate_runtime_test_candidates(candidates, stale)
+
+    def test_suite_fixture_error_after_pass_does_not_claim_all_passed(self):
+        # A setUpClass failure is recorded by unittest without a started test
+        # ID. One passing test must not conceal that suite-level failure.
+        class BrokenFixture(unittest.TestCase):
+            @classmethod
+            def setUpClass(cls):
+                raise RuntimeError("controlled setUpClass error")
+
+            def test_never_runs(self):
+                self.fail("not reached")
+
+        candidates, _ = fixture()
+        receipt = capture_unittest_execution(
+            unittest.TestSuite([
+                PassCase("test_example"), BrokenFixture("test_never_runs"),
+            ]),
+            snapshot_sha=COMMIT,
+            test_path="tests/test_architecture_runtime_test_evidence_v01.py",
+            test_source=SOURCE, expected_source_sha256=SHA,
+        )
+        self.assertEqual(receipt["tests_run"], 1)
+        self.assertEqual([r["outcome"] for r in receipt["executed_tests"]], ["PASSED"])
+        self.assertFalse(receipt["suite_was_successful"])
+        self.assertFalse(receipt["all_passed"])
+        correlated = correlate_runtime_test_candidates(candidates, receipt)
+        self.assertEqual(correlated["matched_candidates"][0]["match_state"], "UNIQUE")
+        self.assertEqual(correlated["decision"], "NOT_EVALUATED")
+
+    def test_rehashed_suite_success_contradiction_is_rejected(self):
+        candidates, receipt = fixture()
+        for bad in (False, 1, "true"):
+            with self.subTest(bad=bad):
+                forged = deepcopy(receipt)
+                forged["suite_was_successful"] = bad
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
+    def test_rehashed_failing_method_cannot_claim_successful_suite(self):
+        # A recomputed digest is not evidence of unittest suite success.
+        # unittest.wasSuccessful() is false for all three outcomes, even
+        # when the receipt's all_passed summary has been adjusted.
+        candidates, receipt = fixture()
+        for status in ("FAILED", "ERROR", "UNEXPECTED_SUCCESS"):
+            with self.subTest(status=status):
+                forged = deepcopy(receipt)
+                forged["executed_tests"][0]["outcome"] = status
+                forged["all_passed"] = False
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
+    def test_rehashed_invalid_outcomes_are_rejected(self):
+        # A caller can recompute the receipt digest: the parser must still
+        # reject status values that unittest never emits.
+        candidates, receipt = fixture()
+        for bad in ("PASSED_BUT_UNVERIFIED", None, 7, ["PASSED"]):
+            with self.subTest(bad=repr(bad)):
+                forged = deepcopy(receipt)
+                forged["executed_tests"][0]["outcome"] = bad
+                forged["all_passed"] = False
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
+    def test_rehashed_inconsistent_summary_and_identity_are_rejected(self):
+        candidates, receipt = fixture()
+        for variant in ("false_summary", "numeric_summary",
+                        "boolean_test_count", "empty_test_id"):
+            with self.subTest(variant=variant):
+                forged = deepcopy(receipt)
+                if variant == "false_summary":
+                    forged["all_passed"] = False
+                elif variant == "numeric_summary":
+                    forged["all_passed"] = 1
+                elif variant == "boolean_test_count":
+                    forged["tests_run"] = True
+                else:
+                    forged["executed_tests"][0]["test_id"] = ""
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
+    def test_capture_rejects_noncanonical_test_paths(self):
+        # The captured receipt and later correlation must use the same
+        # portable, bounded path contract (not an arbitrary path claim).
+        for bad_path in (
+            "tests//test_example.py",
+            "tests/./test_example.py",
+            "tests/../test_example.py",
+            "tests/a\\b.py",
+        ):
+            with self.subTest(path=bad_path):
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    capture_unittest_execution(
+                        unittest.TestSuite([PassCase("test_example")]),
+                        snapshot_sha=COMMIT, test_path=bad_path,
+                        test_source=SOURCE, expected_source_sha256=SHA,
+                    )
+
+    def test_rehashed_invalid_source_identity_is_rejected(self):
+        # Matching, recomputed digests must not turn malformed snapshot,
+        # test-path or source-hash claims into usable B8 correlation evidence.
+        for variant in ("snapshot", "source_hash", "parent_path",
+                        "empty_component", "backslash_path"):
+            with self.subTest(variant=variant):
+                candidates, receipt = fixture()
+                identity = receipt["source_identity"]
+                site = candidates["edges"][0]["candidate_test_paths"][0]
+                if variant == "snapshot":
+                    identity["snapshot_sha_claim"] = "not-a-commit"
+                    candidates["source_identity"]["snapshot_sha"] = "not-a-commit"
+                elif variant == "source_hash":
+                    identity["test_source_sha256"] = "not-a-sha256"
+                    site["test_source_sha256"] = "not-a-sha256"
+                else:
+                    bad_path = {
+                        "parent_path": "tests/../test_architecture_runtime_test_evidence_v01.py",
+                        "empty_component": "tests//test_architecture_runtime_test_evidence_v01.py",
+                        "backslash_path": "tests/a\\b.py",
+                    }[variant]
+                    identity["test_path"] = bad_path
+                    site["test_path"] = bad_path
+                candidates["candidate_id"] = digest({
+                    k: v for k, v in candidates.items() if k != "candidate_id"
+                })
+                receipt["receipt_id"] = digest({
+                    k: v for k, v in receipt.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, receipt)
 
     def test_duplicate_method_names_are_ambiguous(self):
         candidates, receipt = fixture()

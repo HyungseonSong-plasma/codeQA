@@ -100,6 +100,91 @@ class CallPairTests(unittest.TestCase):
             with self.subTest(pairs=pairs), self.assertRaises(RuntimeCallPairError):
                 self.observe(pairs=pairs)
 
+    def test_subtest_failures_and_errors_are_classified_in_runtime_receipt(self):
+        class FailingSubtests(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="failure"):
+                    self.assertEqual(1, 2)
+                with self.subTest(case="later-pass"):
+                    self.assertTrue(True)
+
+        class ErrorThenFailure(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="error"):
+                    raise RuntimeError("controlled subtest error")
+                with self.subTest(case="later-failure"):
+                    self.fail("controlled subtest failure")
+
+        class PassingSubtests(unittest.TestCase):
+            def test_cases(self):
+                with self.subTest(case="pass"):
+                    self.assertTrue(True)
+
+        suite = unittest.TestSuite([
+            FailingSubtests("test_cases"), ErrorThenFailure("test_cases"),
+            PassingSubtests("test_cases"),
+        ])
+        report = self.observe(suite=suite)
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in report["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "FailingSubtests": "FAILED",
+            "ErrorThenFailure": "ERROR",
+            "PassingSubtests": "PASSED",
+        })
+        self.assertEqual(report["tests_run"], 3)
+        self.assertFalse(report["suite_was_successful"])
+        self.assertEqual(report["observed_pairs"][0]["observed_direct_python_calls"], 0)
+        self.assertEqual(report["static_import_edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+        self.assertIsNone(sys.getprofile())
+
+    def test_multiple_unittest_callbacks_keep_error_and_failure_precedence(self):
+        # unittest can call multiple result hooks for a single test method:
+        # a failing tearDown must not downgrade an earlier ERROR, and a
+        # skipped tearDown must not hide a prior ERROR or FAILED outcome.
+        class ErrorThenFailure(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.fail("controlled tearDown failure")
+
+        class ErrorThenSkip(unittest.TestCase):
+            def test_case(self):
+                raise RuntimeError("controlled body error")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        class FailureThenSkip(unittest.TestCase):
+            def test_case(self):
+                self.fail("controlled body failure")
+
+            def tearDown(self):
+                self.skipTest("controlled tearDown skip")
+
+        suite = unittest.TestSuite([
+            ErrorThenFailure("test_case"), ErrorThenSkip("test_case"),
+            FailureThenSkip("test_case"),
+        ])
+        report = self.observe(suite=suite)
+        outcomes = {
+            item["test_id"].split(".")[-2]: item["outcome"]
+            for item in report["executed_tests"]
+        }
+        self.assertEqual(outcomes, {
+            "ErrorThenFailure": "ERROR", "ErrorThenSkip": "ERROR",
+            "FailureThenSkip": "FAILED",
+        })
+        self.assertEqual(report["tests_run"], 3)
+        self.assertFalse(report["suite_was_successful"])
+        self.assertEqual(report["static_import_edge_traversal"], "NOT_EVALUATED")
+        self.assertEqual(report["semantic_ownership"], "NOT_EVALUATED")
+        self.assertIsNone(sys.getprofile())
+
     def test_profile_restored_after_test_failure(self):
         class Failing(unittest.TestCase):
             def test_fail(self):
@@ -119,6 +204,8 @@ class CallPairTests(unittest.TestCase):
         report = self.observe(suite=unittest.TestSuite([SetupError("test_never_started")]))
         self.assertFalse(report["suite_was_successful"])
         self.assertEqual(report["tests_run"], 0)
+        # setUpClass failure is a suite error, not an executed test ID.
+        self.assertEqual(report["executed_tests"], [])
         self.assertEqual(report["decision"], "NOT_EVALUATED")
 
     def test_existing_profiler_is_not_overwritten(self):
