@@ -215,6 +215,39 @@ def assemble_architecture_advisory(
             raise ArchitectureAssessmentError("rejected candidate mismatch")
         if metrics["denominators"]["resolved_distinct_pairs"] != len(metrics["resolved_pairs"]):
             raise ArchitectureAssessmentError("static edge denominator mismatch")
+        # A rehashed B4/B5 rejection is not independent evidence that the
+        # claimed newly forbidden edge exists. Bind every witness to the
+        # same B2 source graph before exposing it in a B7 advisory. A pair
+        # may be within-role before a virtual move, so checking only the
+        # cross-boundary opportunity witnesses would miss legitimate edges.
+        measured_pairs = {
+            (pair["source_path"], pair["target_path"]): pair
+            for pair in metrics["resolved_pairs"]
+        }
+        if len(measured_pairs) != len(metrics["resolved_pairs"]):
+            raise ArchitectureAssessmentError("duplicate B2 resolved pair")
+        for rejection in scenarios["rejected"]:
+            if rejection["reason"] != "NEW_DECLARED_BOUNDARY_VIOLATION":
+                continue
+            witnesses = rejection.get("witness_pairs")
+            if not isinstance(witnesses, list) or not witnesses:
+                raise ArchitectureAssessmentError("missing B4 forbidden-edge witnesses")
+            seen_pairs: set[tuple[str, str]] = set()
+            for witness in witnesses:
+                if (not isinstance(witness, Mapping)
+                        or set(witness) != {
+                            "source_path", "target_path", "source_role", "target_role"
+                        }):
+                    raise ArchitectureAssessmentError("malformed B4 forbidden-edge witness")
+                key = (witness["source_path"], witness["target_path"])
+                measured = measured_pairs.get(key)
+                if (measured is None or key in seen_pairs
+                        or not all(type(witness[role]) is str and witness[role]
+                                   for role in ("source_role", "target_role"))
+                        or (witness["source_role"] == measured["source_role"]
+                            and witness["target_role"] == measured["target_role"])):
+                    raise ArchitectureAssessmentError("unbound B4 forbidden-edge witness")
+                seen_pairs.add(key)
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise ArchitectureAssessmentError("untrustworthy B1--B5 architecture evidence") from exc
 
