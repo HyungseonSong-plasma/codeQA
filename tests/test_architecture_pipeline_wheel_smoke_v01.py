@@ -2,6 +2,8 @@
 
 This is a bounded distribution smoke test, not an external-consumer survey,
 a semantic ownership verdict, or authorization to relocate public modules.
+An import-line trace observes execution of a source line, not each alias binding,
+semantic ownership, or safety of a future move.
 The isolated interpreter must import codeQA from the wheel installation,
 not from the checkout's editable install.
 """
@@ -184,6 +186,28 @@ import sys
 target = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(target))
 
+# Trace original import statement lines in the isolated interpreter, before
+# any codeqa package import can populate sys.modules. This is a line-level
+# execution witness only; it cannot attribute individual aliases or semantics.
+payload = json.loads(sys.stdin.read())
+cross_role_imports = payload["pipeline_cross_role_imports"]
+candidate_import_lines = {
+    (record["importer_module"], record["line"])
+    for record in cross_role_imports
+}
+negative_trace_control = ("codeqa.pipeline.python", 10**9)
+candidate_import_lines.add(negative_trace_control)
+observed_import_lines = set()
+
+def trace_import_lines(frame, event, arg):
+    if event == "line":
+        key = (frame.f_globals.get("__name__"), frame.f_lineno)
+        if key in candidate_import_lines:
+            observed_import_lines.add(key)
+    return trace_import_lines
+
+sys.settrace(trace_import_lines)
+
 import codeqa
 import codeqa.pipeline as pipeline
 import codeqa.pipeline.python as python_pipeline
@@ -201,8 +225,6 @@ inspect.signature(analyze_python_request).bind(object())
 assert importlib.util.find_spec(
     "codeqa.pipeline.__definitely_missing_module__"
 ) is None
-payload = json.loads(sys.stdin.read())
-
 # Exercise every source-derived Pipeline importer and its declared target
 # module/symbol in the isolated installed wheel. This proves bounded import
 # resolution, not execution of each original import statement or safe migration.
@@ -233,11 +255,26 @@ documents = [
     ).to_document()
     for sources in payload["cases"]
 ]
+sys.settrace(None)
+assert negative_trace_control not in observed_import_lines
+import_line_observations = [{
+    "importer_module": record["importer_module"],
+    "module": record["module"],
+    "line": record["line"],
+    "importer_sha256": record["importer_sha256"],
+    "import_line_observed": (
+        record["importer_module"], record["line"]
+    ) in observed_import_lines,
+} for record in cross_role_imports]
 print(json.dumps({
     "document_digest": sha256(json.dumps(
         documents, sort_keys=True, separators=(",", ":"),
     ).encode()).hexdigest(),
     "cross_role_pairs": len(cross_role_imports),
+    "import_line_observations": import_line_observations,
+    "observed_import_line_pairs": sum(
+        row["import_line_observed"] for row in import_line_observations
+    ),
     "target_roles": dict(sorted(Counter(
         record["target_role"] for record in cross_role_imports
     ).items())),
@@ -260,6 +297,35 @@ print(json.dumps({
             self.assertEqual(receipt["target_roles"], dict(sorted(Counter(
                 row["target_role"] for row in cross_role_imports
             ).items())))
+
+            # This is source-line traversal, not proof that every target alias
+            # was bound or that unobserved statements are dead code.
+            observations = receipt["import_line_observations"]
+            self.assertEqual(
+                [(row["importer_module"], row["module"], row["line"],
+                  row["importer_sha256"]) for row in observations],
+                [(row["importer_module"], row["module"], row["line"],
+                  row["importer_sha256"]) for row in cross_role_imports],
+            )
+            self.assertTrue(all(
+                type(row["import_line_observed"]) is bool for row in observations
+            ))
+            self.assertEqual(
+                receipt["observed_import_line_pairs"],
+                sum(row["import_line_observed"] for row in observations),
+            )
+            self.assertGreater(
+                receipt["observed_import_line_pairs"], 0,
+                "isolated interpreter did not trace any known import statement",
+            )
+            print("pipeline_wheel_import_line_trace=" + json.dumps({
+                "observed_import_line_pairs": receipt["observed_import_line_pairs"],
+                "total_cross_role_pairs": len(cross_role_imports),
+                "unobserved_import_line_pairs": (
+                    len(cross_role_imports) - receipt["observed_import_line_pairs"]
+                ),
+                "evidence_limit": "LINE_EXECUTION_ONLY_NOT_SEMANTIC_OWNERSHIP",
+            }, sort_keys=True))
 
             # Negative control: a wheel whose target module bytes differ from
             # the pinned checkout must fail, even when its imports still work.
