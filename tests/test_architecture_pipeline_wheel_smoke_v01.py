@@ -21,6 +21,21 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _module_source_path(module_name: str) -> Path:
+    """Resolve an observed in-repository import to exactly one source file."""
+    relative = Path(*module_name.split("."))
+    candidates = (
+        ROOT / "src" / relative.with_suffix(".py"),
+        ROOT / "src" / relative / "__init__.py",
+    )
+    existing = [path for path in candidates if path.is_file()]
+    if len(existing) != 1:
+        raise AssertionError(
+            f"expected exactly one source file for {module_name}: {existing}"
+        )
+    return existing[0]
+
+
 def _cross_role_pipeline_imports():
     """Enumerate all literal cross-role imports in current Pipeline sources.
 
@@ -49,7 +64,12 @@ def _cross_role_pipeline_imports():
                             "adapters", "core", "evaluation", "infrastructure"
                         )):
                     continue
+                target_source = _module_source_path(module_name)
                 records.append({
+                    "target_source_relative": target_source.relative_to(
+                        ROOT / "src"
+                    ).as_posix(),
+                    "target_sha256": sha256(target_source.read_bytes()).hexdigest(),
                     "importer_module": importer_module,
                     "importer_sha256": sha256(raw).hexdigest(),
                     "line": node.lineno,
@@ -193,7 +213,12 @@ for record in cross_role_imports:
     assert importer_path.is_relative_to(target), importer_path
     assert sha256(importer_path.read_bytes()).hexdigest() == record["importer_sha256"]
     imported = importlib.import_module(record["module"])
-    assert Path(imported.__file__).resolve().is_relative_to(target), imported.__file__
+    imported_path = Path(imported.__file__).resolve()
+    assert imported_path.is_relative_to(target), imported.__file__
+    assert imported_path.relative_to(target).as_posix() == record["target_source_relative"]
+    assert sha256(imported_path.read_bytes()).hexdigest() == record["target_sha256"], (
+        "target module SHA mismatch: " + record["module"]
+    )
     for symbol in record["symbols"]:
         assert symbol != "*", "star imports require separate review"
         if not hasattr(imported, symbol):
@@ -235,6 +260,20 @@ print(json.dumps({
             self.assertEqual(receipt["target_roles"], dict(sorted(Counter(
                 row["target_role"] for row in cross_role_imports
             ).items())))
+
+            # Negative control: a wheel whose target module bytes differ from
+            # the pinned checkout must fail, even when its imports still work.
+            target_source = installed / cross_role_imports[0]["target_source_relative"]
+            target_source.write_bytes(
+                target_source.read_bytes() + b"\n# deliberate wheel byte drift\n"
+            )
+            tampered = subprocess.run(
+                [sys.executable, "-I", "-c", consumer, str(installed)],
+                cwd=scratch, capture_output=True, text=True, timeout=60,
+                input=json.dumps(payload), check=False,
+            )
+            self.assertNotEqual(tampered.returncode, 0)
+            self.assertIn("target module SHA mismatch", tampered.stderr)
 
 
 if __name__ == "__main__":
