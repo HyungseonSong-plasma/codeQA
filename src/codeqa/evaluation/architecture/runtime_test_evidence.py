@@ -117,7 +117,10 @@ def capture_unittest_execution(
         },
         "executed_tests": outcomes,
         "tests_run": result.testsRun,
-        "all_passed": bool(outcomes) and all(x["outcome"] == "PASSED" for x in outcomes),
+        "suite_was_successful": result.wasSuccessful(),
+        "all_passed": (result.wasSuccessful() and bool(outcomes)
+                       and result.testsRun == len(outcomes)
+                       and all(x["outcome"] == "PASSED" for x in outcomes)),
         "evidence_class": "LOCAL_UNITTEST_EXECUTION_UNATTESTED",
         "edge_traversal": "NOT_EVALUATED",
         "semantic_ownership": "NOT_EVALUATED",
@@ -182,6 +185,7 @@ def correlate_runtime_test_candidates(
         if (not isinstance(outcomes, list)
                 or type(receipt["tests_run"]) is not int
                 or type(receipt["all_passed"]) is not bool
+                or type(receipt["suite_was_successful"]) is not bool
                 or any(
                     not isinstance(row, Mapping)
                     or not isinstance(row.get("test_id"), str)
@@ -191,7 +195,8 @@ def correlate_runtime_test_candidates(
                     for row in outcomes
                 )
                 or receipt["all_passed"] != (
-                    bool(outcomes)
+                    receipt["suite_was_successful"]
+                    and bool(outcomes)
                     and all(row["outcome"] == "PASSED" for row in outcomes)
                 )):
             raise RuntimeTestEvidenceError("inconsistent unittest outcomes")
