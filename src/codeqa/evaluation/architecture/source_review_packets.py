@@ -8,6 +8,7 @@ import ast
 from collections.abc import Mapping
 from hashlib import sha256
 import json
+import re
 from typing import Any
 
 from codeqa.evaluation.architecture.callsite_context import _function_context
@@ -223,6 +224,9 @@ def _validate_rendered_packet_rows(report: Mapping[str, Any]) -> None:
         raise SourceReviewPacketError("unsupported packet schema")
     seen: set[tuple[str, str]] = set()
     source_hashes: dict[str, str] = {}
+    # Two overlapping excerpts from the same pinned file must not disagree
+    # about a shared line, even when the enclosing report is re-sealed.
+    source_lines: dict[tuple[str, int], str] = {}
     for row in report["packets"]:
         src, dst = row["source_path"], row["target_path"]
         if (not isinstance(src, str) or not isinstance(dst, str)
@@ -239,7 +243,8 @@ def _validate_rendered_packet_rows(report: Mapping[str, Any]) -> None:
             digest = excerpt["source_sha256"]
             lines = excerpt["lines"]
             if (type(line) is not int or line < 1
-                    or not isinstance(digest, str) or len(digest) != 64
+                    or not isinstance(digest, str)
+                    or re.fullmatch(r"[0-9a-f]{64}", digest) is None
                     or not isinstance(lines, list) or not lines
                     or any(type(item["line"]) is not int
                            or not isinstance(item["text"], str)
@@ -250,6 +255,12 @@ def _validate_rendered_packet_rows(report: Mapping[str, Any]) -> None:
                     or (src in source_hashes and source_hashes[src] != digest)):
                 raise SourceReviewPacketError("inconsistent source excerpt")
             source_hashes[src] = digest
+            for item in lines:
+                key = (src, item["line"])
+                previous = source_lines.get(key)
+                if previous is not None and previous != item["text"]:
+                    raise SourceReviewPacketError("conflicting overlapping source excerpts")
+                source_lines[key] = item["text"]
 
 
 def render_source_review_packets_markdown(report: Mapping[str, Any]) -> str:
