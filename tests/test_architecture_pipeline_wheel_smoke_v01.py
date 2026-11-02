@@ -7,6 +7,8 @@ not from the checkout's editable install.
 """
 from __future__ import annotations
 
+import ast
+from collections import Counter
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -17,6 +19,47 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _cross_role_pipeline_imports():
+    """Enumerate all literal cross-role imports in current Pipeline sources.
+
+    This is source-syntax evidence, not a claim that each import statement ran,
+    that imported objects are semantically owned, or that external callers work.
+    The census is deliberately derived from the checkout, not a fixed list of
+    Naming/Adapter hypotheses or a hard-coded historical pair count.
+    """
+    records = []
+    for path in sorted((ROOT / "src/codeqa/pipeline").glob("*.py")):
+        raw = path.read_bytes()
+        importer_module = ".".join(
+            path.relative_to(ROOT / "src").with_suffix("").parts
+        )
+        for node in ast.walk(ast.parse(raw.decode("utf-8"), filename=str(path))):
+            if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                candidates = [(node.module, [alias.name for alias in node.names])]
+            elif isinstance(node, ast.Import):
+                candidates = [(alias.name, []) for alias in node.names]
+            else:
+                continue
+            for module_name, symbols in candidates:
+                parts = module_name.split(".")
+                if (len(parts) < 2 or parts[0] != "codeqa"
+                        or parts[1] not in (
+                            "adapters", "core", "evaluation", "infrastructure"
+                        )):
+                    continue
+                records.append({
+                    "importer_module": importer_module,
+                    "importer_sha256": sha256(raw).hexdigest(),
+                    "line": node.lineno,
+                    "module": module_name,
+                    "symbols": symbols,
+                    "target_role": parts[1],
+                })
+    return sorted(records, key=lambda row: (
+        row["importer_module"], row["line"], row["module"],
+    ))
 
 
 class PipelineWheelSmokeTests(unittest.TestCase):
@@ -94,6 +137,14 @@ class PipelineWheelSmokeTests(unittest.TestCase):
                 "cases": cases, "ccg_schema": ccg_schema,
                 "mechanical_profile": mechanical_profile,
             }
+            cross_role_imports = _cross_role_pipeline_imports()
+            self.assertTrue(cross_role_imports, "no source-derived cross-role imports")
+            self.assertEqual(
+                len({(r["importer_module"], r["module"])
+                     for r in cross_role_imports}), len(cross_role_imports),
+                "expected one measured source/target module pair per record",
+            )
+            payload["pipeline_cross_role_imports"] = cross_role_imports
             expected_digest = sha256(json.dumps(
                 expected, sort_keys=True, separators=(",", ":"),
             ).encode()).hexdigest()
@@ -101,8 +152,10 @@ class PipelineWheelSmokeTests(unittest.TestCase):
             # -I excludes PYTHONPATH and the current directory; the target
             # installation is prepended explicitly and its origin asserted.
             consumer = r"""
+import importlib
 import importlib.util
 import inspect
+from collections import Counter
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -129,6 +182,24 @@ assert importlib.util.find_spec(
     "codeqa.pipeline.__definitely_missing_module__"
 ) is None
 payload = json.loads(sys.stdin.read())
+
+# Exercise every source-derived Pipeline importer and its declared target
+# module/symbol in the isolated installed wheel. This proves bounded import
+# resolution, not execution of each original import statement or safe migration.
+cross_role_imports = payload["pipeline_cross_role_imports"]
+for record in cross_role_imports:
+    importer = importlib.import_module(record["importer_module"])
+    importer_path = Path(importer.__file__).resolve()
+    assert importer_path.is_relative_to(target), importer_path
+    assert sha256(importer_path.read_bytes()).hexdigest() == record["importer_sha256"]
+    imported = importlib.import_module(record["module"])
+    assert Path(imported.__file__).resolve().is_relative_to(target), imported.__file__
+    for symbol in record["symbols"]:
+        assert symbol != "*", "star imports require separate review"
+        if not hasattr(imported, symbol):
+            child = importlib.import_module(record["module"] + "." + symbol)
+            assert Path(child.__file__).resolve().is_relative_to(target), child.__file__
+
 documents = [
     pipeline.analyze_python(
         sources, snapshot_id="git:wheel-behavior-v01",
@@ -137,9 +208,15 @@ documents = [
     ).to_document()
     for sources in payload["cases"]
 ]
-print(sha256(json.dumps(
-    documents, sort_keys=True, separators=(",", ":"),
-).encode()).hexdigest())
+print(json.dumps({
+    "document_digest": sha256(json.dumps(
+        documents, sort_keys=True, separators=(",", ":"),
+    ).encode()).hexdigest(),
+    "cross_role_pairs": len(cross_role_imports),
+    "target_roles": dict(sorted(Counter(
+        record["target_role"] for record in cross_role_imports
+    ).items())),
+}, sort_keys=True))
 """
             result = subprocess.run(
                 [sys.executable, "-I", "-c", consumer, str(installed)],
@@ -151,8 +228,13 @@ print(sha256(json.dumps(
                 f"isolated installed-wheel consumer failed:\n"
                 f"{result.stdout}\n{result.stderr}",
             )
-            self.assertEqual(result.stdout.strip(), expected_digest,
+            receipt = json.loads(result.stdout)
+            self.assertEqual(receipt["document_digest"], expected_digest,
                              "installed wheel changed the known Pipeline analysis document")
+            self.assertEqual(receipt["cross_role_pairs"], len(cross_role_imports))
+            self.assertEqual(receipt["target_roles"], dict(sorted(Counter(
+                row["target_role"] for row in cross_role_imports
+            ).items())))
 
 
 if __name__ == "__main__":
