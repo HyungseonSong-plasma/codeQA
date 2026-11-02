@@ -237,6 +237,22 @@ class RuntimeReceiptTests(unittest.TestCase):
                 with self.assertRaises(RuntimeTestEvidenceError):
                     correlate_runtime_test_candidates(candidates, forged)
 
+    def test_rehashed_failing_method_cannot_claim_successful_suite(self):
+        # A recomputed digest is not evidence of unittest suite success.
+        # unittest.wasSuccessful() is false for all three outcomes, even
+        # when the receipt's all_passed summary has been adjusted.
+        candidates, receipt = fixture()
+        for status in ("FAILED", "ERROR", "UNEXPECTED_SUCCESS"):
+            with self.subTest(status=status):
+                forged = deepcopy(receipt)
+                forged["executed_tests"][0]["outcome"] = status
+                forged["all_passed"] = False
+                forged["receipt_id"] = digest({
+                    k: v for k, v in forged.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, forged)
+
     def test_rehashed_invalid_outcomes_are_rejected(self):
         # A caller can recompute the receipt digest: the parser must still
         # reject status values that unittest never emits.
