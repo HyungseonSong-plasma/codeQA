@@ -100,7 +100,8 @@ def capture_unittest_execution(
             or re.fullmatch(r"[0-9a-f]{40}", snapshot_sha) is None
             or not isinstance(test_path, str)
             or not test_path.startswith("tests/") or not test_path.endswith(".py")
-            or ".." in test_path.split("/")
+            or any(part in ("", ".", "..") for part in test_path.split("/"))
+            or "\\" in test_path
             or not isinstance(test_source, bytes)
             or not isinstance(expected_source_sha256, str)
             or sha256(test_source).hexdigest() != expected_source_sha256):
@@ -177,6 +178,20 @@ def correlate_runtime_test_candidates(
             raise RuntimeTestEvidenceError("receipt/candidate identity mismatch")
         path = receipt["source_identity"]["test_path"]
         source_hash = receipt["source_identity"]["test_source_sha256"]
+        # Correlation accepts untrusted, caller-rehashed receipts. The digest
+        # is not an attestation: revalidate the same bounded source-identity
+        # shape required when the receipt was originally captured.
+        snapshot_claim = receipt["source_identity"]["snapshot_sha_claim"]
+        if (not isinstance(snapshot_claim, str)
+                or re.fullmatch(r"[0-9a-f]{40}", snapshot_claim) is None
+                or not isinstance(path, str)
+                or not path.startswith("tests/")
+                or not path.endswith(".py")
+                or "\\" in path
+                or any(part in ("", ".", "..") for part in path.split("/"))
+                or not isinstance(source_hash, str)
+                or re.fullmatch(r"[0-9a-f]{64}", source_hash) is None):
+            raise RuntimeTestEvidenceError("invalid runtime receipt source identity")
         outcomes = receipt["executed_tests"]
         # A digest is only an integrity checksum, not a trusted signature.
         # Reject internally impossible unittest claims even when a caller
