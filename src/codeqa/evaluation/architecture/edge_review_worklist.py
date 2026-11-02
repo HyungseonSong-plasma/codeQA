@@ -104,6 +104,41 @@ def build_edge_review_worklist(
         if (len(dispositions) != len(disposition["signal_dispositions"])
                 or {e["signal_id"] for e in measured.values()} != set(dispositions)):
             raise EdgeReviewWorklistError("missing or duplicate signal disposition")
+        # A self-rehashed disposition is not a trusted decision. Reconcile its
+        # bounded signal verdict and scope with the measured B8 pairs before
+        # projecting a KEEP/REVIEW_REQUIRED label into the review worklist.
+        # This checks report consistency, not semantic ownership or external
+        # consumer compatibility.
+        for signal_id, record in dispositions.items():
+            linked = [edge for edge in measured.values()
+                      if edge["signal_id"] == signal_id]
+            decisions = [candidate["decision"]
+                         for candidate in record["compared_candidates"]]
+            if not decisions:
+                expected = "INSUFFICIENT_EVIDENCE"
+            elif any(d in ("PREFER", "REVIEW_REQUIRED") for d in decisions):
+                expected = "REVIEW_REQUIRED"
+            elif any(d == "INSUFFICIENT_EVIDENCE" for d in decisions):
+                expected = "INSUFFICIENT_EVIDENCE"
+            else:
+                expected = "KEEP"
+            if (not linked
+                    or any(edge["source_role"] != record["source_role"]
+                           for edge in linked)
+                    or type(record["observed_cross_pairs"]) is not int
+                    or record["observed_cross_pairs"] != len(linked)
+                    or type(record["observed_outgoing_pairs"]) is not int
+                    or record["observed_outgoing_pairs"] < len(linked)
+                    or any(d not in ("PREFER", "KEEP", "REVIEW_REQUIRED",
+                                     "INSUFFICIENT_EVIDENCE") for d in decisions)
+                    or record["disposition"] != expected
+                    or record["current_action"] != "NO_MOVE"
+                    or record["scope"] != "CONCENTRATION_SIGNAL_ONLY"
+                    or any(record[key] != "NOT_EVALUATED" for key in (
+                        "semantic_ownership", "external_consumers",
+                        "behavioral_test_coverage",
+                    ))):
+                raise EdgeReviewWorklistError("unbound signal disposition")
 
         # A lexical Name(Load) is only a candidate, never import target proof.
         lexical_records = None
