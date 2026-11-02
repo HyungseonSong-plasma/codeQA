@@ -288,6 +288,55 @@ class RuntimeReceiptTests(unittest.TestCase):
                 with self.assertRaises(RuntimeTestEvidenceError):
                     correlate_runtime_test_candidates(candidates, forged)
 
+    def test_capture_rejects_noncanonical_test_paths(self):
+        # The captured receipt and later correlation must use the same
+        # portable, bounded path contract (not an arbitrary path claim).
+        for bad_path in (
+            "tests//test_example.py",
+            "tests/./test_example.py",
+            "tests/../test_example.py",
+            "tests/a\\b.py",
+        ):
+            with self.subTest(path=bad_path):
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    capture_unittest_execution(
+                        unittest.TestSuite([PassCase("test_example")]),
+                        snapshot_sha=COMMIT, test_path=bad_path,
+                        test_source=SOURCE, expected_source_sha256=SHA,
+                    )
+
+    def test_rehashed_invalid_source_identity_is_rejected(self):
+        # Matching, recomputed digests must not turn malformed snapshot,
+        # test-path or source-hash claims into usable B8 correlation evidence.
+        for variant in ("snapshot", "source_hash", "parent_path",
+                        "empty_component", "backslash_path"):
+            with self.subTest(variant=variant):
+                candidates, receipt = fixture()
+                identity = receipt["source_identity"]
+                site = candidates["edges"][0]["candidate_test_paths"][0]
+                if variant == "snapshot":
+                    identity["snapshot_sha_claim"] = "not-a-commit"
+                    candidates["source_identity"]["snapshot_sha"] = "not-a-commit"
+                elif variant == "source_hash":
+                    identity["test_source_sha256"] = "not-a-sha256"
+                    site["test_source_sha256"] = "not-a-sha256"
+                else:
+                    bad_path = {
+                        "parent_path": "tests/../test_architecture_runtime_test_evidence_v01.py",
+                        "empty_component": "tests//test_architecture_runtime_test_evidence_v01.py",
+                        "backslash_path": "tests/a\\b.py",
+                    }[variant]
+                    identity["test_path"] = bad_path
+                    site["test_path"] = bad_path
+                candidates["candidate_id"] = digest({
+                    k: v for k, v in candidates.items() if k != "candidate_id"
+                })
+                receipt["receipt_id"] = digest({
+                    k: v for k, v in receipt.items() if k != "receipt_id"
+                })
+                with self.assertRaises(RuntimeTestEvidenceError):
+                    correlate_runtime_test_candidates(candidates, receipt)
+
     def test_duplicate_method_names_are_ambiguous(self):
         candidates, receipt = fixture()
         other = deepcopy(receipt["executed_tests"][0])
