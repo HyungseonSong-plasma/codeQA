@@ -197,6 +197,13 @@ def correlate_runtime_test_candidates(
                     or row["outcome"] not in valid_outcomes
                     for row in outcomes
                 )
+                # unittest.TestResult.wasSuccessful() is false when a test
+                # fails, errors, or unexpectedly succeeds. A caller can
+                # recompute receipt_id, so the summary must agree with rows.
+                or (receipt["suite_was_successful"] and any(
+                    row["outcome"] in {"FAILED", "ERROR", "UNEXPECTED_SUCCESS"}
+                    for row in outcomes
+                ))
                 or receipt["all_passed"] != (
                     receipt["suite_was_successful"]
                     and bool(outcomes)
