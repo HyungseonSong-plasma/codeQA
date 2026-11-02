@@ -42,12 +42,15 @@ class _ReceiptResult(unittest.TestResult):
         super().addFailure(test, err)
         # A test can error in its body and then fail in tearDown. Retain
         # the more severe result while preserving unittest's own accounting.
-        if self.outcomes.get(test.id()) != "ERROR":
+        if test.id() in self.outcomes and self.outcomes[test.id()] != "ERROR":
             self.outcomes[test.id()] = "FAILED"
 
     def addError(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addError(test, err)
-        self.outcomes[test.id()] = "ERROR"
+        # unittest uses synthetic _ErrorHolder objects for setUpClass/tearDownClass
+        # failures. They are suite errors, not executed test methods.
+        if test.id() in self.outcomes:
+            self.outcomes[test.id()] = "ERROR"
 
     def addSubTest(
         self, test: unittest.case.TestCase, subtest: unittest.case.TestCase,
@@ -60,13 +63,13 @@ class _ReceiptResult(unittest.TestResult):
             status = ("FAILED" if issubclass(err[0], test.failureException)
                       else "ERROR")
             # A later assertion failure must not mask an earlier subtest error.
-            if self.outcomes.get(test.id()) != "ERROR":
+            if test.id() in self.outcomes and self.outcomes[test.id()] != "ERROR":
                 self.outcomes[test.id()] = status
 
     def addSkip(self, test: unittest.case.TestCase, reason: str) -> None:
         super().addSkip(test, reason)
         # A skip raised during tearDown must not hide an earlier error/failure.
-        if self.outcomes.get(test.id()) not in {"ERROR", "FAILED"}:
+        if test.id() in self.outcomes and self.outcomes[test.id()] not in {"ERROR", "FAILED"}:
             self.outcomes[test.id()] = "SKIPPED"
 
     def addExpectedFailure(self, test: unittest.case.TestCase, err: Any) -> None:
