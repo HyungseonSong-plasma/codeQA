@@ -2,7 +2,7 @@
 
 This exercises codeQA's existing Python pipeline on a small real analysis
 request and observes direct Python frame calls from Pipeline into its Adapter
-and Evaluation collaborators. The negative reverse direction is only an
+and Evaluation collaborators, including the optional change-impact path. The negative reverse direction is only an
 observation for this execution, never proof that an import edge is absent.
 No external consumers, semantic ownership, or migration safety are attested.
 """
@@ -24,7 +24,13 @@ ROOT = Path(__file__).resolve().parents[1]
 PIPELINE = "src/codeqa/pipeline/python.py"
 ADAPTER = "src/codeqa/adapters/python.py"
 DEPENDENCIES = "src/codeqa/adapters/python_dependencies.py"
+SNAPSHOT = "src/codeqa/adapters/python_snapshot.py"
+EVIDENCE = "src/codeqa/adapters/python_evidence.py"
+FUNCTION_CONTEXT = "src/codeqa/adapters/python_context.py"
+SYMBOLS = "src/codeqa/adapters/python_symbols.py"
 EVALUATION = "src/codeqa/evaluation/mechanical.py"
+CONTEXTUAL = "src/codeqa/evaluation/contextual.py"
+IMPACT = "src/codeqa/evaluation/impact.py"
 
 
 class PipelineRuntimeCompositionTests(unittest.TestCase):
@@ -45,15 +51,25 @@ class PipelineRuntimeCompositionTests(unittest.TestCase):
                 analysis = analyze_python(
                     sources, snapshot_id="git:composition-observation-v01",
                     ccg_schema=ccg_schema, mechanical_profile=mechanical_profile,
+                    changed_paths=("src/pkg/a.py",),
                 )
                 self.assertEqual(analysis.graph.coverage.status, "complete")
                 self.assertGreater(len(analysis.graph.nodes), 0)
+                self.assertIsNotNone(analysis.impact)
+                self.assertIn("src/pkg/a.py", analysis.impact.changed_paths)
 
         pairs = [
             (PIPELINE, ADAPTER),
             (PIPELINE, DEPENDENCIES),
+            (PIPELINE, SNAPSHOT),
+            (PIPELINE, EVIDENCE),
+            (PIPELINE, FUNCTION_CONTEXT),
+            (PIPELINE, SYMBOLS),
             (PIPELINE, EVALUATION),
+            (PIPELINE, CONTEXTUAL),
+            (PIPELINE, IMPACT),  # optional changed-path analysis is executed
             (ADAPTER, PIPELINE),  # negative control: not a static edge
+            (IMPACT, PIPELINE),  # negative control: no reverse call
         ]
         paths = {path for pair in pairs for path in pair}
         source_hashes = {
@@ -80,7 +96,10 @@ class PipelineRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(
             [row["outcome"] for row in report["executed_tests"]], ["PASSED"],
         )
-        for target in (ADAPTER, DEPENDENCIES, EVALUATION):
+        for target in (
+            ADAPTER, DEPENDENCIES, SNAPSHOT, EVIDENCE, FUNCTION_CONTEXT,
+            SYMBOLS, EVALUATION, CONTEXTUAL, IMPACT,
+        ):
             with self.subTest(target=target):
                 edge = observed[(PIPELINE, target)]
                 self.assertGreater(edge["observed_direct_python_calls"], 0)
@@ -89,9 +108,10 @@ class PipelineRuntimeCompositionTests(unittest.TestCase):
                     witness["test_id"].endswith(".AnalyzeCase.test_analyze")
                     for witness in edge["call_witnesses"]
                 ))
-        self.assertEqual(
-            observed[(ADAPTER, PIPELINE)]["observed_direct_python_calls"], 0,
-        )
+        for source in (ADAPTER, IMPACT):
+            self.assertEqual(
+                observed[(source, PIPELINE)]["observed_direct_python_calls"], 0,
+            )
         self.assertEqual(
             report["source_identity"]["source_sha256"], source_hashes,
         )
