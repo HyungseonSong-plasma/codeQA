@@ -151,6 +151,40 @@ class SourceReviewPacketTests(unittest.TestCase):
         with self.assertRaises(SourceReviewPacketError):
             render_source_review_packets_markdown(changed)
 
+    def test_reject_resealed_conflicting_overlapping_excerpts(self):
+        # Two measured edges can excerpt the same source line. A digest
+        # recomputed over contradictory text must not make it reviewable.
+        worklist, blobs = pack()
+        report = deepcopy(build_source_review_packets(worklist, blobs))
+        view_rows = [
+            row for row in report["packets"]
+            if row["source_path"] == "src/orchard/sky/view.py"
+        ]
+        self.assertEqual(len(view_rows), 2)
+        first = view_rows[0]["import_excerpts"][0]["lines"][0]
+        second = view_rows[1]["import_excerpts"][0]["lines"][0]
+        self.assertEqual((first["line"], first["text"]),
+                         (second["line"], second["text"]))
+        second["text"] += "  # contradictory review evidence"
+        report["packets_id"] = sha256(json.dumps(
+            {k: v for k, v in report.items() if k != "packets_id"},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        with self.assertRaises(SourceReviewPacketError):
+            render_source_review_packets_markdown(report)
+
+    def test_reject_resealed_nonhex_source_digest(self):
+        worklist, blobs = pack()
+        report = deepcopy(build_source_review_packets(worklist, blobs))
+        # A single-source excerpt used to accept any 64-character string.
+        report["packets"][0]["import_excerpts"][0]["source_sha256"] = "g" * 64
+        report["packets_id"] = sha256(json.dumps(
+            {k: v for k, v in report.items() if k != "packets_id"},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        with self.assertRaises(SourceReviewPacketError):
+            render_source_review_packets_markdown(report)
+
     def test_reject_resealed_wrong_target_on_real_import_line(self):
         worklist, blobs = pack()
         changed = deepcopy(worklist)
