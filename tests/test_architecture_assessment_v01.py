@@ -236,6 +236,66 @@ class ArchitectureDecisionTests(unittest.TestCase):
         with self.assertRaises(ArchitectureAssessmentError):
             assemble_architecture_advisory(inv, metrics, opportunities, scenarios, changed)
 
+    def test_resealed_forbidden_rejection_witness_is_real_b2_pair(self):
+        # A B4 rejection can be self-rehashed along with B5. B7 must not
+        # publish a claimed hard-constraint witness that B2 never observed.
+        policy = deepcopy(POLICY)
+        policy["roles"]["earth"]["forbidden_imports"] = ["rain", "sky"]
+        inv, metrics, opportunities, _ = reports(
+            policy=policy, edges=CONCENTRATED,
+        )
+        scenarios = generate_virtual_layout_scenarios(
+            inv, metrics, opportunities, policy,
+        )
+        migration = assess_architecture_migration(inv, scenarios, SOURCES)
+        self.assertTrue(any(
+            r["reason"] == "NEW_DECLARED_BOUNDARY_VIOLATION"
+            for r in scenarios["rejected"]
+        ))
+        self.assertEqual(
+            assemble_architecture_advisory(
+                inv, metrics, opportunities, scenarios, migration,
+            )["rejected_scenarios"], scenarios["rejected"],
+        )
+
+        for mutation in ("unobserved_pair", "duplicate_pair", "unchanged_roles"):
+            with self.subTest(mutation=mutation):
+                forged = deepcopy(scenarios)
+                rejection = next(
+                    r for r in forged["rejected"]
+                    if r["reason"] == "NEW_DECLARED_BOUNDARY_VIOLATION"
+                )
+                witness = rejection["witness_pairs"][0]
+                if mutation == "unobserved_pair":
+                    # This is a real, readable tracked module but there is
+                    # no source import edge to it in the B2 graph.
+                    witness["target_path"] = "src/orchard/earth/extra.py"
+                elif mutation == "duplicate_pair":
+                    rejection["witness_pairs"].append(deepcopy(witness))
+                else:
+                    measured = next(
+                        p for p in metrics["resolved_pairs"]
+                        if p["source_path"] == witness["source_path"]
+                        and p["target_path"] == witness["target_path"]
+                    )
+                    witness["source_role"] = measured["source_role"]
+                    witness["target_role"] = measured["target_role"]
+                forged["scenarios_id"] = sha256(json.dumps(
+                    {k: v for k, v in forged.items() if k != "scenarios_id"},
+                    sort_keys=True, separators=(",", ":"),
+                ).encode()).hexdigest()
+                linked = deepcopy(migration)
+                linked["scenarios_id"] = forged["scenarios_id"]
+                linked["rejected_scenarios"] = deepcopy(forged["rejected"])
+                linked["migration_id"] = sha256(json.dumps(
+                    {k: v for k, v in linked.items() if k != "migration_id"},
+                    sort_keys=True, separators=(",", ":"),
+                ).encode()).hexdigest()
+                with self.assertRaises(ArchitectureAssessmentError):
+                    assemble_architecture_advisory(
+                        inv, metrics, opportunities, forged, linked,
+                    )
+
     def test_duplicate_b4_scenario_id_cannot_hide_unassessed_move(self):
         # A report digest alone is not a uniqueness guarantee. If B4 repeats
         # an ID, a dict keyed by scenario_id silently drops one candidate.
