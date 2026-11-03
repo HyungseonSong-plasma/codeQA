@@ -243,6 +243,17 @@ class B8ArtifactManifestTests(unittest.TestCase):
         self.assertEqual(len(assignments), 1)
         patterns = ast.literal_eval(assignments[0].value)
         self.assertEqual(len(patterns), len(set(patterns)))
+        # The B8 collector installs sys.setprofile while running this suite.
+        # These independently valuable role-call tests also install a profiler;
+        # nesting them would fail the runtime observer precondition rather than
+        # increase the 43-pair sample's coverage. Keep their separate CI tests.
+        nested_observers = {
+            "test_architecture_naming_pipeline_role_calls_v01.py",
+            "test_architecture_naming_optin_role_calls_v01.py",
+        }
+        self.assertTrue(all((ROOT / "tests" / name).is_file()
+                            for name in nested_observers))
+        self.assertFalse(set(patterns) & nested_observers)
         self.assertTrue(all((ROOT / "tests" / pattern).is_file()
                             for pattern in patterns))
         self.assertTrue({
