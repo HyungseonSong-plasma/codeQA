@@ -269,6 +269,33 @@ class B8ArtifactManifestTests(unittest.TestCase):
             "test_mixed_source_coverage.py", "test_git_tree_reader_v01.py",
         }.issubset(set(patterns)))
 
+    def test_runtime_sample_does_not_install_nested_profilers(self):
+        """B8 installs a process-local profiler; selected tests must not replace it."""
+        script = ROOT / ".github/scripts/architecture_self_diagnostic_e2e.py"
+        tree = ast.parse(script.read_text(encoding="utf-8"))
+        assignments = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "test_patterns"
+                    for target in node.targets)
+        ]
+        self.assertEqual(len(assignments), 1)
+        patterns = ast.literal_eval(assignments[0].value)
+        nested = []
+        for pattern in patterns:
+            source = ROOT / "tests" / pattern
+            test_tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+            for node in ast.walk(test_tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                target = node.func
+                if (isinstance(target, ast.Attribute)
+                        and target.attr in {"setprofile", "settrace"}
+                        and isinstance(target.value, ast.Name)
+                        and target.value.id in {"sys", "threading"}):
+                    nested.append((pattern, node.lineno, target.attr))
+        self.assertEqual(nested, [], "B8 sample must not replace its observer")
+
     def test_workflow_uploads_complete_pack(self):
         workflow = (ROOT / ".github/workflows/architecture-self-diagnostic.yml").read_text()
         script = (ROOT / ".github/scripts/architecture_self_diagnostic_e2e.py").read_text()
