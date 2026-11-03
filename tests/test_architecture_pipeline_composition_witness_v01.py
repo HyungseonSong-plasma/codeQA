@@ -24,14 +24,14 @@ def role_import_witnesses(source: str) -> dict[str, set[str]]:
             if not module.startswith(ROLE_PREFIX):
                 continue
             parts = module.split(".")
-            if len(parts) < 3:
+            if len(parts) < 2:
                 continue
             role = parts[1]
             roles.setdefault(role, set()).update(alias.name for alias in node.names)
         elif isinstance(node, ast.Import):
             for alias in node.names:
                 parts = alias.name.split(".")
-                if len(parts) >= 3 and parts[0] == "codeqa":
+                if len(parts) >= 2 and parts[0] == "codeqa":
                     roles.setdefault(parts[1], set()).add(alias.name)
     return roles
 
