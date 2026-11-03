@@ -256,6 +256,25 @@ class ArchitectureScenarioTests(unittest.TestCase):
         self.assertEqual(result["rejected"][0]["reason"], "TARGET_COLLISION")
         self.assertEqual(result["rejected"][0]["collision_witnesses"][0][
             "proposed_target_path"], "src/orchard/earth/view.py")
+        # A collision is a hard constraint, not permission to rename the
+        # destination. Preserve the exact source and occupied-target hashes.
+        witnesses = result["rejected"][0]["collision_witnesses"]
+        occupied = [w for w in witnesses if w["collision_kind"] == "OCCUPIED_TARGET"]
+        self.assertEqual(len(occupied), 1)
+        witness = occupied[0]
+        self.assertEqual(witness["source_path"], "src/orchard/sky/view.py")
+        self.assertEqual(witness["proposed_target_path"], "src/orchard/earth/view.py")
+        self.assertEqual(
+            witness["source_sha256"],
+            sha256(sources["src/orchard/sky/view.py"].encode()).hexdigest(),
+        )
+        self.assertEqual(
+            witness["occupied_target_sha256"],
+            sha256(sources["src/orchard/earth/view.py"].encode()).hexdigest(),
+        )
+        self.assertNotEqual(witness["source_sha256"], witness["occupied_target_sha256"])
+        self.assertFalse(result["candidates"])
+
 
     def test_known_new_forbidden_boundary_blocks_candidate(self):
         _, _, opportunities, _ = reports(edges=CONCENTRATED)
