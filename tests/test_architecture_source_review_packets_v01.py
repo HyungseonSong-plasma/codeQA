@@ -173,6 +173,26 @@ class SourceReviewPacketTests(unittest.TestCase):
         with self.assertRaises(SourceReviewPacketError):
             render_source_review_packets_markdown(report)
 
+    def test_reject_resealed_nonpositive_excerpt_line(self):
+        worklist, blobs = pack()
+        original = build_source_review_packets(worklist, blobs)
+        for forged in (0, -1):
+            with self.subTest(forged=forged):
+                changed = deepcopy(original)
+                excerpt = changed["packets"][0]["import_excerpts"][0]
+                # Keep the excerpt internally consecutive and its witness
+                # inside the excerpt; a new digest is not source proof.
+                offset = forged - excerpt["lines"][0]["line"]
+                for item in excerpt["lines"]:
+                    item["line"] += offset
+                excerpt["witness_line"] += offset
+                changed["packets_id"] = sha256(json.dumps(
+                    {k: v for k, v in changed.items() if k != "packets_id"},
+                    sort_keys=True, separators=(",", ":"),
+                ).encode()).hexdigest()
+                with self.assertRaises(SourceReviewPacketError):
+                    render_source_review_packets_markdown(changed)
+
     def test_reject_resealed_nonhex_source_digest(self):
         worklist, blobs = pack()
         report = deepcopy(build_source_review_packets(worklist, blobs))
