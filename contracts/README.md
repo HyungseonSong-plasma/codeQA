@@ -1,65 +1,54 @@
 # codeQA contracts
 
-Contract schemas define what data **may look like**.
-Concrete repository policies are stored in [`profiles/`](../profiles/) or in the
-consuming repository, not here.
+**Schemas** define what exchanged data **may look like**; repository policies live
+in [`profiles/`](../profiles/) or the consuming repository. Schema validity
+does not imply a quality PASS.
 
-## Difference between schemas and profiles
+## Schemas vs. profiles
 
-- **Schemas (`contracts/`)** define the versioned structure of exchanged data:
-  required fields, data types, allowed values, and structural constraints.
-  Corresponding validators may also enforce separate semantic invariants.
-- **Profiles (`profiles/` or a consuming repository)** select the rules and
-  configuration for a particular analysis, such as thresholds, directory
-  responsibilities, forbidden import directions, or opt-in settings.
+- **Schema:** fields, types, allowed values, and structural constraints.
+- **Profile:** selected thresholds, architecture rules, and opt-in settings.
+- **Examples:** [CCG graph](ccg/graph-v0.1.schema.json) defines graph data;
+  [directory roles](../profiles/semantic-directory-roles-v0.1.json) sets import
+  rules. [QA result](qa/result-v0.1.schema.json) defines report data;
+  [complexity profile](../profiles/complexity-v0.1.json) sets review thresholds.
 
-**Examples from codeQA:**
-
-1. **Code graph vs. architecture policy:** The
-   [CCG graph schema](ccg/graph-v0.1.schema.json) defines fields such as
-   `snapshot`, `nodes`, `edges`, and `coverage`.
-   The [semantic directory roles profile](../profiles/semantic-directory-roles-v0.1.json)
-   independently specifies responsibilities and forbidden import directions.
-   The graph schema does not decide which dependencies are permitted.
-2. **QA result vs. review thresholds:** The
-   [QA result schema](qa/result-v0.1.schema.json) defines how findings,
-   evidence, coverage, and verdicts are represented.
-   The [complexity profile](../profiles/complexity-v0.1.json) selects
-   `max_cyclomatic_proxy_review: 10` and
-   `max_branch_nesting_review: 3`. The result schema does not set those
-   thresholds.
-
-A schema-valid document is **not** automatically an approved policy,
-a complete analysis, or a quality PASS. A profile may itself be checked
-against a schema without making its chosen values universally applicable.
-
-## Existing contract areas
+## Contract areas
 
 - [`ccg/`](ccg/README.md)
-  - canonical source-code facts
-  - graph structure
-  - provenance
-  - resolution and coverage (v0.1 initially)
+  - [`graph-v0.1.schema.json`](ccg/graph-v0.1.schema.json) — source snapshot,
+    nodes, edges, provenance, resolution, and coverage.
 - [`adapters/`](adapters/)
   - [`capability-v0.1.schema.json`](adapters/capability-v0.1.schema.json) —
-    declares an adapter's language/parser, supported input/output formats,
-    feature support, and known limitations; not proof of analysis success.
+    parser, input/output, supported features, and limits.
   - [`source-selection-v0.1.schema.json`](adapters/source-selection-v0.1.schema.json) —
-    records an immutable source snapshot, caller-supplied included/excluded
-    file inventory, per-file language/category, and inventory completeness;
-    not automatic source discovery.
+    pinned snapshot and caller-selected file inventory.
 - [`qa/`](qa/README.md)
-  - QA results
-  - metric evidence
-  - coverage and quality deltas (v0.1)
+  - [`result`](qa/result-v0.1.schema.json) / [`delta`](qa/delta-v0.1.schema.json) —
+    scoped QA findings and changes.
+  - [`metric-snapshot`](qa/metric-snapshot-v0.2.schema.json) /
+    [`complexity-report`](qa/complexity-report-v0.1.schema.json) — measurements and reviews.
+  - [`naming-report`](qa/naming-report-v0.1.schema.json) /
+    [`duplication-report`](qa/duplication-report-v0.1.schema.json) — naming and duplication evidence.
+  - [`architecture-inventory`](qa/architecture-inventory-v0.1.schema.json) /
+    [`architecture-assessment`](qa/architecture-assessment-v0.1.schema.json) /
+    [`architecture-scenarios`](qa/architecture-scenarios-v0.1.schema.json) —
+    architecture evidence and options.
+  - [`external-evidence`](qa/external-evidence-envelope-v0.1.schema.json) /
+    [`evidence-gate`](qa/evidence-gate-v0.1.schema.json) /
+    [`formal-binding`](qa/formal-implementation-binding-v0.1.schema.json) —
+    external evidence, scoped gates, and proof-to-code binding.
 - [`semantic/`](semantic/README.md)
-  - Semantic Architecture Ontology vocabulary
-  - architecture report schemas (v0.1)
-  - separate from frozen CCG v0.1
+  - [`vocabulary`](semantic/architecture-v0.1.vocabulary.json) /
+    [`architecture`](semantic/architecture-v0.1.schema.json) — ontology terms and reports.
+  - [`declared-rule-policy`](semantic/declared-rule-policy-v0.1.schema.json) /
+    [`declared-rule-report`](semantic/declared-rule-report-v0.1.schema.json) —
+    directory rules and source-backed findings.
+  - [`responsibility-behavior`](semantic/responsibility-behavior-v0.1.schema.json) —
+    non-scoring syntax and responsibility observations.
 
 ## Future contract areas
 
-- Future contract areas are created **only when their content is designed**.
-  For example, `contracts/profile/` is **planned, not implemented**:
-  a future profile schema could validate profile structure, but would not
-  prescribe repository-specific policy values.
+- Add areas **only when their content is designed**. `contracts/profile/`
+  is planned, not implemented; it would validate profile structure,
+  not set policy values.
