@@ -54,7 +54,7 @@ equivalent facts. It does **not** prove reproducible extraction or stable IDs;
 adapters must produce consistent identifiers and evidence for identical pinned
 inputs, configuration and tool versions.
 
-## Ownership & limitations
+## Scope boundary
 | Owns | Does not own |
 | :-- | :-- |
 | Immutable CCG data and validation (`core/`) | Scores, thresholds or PASS/FAIL quality decisions (`evaluation/`, `profiles/`) |
