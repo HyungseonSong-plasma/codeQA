@@ -1,5 +1,6 @@
+# Archived codeQA/MOOSE A/B experiments (2026-10-23)
+
 <div align="center">
-<h1>Archived codeQA / MOOSE Experiments</h1>
 <p><strong>Completed A/B comparisons preserved as immutable historical evidence.</strong></p>
 <p>23 October 2026 · Archived reports · Inert workflow snapshots</p>
 </div>
