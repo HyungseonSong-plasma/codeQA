@@ -129,8 +129,10 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
                     self.assertIn(item["path"],
                                   {"docs/README.md", "docs/experiments/README.md"})
                 if item["authority_role"] == "REVIEW_EVIDENCE":
-                    self.assertEqual(item["path"],
-                                     "docs/governance/document-authority-review-v0.1.md")
+                    self.assertIn(item["path"], {
+                        "docs/governance/document-authority-review-v0.1.md",
+                        "docs/governance/documentation-reference-audit-v0.1.md",
+                    })
                 self.assertIn(item["disposition"], STAGES)
                 self.assertTrue(target.startswith("docs/") and target.endswith("/"))
                 self.assertNotIn("..", PurePosixPath(target).parts)
@@ -208,7 +210,8 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
     def test_new_portal_and_policy_local_links_resolve(self) -> None:
         for source in (DOCS / "README.md",
                        DOCS / "governance/documentation-architecture-v0.1.md",
-                       DOCS / "governance/document-authority-review-v0.1.md"):
+                       DOCS / "governance/document-authority-review-v0.1.md",
+                       DOCS / "governance/documentation-reference-audit-v0.1.md"):
             text = _prose(source.read_text(encoding="utf-8"))
             self.assertIn("# ", text)
             links = [*LINK.findall(text), *HTML_LINK.findall(text)]
