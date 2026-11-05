@@ -21,6 +21,25 @@ AREAS = frozenset({
     "navigation", "architecture", "quality", "integrations", "governance",
     "contracts", "operations", "experiments", "evidence", "decisions",
 })
+AUTHORITY_ROLES = frozenset({
+    "NAVIGATION_INDEX", "ACCEPTED_ADR", "CONTRACT_EXPLANATION",
+    "POLICY_EXPLANATION", "SCOPED_ADOPTION_POLICY",
+    "ADOPTED_ARCHITECTURE_GUIDE", "SCOPED_TECHNICAL_GUIDE",
+    "OPERATIONAL_RUNBOOK", "PROPOSED_DESIGN", "HISTORICAL_EVIDENCE",
+    "SCOPED_DECISION_RECORD", "REVIEW_EVIDENCE",
+})
+RESPONSIBLE_BOUNDARIES = frozenset({
+    "DOCUMENTATION_NAVIGATION", "FOUNDATION_ADR",
+    "SEMANTIC_ARCHITECTURE", "ARCHITECTURE_EVALUATION",
+    "ARCHITECTURE_FOUNDATION_AND_PIPELINE", "NAMING_QUALITY",
+    "DEPENDENCY_QUALITY", "MECHANICAL_QUALITY",
+    "CPP_MOOSE_INTEGRATION", "RUST_INTEGRATION",
+    "EXTERNAL_TOOL_INTEGRATION", "PYTHON_ADAPTER_AND_SDK",
+    "CONTRACTS_AND_SEMANTIC_VALIDATION", "SAMUEL_CONSUMER_OPERATIONS",
+    "SAMUEL_INTEGRATION_PROVENANCE", "EXPERIMENTAL_EVIDENCE",
+    "DOCUMENTATION_GOVERNANCE", "WORKFLOW_GOVERNANCE",
+    "EXTERNAL_EVIDENCE_GOVERNANCE", "REPOSITORY_GOVERNANCE",
+})
 STAGES = frozenset({
     "STABLE_ENTRYPOINT", "RETAIN_CURRENT_DIRECTORY",
     "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
@@ -72,7 +91,9 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
         for item in self.catalog["documents"]:
             with self.subTest(path=item["path"]):
                 required = {"path", "area", "candidate_directory",
-                            "disposition", "authority_review"}
+                            "disposition", "authority_review",
+                            "authority_role", "responsible_boundary",
+                            "role_review"}
                 optional = {"lifecycle", "authority", "evidence_revision",
                             "primary_owner", "canonical_location",
                             "external_deep_link_policy", "review_revision",
@@ -93,6 +114,23 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
                     self.assertRegex(item.get("review_issue", ""),
                                      r"^https://github[.]com/.+/(issues|pull)/[0-9]+$")
                 self.assertIn(item["area"], AREAS)
+                self.assertEqual(item["role_review"],
+                                 "SCOPE_AND_PRIMARY_TOPIC_REVIEWED")
+                self.assertIn(item["authority_role"], AUTHORITY_ROLES)
+                self.assertIn(item["responsible_boundary"],
+                              RESPONSIBLE_BOUNDARIES)
+                if item["area"] == "decisions":
+                    self.assertEqual(item["authority_role"], "ACCEPTED_ADR")
+                    self.assertEqual(item["responsible_boundary"],
+                                     "FOUNDATION_ADR")
+                if item["authority_role"] == "CONTRACT_EXPLANATION":
+                    self.assertEqual(item["area"], "contracts")
+                if item["authority_role"] == "NAVIGATION_INDEX":
+                    self.assertIn(item["path"],
+                                  {"docs/README.md", "docs/experiments/README.md"})
+                if item["authority_role"] == "REVIEW_EVIDENCE":
+                    self.assertEqual(item["path"],
+                                     "docs/governance/document-authority-review-v0.1.md")
                 self.assertIn(item["disposition"], STAGES)
                 self.assertTrue(target.startswith("docs/") and target.endswith("/"))
                 self.assertNotIn("..", PurePosixPath(target).parts)
@@ -138,9 +176,39 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
             ["candidate_directory"], "docs/architecture/semantic/"
         )
 
+    def test_boundary_decisions_do_not_promote_drafts_or_history(self) -> None:
+        expected = {
+            "docs/cpp-moose-naming-v02-draft.md":
+                ("integrations", "docs/integrations/cpp/", "PROPOSED_DESIGN"),
+            "docs/python-override-callback-v02-draft.md":
+                ("integrations", "docs/integrations/python/", "PROPOSED_DESIGN"),
+            "docs/schema-composition-pilot-v0.1.md":
+                ("experiments", "docs/experiments/", "SCOPED_DECISION_RECORD"),
+            "docs/historical-branch-reconciliation-2026-11-05.md":
+                ("governance", "docs/governance/", "HISTORICAL_EVIDENCE"),
+            "docs/naming-official-policy-v05.md":
+                ("quality", "docs/quality/naming/", "SCOPED_ADOPTION_POLICY"),
+            "docs/naming-official-adoption-v05-proposal.md":
+                ("quality", "docs/quality/naming/", "PROPOSED_DESIGN"),
+            "docs/workflow-catalog-v0.1.md":
+                ("governance", "docs/governance/workflows/", "HISTORICAL_EVIDENCE"),
+            "docs/architecture-assessment-design-v0.1.md":
+                ("architecture", "docs/architecture/analysis/", "PROPOSED_DESIGN"),
+        }
+        for path, (area, directory, role) in expected.items():
+            with self.subTest(path=path):
+                item = self.by_path[path]
+                self.assertEqual((item["area"], item["candidate_directory"],
+                                  item["authority_role"]), (area, directory, role))
+        self.assertTrue(all(
+            item["authority_review"] != "REVIEWED_WITH_EVIDENCE"
+            for item in self.catalog["documents"]
+        ), "topic classification must not fake claim-level source authority")
+
     def test_new_portal_and_policy_local_links_resolve(self) -> None:
         for source in (DOCS / "README.md",
-                       DOCS / "governance/documentation-architecture-v0.1.md"):
+                       DOCS / "governance/documentation-architecture-v0.1.md",
+                       DOCS / "governance/document-authority-review-v0.1.md"):
             text = _prose(source.read_text(encoding="utf-8"))
             self.assertIn("# ", text)
             links = [*LINK.findall(text), *HTML_LINK.findall(text)]
