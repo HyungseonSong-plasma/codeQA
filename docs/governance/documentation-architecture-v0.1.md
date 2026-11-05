@@ -58,8 +58,8 @@ never silently turns a draft into an approved contract.
 ## Top-of-document status badges — staged pilot
 
 **Required display policy for opted-in documents:** immediately below the first Markdown H1,
-show three local, flat-square SVG badges in this order: `Decision`, `Implementation`,
-`Review`. Their displayed values must match the explicit `status_labels` entry
+show three local, softly tinted rounded-pill SVG badges in this order: `Decision`, `Implementation`,
+`Review`. Only the status value is drawn on each badge; the axis remains available in its\nimage alt text and SVG title. Their displayed values must match the explicit `status_labels` entry
 in [the Markdown catalog](../documentation-catalog-v0.1.json), and the referenced
 local SVG must exist with the declared color. Plain-text image alternatives
 preserve the status meanings when images are disabled.
