@@ -121,7 +121,8 @@ def scan_links(paths: set[str]) -> tuple[dict, list[tuple[str, int, str, str]]]:
             if uri.path.startswith("/"):
                 bad.append((source, lineno, href, "repository-absolute link"))
                 continue
-            destination = (ROOT / source).parent / unquote(uri.path)
+            destination = ((ROOT / source).parent / unquote(uri.path)
+                           if uri.path else ROOT / source)
             destination = destination.resolve()
             if not destination.is_relative_to(ROOT):
                 bad.append((source, lineno, href, "escapes repository"))
