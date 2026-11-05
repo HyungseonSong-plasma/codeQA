@@ -1,3 +1,48 @@
 {
-  "targets": []
+  "targets": [
+    {
+      "branch": "cleanup/merged-branches-b2-20261105",
+      "expected_sha": "7960ea869085338b73baa111d8b290856fd170ad"
+    },
+    {
+      "branch": "codeqa/93-rust-parser-source-evidence-v01-20261025",
+      "expected_sha": "b936819fcad009b740e38ecedc21e472f46c3cb9"
+    },
+    {
+      "branch": "codeqa/integration-118-120-123-125-20261026",
+      "expected_sha": "3f84e40c3003b2f36e8f6a5b51ea9200b0c77d8f"
+    },
+    {
+      "branch": "codeqa/integration-119-124-93-20261026",
+      "expected_sha": "dafd67e4130d571e58bbe5808839126899be343c"
+    },
+    {
+      "branch": "codeqa/integration-121-102-20261026",
+      "expected_sha": "e476251d081811c880b0eb8fea59e7c785132919"
+    },
+    {
+      "branch": "integration/history-join-retained-branches-20261105",
+      "expected_sha": "832e5bf6d864094bd66f32aa1593a769fffe64a9"
+    },
+    {
+      "branch": "integration/reconcile-retained-branches-20261105",
+      "expected_sha": "88bb53be3b355b244bb839b5927fbe9524519f0d"
+    },
+    {
+      "branch": "issue-102-formal-implementation-binding-v01",
+      "expected_sha": "a212319e4642913b26cb77542dbbac6c585af441"
+    },
+    {
+      "branch": "samuel-220-crossrepo-preflight-20261025",
+      "expected_sha": "3b12a741ed7d124b8189558c24cef5a8c1088c43"
+    },
+    {
+      "branch": "samuel/156-target-native-pr-executor",
+      "expected_sha": "86ed941377e82540fd734c8184e246204f96d571"
+    },
+    {
+      "branch": "samuel/220-controller-crossrepo-preflight",
+      "expected_sha": "0d0cd2afb1df05286a902920e2a46c9c47f4887f"
+    }
+  ]
 }
