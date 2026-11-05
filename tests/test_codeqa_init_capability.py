@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3"
+PIN = "c803cd6b77c6d112df33d8679bac32f993a658b0"
 MANIFEST = ROOT / "docs/operating_system/central_skills.json"
 REQUEST = ROOT / ".github/requests/branch-delete-request.json"
 WORKFLOW = ROOT / ".github/workflows/samuel-branch-delete.yml"
@@ -56,22 +56,23 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
         # It must not silently become an INIT skill.
         refinement = by_name["documentation-refinement"]
         self.assertEqual(refinement["load_on"], ["DOCUMENTATION_REFINEMENT"])
+        self.assertNotIn("INIT", refinement["load_on"])
         self.assertEqual(refinement["path"], "skills/documentation-refinement/README.md")
         self.assertEqual(
             refinement["expected_blob_sha"],
-            "502ab4ac4e71f3e6bb4ca41738d858523d255edd",
+            "bc9c2ba40236c10ebc143d3970fe3b8663306889",
         )
         self.assertEqual(
             refinement["contract"],
             {
-                "path": "skills/documentation-refinement/contract.json",
-                "expected_blob_sha": "aa79e0404488e14483147d4d15b3d506f0889c6c",
-                "expected_contract_id": "samuel.documentation-refinement.v0.1",
+                "path": "skills/documentation-refinement/contract-v0.2.json",
+                "expected_blob_sha": "945ecac9ee87cb070825867ee99fdec2c8bfe26a",
+                "expected_contract_id": "samuel.documentation-refinement.v0.2",
             },
         )
         self.assertEqual(
             manifest["skill_catalog"]["expected_blob_sha"],
-            "d007eaae12fca4b55effcce61aff7bdc56e424f0",
+            "e60bfc71d94764ef13699272ac77ad85d8d1b2b8",
         )
         for item in by_name.values():
             self.assertEqual(item["revision"], PIN)
