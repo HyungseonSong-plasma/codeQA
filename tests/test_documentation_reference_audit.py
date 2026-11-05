@@ -194,8 +194,50 @@ class DocumentationReferenceAuditTests(unittest.TestCase):
             {"statistics": stats, "missing_examples": missing[:80]},
             ensure_ascii=False))
         self.assertGreater(stats["text_path_occurrences"], 0)
-        # Literal paths in historical examples, negative fixtures and source
-        # strings are not automatically asserted to be live resource imports.
+        # Deliberately missing at this repository revision. Each has a
+        # separately corroborated historical, remote-source or test role.
+        allowed = {
+            "docs/contracts/ccg-0.1.md": "historic-ADR-replaced-with-contract",
+            "docs/operating_system/ESSENTIAL_RULES.md": "pinned-central-Samuel",
+            "docs/architecture/physics_directory_roles_v1.json": "pinned-external-MOOSE",
+            "docs/samuel-native-pr-e2e-fixture.md": "disabled-ephemeral-fixture",
+            "docs/example.md": "synthetic-migration-test-input",
+            "docs/trailing./report.json": "invalid-path-negative-fixture",
+        }
+        unknown = [entry for entry in missing if entry[2] not in allowed]
+        self.assertEqual(unknown, [], "new unresolved literal path needs review")
+        # Ensure known exceptions cannot silently broaden into production
+        # path dependencies or accidentally enable the absent fixture.
+        self.assertTrue(all(
+            src.startswith(("docs/adr/", "docs/architecture.md", "tests/"))
+            for src, _, target in missing if target == "docs/contracts/ccg-0.1.md"
+        ))
+        fixture_policy = json.loads(
+            (ROOT / "profiles/samuel-native-pr-create-e2e-v1.json")
+            .read_text(encoding="utf-8")
+        )
+        self.assertIs(fixture_policy["enabled"], False)
+        self.assertEqual(fixture_policy["sole_fixture_path"],
+                         "docs/samuel-native-pr-e2e-fixture.md")
+        central = json.loads(
+            (ROOT / "docs/operating_system/central_skills.json")
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(central["source_repository"],
+                         "HyungseonSong-plasma/chatgpt-operation")
+        self.assertEqual(central["operating_system"]["essential_rules"]["path"],
+                         "docs/operating_system/ESSENTIAL_RULES.md")
+        for profile in (
+            "moose-test-directory-roles-subset-v0.1.json",
+            "moose-test-responsibility-behavior-v0.1.json",
+        ):
+            source = json.loads((ROOT / "profiles" / profile).read_text(encoding="utf-8"))
+            self.assertEqual(source["source_policy_commit"],
+                             "2e14935e9bab03e684c4e01a35840d8e125802d9")
+            self.assertEqual(source["source_policy_path"],
+                             "docs/architecture/physics_directory_roles_v1.json")
+        # These are literal-path findings, NOT a claim that external URLs,
+        # screenshots, historical prose or all package runtime paths validate.
 
 
 if __name__ == "__main__":
