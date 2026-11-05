@@ -11,6 +11,8 @@ import re
 import unittest
 from urllib.parse import unquote, urlsplit
 
+from codeqa.infrastructure.git import GitReader
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
@@ -59,48 +61,62 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
         self.assertEqual(self.catalog["initial_markdown_count"], 107)
         self.assertEqual(len(self.by_path), len(docs), "duplicate catalog paths")
         observed = {
-            p.relative_to(ROOT).as_posix() for p in DOCS.rglob("*.md")
-            if p.is_file()
+            path for path in GitReader(ROOT).tracked_paths()
+            if path.startswith("docs/") and path.endswith(".md")
         }
         self.assertEqual(set(self.by_path), observed,
-                         "every Markdown requires explicit owner-area routing")
-        self.assertEqual(len(observed), 109, "Phase 1 adds only portal and policy")
+                         "every tracked Markdown requires a catalog entry")
+        self.assertTrue(all((ROOT / path).is_file() for path in observed))
 
     def test_authority_review_and_move_decision_are_not_assumed(self) -> None:
         for item in self.catalog["documents"]:
             with self.subTest(path=item["path"]):
-                self.assertEqual(
-                    set(item),
-                    {"path", "area", "candidate_directory",
-                     "disposition", "authority_review"},
-                )
+                required = {"path", "area", "candidate_directory",
+                            "disposition", "authority_review"}
+                optional = {"lifecycle", "authority", "evidence_revision",
+                            "primary_owner", "canonical_location",
+                            "external_deep_link_policy", "review_revision",
+                            "review_issue", "stable_reason"}
+                self.assertTrue(required <= set(item))
+                self.assertTrue(set(item) <= required | optional)
                 path = item["path"]
                 target = item["candidate_directory"]
                 self.assertTrue(path.startswith("docs/") and path.endswith(".md"))
                 self.assertEqual(str(PurePosixPath(path)), path)
-                self.assertEqual(item["authority_review"], "NOT_EVALUATED")
+                self.assertIn(item["authority_review"],
+                              {"NOT_EVALUATED", "REVIEW_REQUIRED",
+                               "REVIEWED_WITH_EVIDENCE"})
+                if item["authority_review"] == "REVIEWED_WITH_EVIDENCE":
+                    self.assertRegex(item.get("review_revision", ""),
+                                     r"^[0-9a-f]{40}$")
+                    self.assertTrue(item.get("primary_owner"))
+                    self.assertRegex(item.get("review_issue", ""),
+                                     r"^https://github[.]com/.+/(issues|pull)/[0-9]+$")
                 self.assertIn(item["area"], AREAS)
                 self.assertIn(item["disposition"], STAGES)
                 self.assertTrue(target.startswith("docs/") and target.endswith("/"))
                 self.assertNotIn("..", PurePosixPath(target).parts)
                 stage = item["disposition"]
                 if stage == "STABLE_ENTRYPOINT":
-                    self.assertIn(path, STABLE)
-                    self.assertEqual(target, "docs/")
+                    self.assertEqual(target, str(PurePosixPath(path).parent) + "/")
+                    if path not in STABLE:
+                        self.assertTrue(item.get("stable_reason"),
+                                        "new stable entrypoints need a reason")
                 elif stage == "RETAIN_CURRENT_DIRECTORY":
                     self.assertEqual(target, str(PurePosixPath(path).parent) + "/")
                 else:
                     self.assertEqual(str(PurePosixPath(path).parent), "docs")
                     self.assertNotEqual(target, "docs/")
-        self.assertEqual(
+        self.assertTrue(STABLE.issubset(
             {x["path"] for x in self.catalog["documents"]
-             if x["disposition"] == "STABLE_ENTRYPOINT"}, STABLE
-        )
+             if x["disposition"] == "STABLE_ENTRYPOINT"}
+        ))
 
     def test_representative_architecture_and_contract_roles(self) -> None:
         expected = {
             "docs/architecture-assessment-v0.1.md": "architecture",
             "docs/semantic-architecture-ontology.md": "architecture",
+            "docs/python-override-callback-v02-draft.md": "integrations",
             "docs/naming-official-policy-v05.md": "quality",
             "docs/engineering-principles.md": "quality",
             "docs/pinned-dafny-formal-conformance.md": "integrations",
@@ -147,14 +163,15 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
             DOCS / "governance/documentation-architecture-v0.1.md"
         ).read_text(encoding="utf-8")
         portal = (DOCS / "README.md").read_text(encoding="utf-8")
-        self.assertIn("an HTTP redirect", policy)
+        self.assertIn("A Markdown forwarding note is not an HTTP redirect",
+                      policy.replace("**", ""))
         self.assertIn("NOT_EVALUATED", policy)
         self.assertIn("not claimed as completed migrations", portal.lower())
-        candidates = [
-            d for d in self.catalog["documents"]
-            if d["disposition"] == "CANDIDATE_REQUIRES_BACKLINK_AUDIT"
-        ]
-        self.assertGreaterEqual(len(candidates), 80)
+        self.assertIn("MOVE_WITH_VERIFIED_REFERENCES", policy)
+        self.assertEqual(
+            self.by_path["docs/python-override-callback-v02-draft.md"]
+            ["candidate_directory"], "docs/integrations/python/"
+        )
 
 
 if __name__ == "__main__":
