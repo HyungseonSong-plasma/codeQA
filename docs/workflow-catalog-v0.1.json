@@ -361,6 +361,19 @@
       "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
     },
     {
+      "path": ".github/workflows/retire-final-merged-branch-20261105.yml",
+      "category": "operations",
+      "owner": "Samuel target-owned operations",
+      "trigger_events": [
+        "push"
+      ],
+      "required_check": null,
+      "required_status": "NOT_REQUIRED_BY_OBSERVED_RULESET",
+      "artifact_upload_count": 0,
+      "artifact_authority": "OPERATIONAL_RECEIPT_ONLY",
+      "retention_status": "WORKFLOW_DEFAULT_OR_POLICY_NOT_INDEPENDENTLY_EVALUATED"
+    },
+    {
       "path": ".github/workflows/rust-ccg-conformance.yml",
       "category": "conformance",
       "owner": "codeQA source/conformance",
