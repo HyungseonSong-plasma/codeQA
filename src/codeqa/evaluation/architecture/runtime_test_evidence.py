@@ -40,15 +40,37 @@ class _ReceiptResult(unittest.TestResult):
 
     def addFailure(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addFailure(test, err)
-        self.outcomes[test.id()] = "FAILED"
+        # A test can error in its body and then fail in tearDown. Retain
+        # the more severe result while preserving unittest's own accounting.
+        if test.id() in self.outcomes and self.outcomes[test.id()] != "ERROR":
+            self.outcomes[test.id()] = "FAILED"
 
     def addError(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addError(test, err)
-        self.outcomes[test.id()] = "ERROR"
+        # unittest uses synthetic _ErrorHolder objects for setUpClass/tearDownClass
+        # failures. They are suite errors, not executed test methods.
+        if test.id() in self.outcomes:
+            self.outcomes[test.id()] = "ERROR"
+
+    def addSubTest(
+        self, test: unittest.case.TestCase, subtest: unittest.case.TestCase,
+        err: Any,
+    ) -> None:
+        # unittest reports failed subtests here, not through addFailure.
+        # Without this hook a failed method remains misleadingly STARTED.
+        super().addSubTest(test, subtest, err)
+        if err is not None:
+            status = ("FAILED" if issubclass(err[0], test.failureException)
+                      else "ERROR")
+            # A later assertion failure must not mask an earlier subtest error.
+            if test.id() in self.outcomes and self.outcomes[test.id()] != "ERROR":
+                self.outcomes[test.id()] = status
 
     def addSkip(self, test: unittest.case.TestCase, reason: str) -> None:
         super().addSkip(test, reason)
-        self.outcomes[test.id()] = "SKIPPED"
+        # A skip raised during tearDown must not hide an earlier error/failure.
+        if test.id() in self.outcomes and self.outcomes[test.id()] not in {"ERROR", "FAILED"}:
+            self.outcomes[test.id()] = "SKIPPED"
 
     def addExpectedFailure(self, test: unittest.case.TestCase, err: Any) -> None:
         super().addExpectedFailure(test, err)
@@ -78,7 +100,8 @@ def capture_unittest_execution(
             or re.fullmatch(r"[0-9a-f]{40}", snapshot_sha) is None
             or not isinstance(test_path, str)
             or not test_path.startswith("tests/") or not test_path.endswith(".py")
-            or ".." in test_path.split("/")
+            or any(part in ("", ".", "..") for part in test_path.split("/"))
+            or "\\" in test_path
             or not isinstance(test_source, bytes)
             or not isinstance(expected_source_sha256, str)
             or sha256(test_source).hexdigest() != expected_source_sha256):
@@ -98,7 +121,10 @@ def capture_unittest_execution(
         },
         "executed_tests": outcomes,
         "tests_run": result.testsRun,
-        "all_passed": bool(outcomes) and all(x["outcome"] == "PASSED" for x in outcomes),
+        "suite_was_successful": result.wasSuccessful(),
+        "all_passed": (result.wasSuccessful() and bool(outcomes)
+                       and result.testsRun == len(outcomes)
+                       and all(x["outcome"] == "PASSED" for x in outcomes)),
         "evidence_class": "LOCAL_UNITTEST_EXECUTION_UNATTESTED",
         "edge_traversal": "NOT_EVALUATED",
         "semantic_ownership": "NOT_EVALUATED",
@@ -152,7 +178,53 @@ def correlate_runtime_test_candidates(
             raise RuntimeTestEvidenceError("receipt/candidate identity mismatch")
         path = receipt["source_identity"]["test_path"]
         source_hash = receipt["source_identity"]["test_source_sha256"]
+        # Correlation accepts untrusted, caller-rehashed receipts. The digest
+        # is not an attestation: revalidate the same bounded source-identity
+        # shape required when the receipt was originally captured.
+        snapshot_claim = receipt["source_identity"]["snapshot_sha_claim"]
+        if (not isinstance(snapshot_claim, str)
+                or re.fullmatch(r"[0-9a-f]{40}", snapshot_claim) is None
+                or not isinstance(path, str)
+                or not path.startswith("tests/")
+                or not path.endswith(".py")
+                or "\\" in path
+                or any(part in ("", ".", "..") for part in path.split("/"))
+                or not isinstance(source_hash, str)
+                or re.fullmatch(r"[0-9a-f]{64}", source_hash) is None):
+            raise RuntimeTestEvidenceError("invalid runtime receipt source identity")
         outcomes = receipt["executed_tests"]
+        # A digest is only an integrity checksum, not a trusted signature.
+        # Reject internally impossible unittest claims even when a caller
+        # recomputes receipt_id after modifying the payload.
+        valid_outcomes = {
+            "STARTED", "PASSED", "FAILED", "ERROR", "SKIPPED",
+            "EXPECTED_FAILURE", "UNEXPECTED_SUCCESS",
+        }
+        if (not isinstance(outcomes, list)
+                or type(receipt["tests_run"]) is not int
+                or type(receipt["all_passed"]) is not bool
+                or type(receipt["suite_was_successful"]) is not bool
+                or any(
+                    not isinstance(row, Mapping)
+                    or not isinstance(row.get("test_id"), str)
+                    or not row["test_id"]
+                    or not isinstance(row.get("outcome"), str)
+                    or row["outcome"] not in valid_outcomes
+                    for row in outcomes
+                )
+                # unittest.TestResult.wasSuccessful() is false when a test
+                # fails, errors, or unexpectedly succeeds. A caller can
+                # recompute receipt_id, so the summary must agree with rows.
+                or (receipt["suite_was_successful"] and any(
+                    row["outcome"] in {"FAILED", "ERROR", "UNEXPECTED_SUCCESS"}
+                    for row in outcomes
+                ))
+                or receipt["all_passed"] != (
+                    receipt["suite_was_successful"]
+                    and bool(outcomes)
+                    and all(row["outcome"] == "PASSED" for row in outcomes)
+                )):
+            raise RuntimeTestEvidenceError("inconsistent unittest outcomes")
         if len({r["test_id"] for r in outcomes}) != len(outcomes):
             raise RuntimeTestEvidenceError("duplicate executed test ID")
         matches = []
