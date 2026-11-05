@@ -1,6 +1,6 @@
 # Central Samuel skills — codeQA consumer
 
-**Source:** `HyungseonSong-plasma/chatgpt-operation@7b5b31e143474f4859fb6c85fb4a27afbad4eed3`
+**Source:** `HyungseonSong-plasma/chatgpt-operation@b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3`
 
 ## Required init
 
@@ -49,9 +49,21 @@ from exact pinned evidence rather than chat memory.
 Other skills load only when triggered (e.g., `GITHUB_PR_MERGE`,
 `GITHUB_ACTIONS_EXECUTION`, `GITHUB_ACTIONS_OBSERVATION`).
 
+## Documentation refinement v0.1 (on demand)
+
+`DOCUMENTATION_REFINEMENT` selects pinned
+`skills/documentation-refinement/README.md` plus its
+`skills/documentation-refinement/contract.json`
+(`samuel.documentation-refinement.v0.1`). It produces a candidate document
+from caller-attested source evidence and checks structural preservation;
+it does **not** prove semantic equivalence, modify GitHub, or run on `INIT`.
+CodeQA owns interpretation of its schemas, profiles and reports.
+Apply accepted changes through Samuel's separately authorized file/PR routes,
+with exact-head validation and review.
+
 ## GitHub creation and update routing
 
-Samuel `7b5b31e143474f4859fb6c85fb4a27afbad4eed3` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
+Samuel `b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
 
 ## GitHub connector authorization and error triage
 
