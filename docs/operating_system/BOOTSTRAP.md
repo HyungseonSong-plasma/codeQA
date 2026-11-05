@@ -10,7 +10,7 @@
 2. Read local `docs/operating_system/README.md` and
    `docs/operating_system/central_skills.json`; reject floating or mixed pins.
 3. Fetch and verify the exact central `chatgpt-operation` commit
-   `b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3`; read the Samuel index, `ESSENTIAL_RULES.md`,
+   `c803cd6b77c6d112df33d8679bac32f993a658b0`; read the Samuel index, `ESSENTIAL_RULES.md`,
    `session-bootstrap` and `state-refresh` at this commit. Verify their
    expected blob SHA values before using them.
 4. **Always** fetch and verify both `skills/catalog.json` and
