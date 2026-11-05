@@ -1,33 +1,23 @@
 <div align="center">
-
 <h1>codeQA</h1>
-
-<p><strong>Evidence-based code quality analysis, with explicit coverage and limitations.</strong></p>
-
-<p>Python-first implementation · Language-neutral CCG contracts · Versioned evidence</p>
-
-<p>
-<a href="#getting-started">Get started</a> ·
+<p><strong>Evidence-based code quality analysis with explicit coverage and limitations.</strong></p>
+<p>Python-first · Language-neutral CCG contracts · Versioned evidence</p>
+<p><a href="#getting-started">Get started</a> ·
 <a href="#contracts--language-coverage">Contracts &amp; coverage</a> ·
 <a href="#analysis-capabilities">Analysis</a> ·
-<a href="#evidence--assurance">Evidence</a>
-</p>
-
+<a href="#evidence--assurance">Evidence</a></p>
 </div>
 
 ---
 
-A language-independent, evidence-based code quality evaluation system.
-The implementation is **Python-first**; language-neutral contracts are not
-proof of complete non-Python analysis.
+A language-independent, evidence-based code quality evaluation system
+with a **Python-first implementation**. Its language-neutral contracts
+do not establish complete non-Python analysis.
 
-| At a glance | Current scope |
-| :-- | :-- |
-| Package | `codeqa 0.2.0a1` preview · Python ≥3.12 |
-| Analysis | Python AST + scoped Mechanical review |
-| Contract | Versioned Canonical Code Graph (CCG) |
-| Execution | Opt-in companions and source-backed evidence, not universal QA PASS |
-| Operating system | Samuel, exact-revision bound; `codeQA-init` is read-only |
+**At a glance:** `codeqa 0.2.0a1` preview (Python ≥3.12);
+Python AST + scoped Mechanical review; versioned CCG.
+Opt-in companions are **not** universal QA PASS.
+Samuel is exact-revision bound; `codeQA-init` is read-only.
 
 > [!IMPORTANT]
 > A source-backed feature, passing CI, or an opt-in Gate result does **not**
@@ -35,12 +25,15 @@ proof of complete non-Python analysis.
 
 ## Explore
 
-| Area | Start with |
-| :-- | :-- |
-| **Run & validate** | [Samuel bootstrap](docs/operating_system/BOOTSTRAP.md) · [Python package](docs/python-package.md) |
-| **Contracts** | [Contract catalog](contracts/README.md) · [CCG](contracts/ccg/README.md) · [QA](contracts/qa/README.md) |
-| **Policies & structure** | [Repository layout](docs/repository-structure.md) · [Package architecture](docs/codeqa-package-architecture.md) |
-| **Analysis & coverage** | [Mechanical pipeline](docs/mechanical-pipeline.md) · [Language matrix](docs/language-execution-matrix-v0.1.md) |
+[Samuel bootstrap](docs/operating_system/BOOTSTRAP.md) ·
+[Python package](docs/python-package.md) ·
+[Contract catalog](contracts/README.md) ·
+[CCG](contracts/ccg/README.md) ·
+[QA](contracts/qa/README.md) ·
+[Repository layout](docs/repository-structure.md) ·
+[Package architecture](docs/codeqa-package-architecture.md) ·
+[Mechanical pipeline](docs/mechanical-pipeline.md) ·
+[Language matrix](docs/language-execution-matrix-v0.1.md)
 
 ## Getting started
 
