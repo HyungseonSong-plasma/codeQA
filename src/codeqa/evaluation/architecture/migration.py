@@ -53,6 +53,179 @@ def _record(path: str, line: int, kind: str, detail: str, digest: str,
     }
 
 
+def _dynamic_helpers(tree: ast.AST) -> dict[ast.Call, str]:
+    """Identify dynamic-import call syntax without leaking aliases across scopes.
+
+    Conflicting local bindings are unresolved, not assumed to be import helpers.
+    Explicit builtins.__import__ aliases follow the same level=0 rules as the
+    builtin function; unknown relative levels remain unresolved.
+    This remains static syntax evidence, not runtime binding verification.
+    """
+    # Comprehension targets bind in an implicit inner scope, never the outer
+    # module/function. Otherwise they can suppress unrelated import witnesses.
+    scope_types = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef,
+                   ast.ClassDef, ast.Lambda, ast.ListComp, ast.SetComp,
+                   ast.DictComp, ast.GeneratorExp)
+    parents: dict[ast.AST, ast.AST | None] = {tree: None}
+    containing: dict[ast.AST, ast.AST] = {}
+
+    def locate(node: ast.AST, scope: ast.AST) -> None:
+        containing[node] = scope
+        nested = node if isinstance(node, scope_types) else scope
+        if nested is not scope:
+            parents[node] = scope
+        for child in ast.iter_child_nodes(node):
+            if (isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp,
+                                  ast.GeneratorExp)) and node.generators
+                    and child is node.generators[0]):
+                # Python evaluates the leftmost iterable in the enclosing
+                # scope, before binding the comprehension's first target.
+                # The target and its filters, like later generators and the
+                # result expression, execute in the comprehension scope.
+                containing[child] = nested
+                locate(child.iter, scope)
+                locate(child.target, nested)
+                for condition in child.ifs:
+                    locate(condition, nested)
+            elif (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                    ast.ClassDef)) and (
+                    child in node.decorator_list
+                    or (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        and child is node.returns)
+                    or (isinstance(node, ast.ClassDef)
+                        and (child in node.bases or child in node.keywords)))):
+                # Decorators, bases, keywords and return annotations are
+                # evaluated in the enclosing definition scope, not the
+                # new function/class body scope.
+                locate(child, scope)
+            elif (isinstance(node, ast.arguments)
+                  and (child in node.defaults or child in node.kw_defaults)):
+                # Default values execute before function/lambda entry.
+                locate(child, parents[scope])
+            elif isinstance(node, ast.arg) and child is node.annotation:
+                # Argument annotations use the enclosing definition scope
+                # (or are deferred); parameters cannot shadow them here.
+                locate(child, parents[scope])
+            else:
+                locate(child, nested)
+
+    locate(tree, tree)
+    # PEP 572: a named-expression target in a comprehension binds in the
+    # containing scope, unlike an ordinary comprehension iteration target.
+    walrus_targets = {
+        node.target for node in containing
+        if isinstance(node, ast.NamedExpr) and isinstance(node.target, ast.Name)
+    }
+    bindings: dict[ast.AST, dict[str, str | None]] = {
+        scope: {} for scope in parents
+    }
+
+    def bind(scope: ast.AST, name: str, target: str | None) -> None:
+        local = bindings[scope]
+        if name not in local:
+            local[name] = target
+        elif local[name] != target:
+            local[name] = None
+
+    for node, scope in containing.items():
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.asname or alias.name.split(".")[0]
+                # Unaliased dotted imports bind their root package:
+                # 'import importlib.util' makes 'importlib' available, while
+                # 'import importlib.util as util' binds only 'util'.
+                root = alias.name.split(".")[0]
+                target = (alias.name if alias.name in {"importlib", "pkgutil", "builtins"}
+                          else root if alias.asname is None
+                          and root in {"importlib", "pkgutil", "builtins"} else None)
+                bind(scope, name, target)
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                name = alias.asname or alias.name
+                target = (node.module + "." + alias.name
+                          if node.level == 0 and (
+                              (node.module == "importlib" and alias.name == "import_module")
+                              or (node.module == "pkgutil" and alias.name == "resolve_name")
+                              or (node.module == "builtins" and alias.name == "__import__")
+                          ) else None)
+                bind(scope, name, target)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            # Deletion invalidates a previously imported helper in this scope.
+            binding_scope = scope
+            if node in walrus_targets:
+                while isinstance(binding_scope, (ast.ListComp, ast.SetComp,
+                                                 ast.DictComp, ast.GeneratorExp)):
+                    binding_scope = parents[binding_scope]
+            bind(binding_scope, node.id, None)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            # Exception aliases are stored as strings, not ast.Name(Store).
+            bind(scope, node.name, None)
+        elif isinstance(node, (ast.MatchAs, ast.MatchStar)) and node.name:
+            # Capture patterns also bind string names rather than Name(Store).
+            bind(scope, node.name, None)
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            bind(scope, node.rest, None)
+        elif isinstance(node, ast.arg):
+            bind(scope, node.arg, None)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bind(scope, node.name, None)
+
+    # A global/nonlocal directive redirects stores into an enclosing scope.
+    # The initial binding inventory is scope-local, so conservatively taint
+    # the target scope when a nested declaration also writes the helper name.
+    # Without this, a mutation in a nested function could forge a known
+    # dynamic-import consumer in an unrelated reader of the same binding.
+    for node, scope in containing.items():
+        if isinstance(node, ast.Global):
+            for name in node.names:
+                if name in bindings[scope]:
+                    bind(tree, name, None)
+        elif isinstance(node, ast.Nonlocal):
+            for name in node.names:
+                if name not in bindings[scope]:
+                    continue
+                outer = parents[scope]
+                while outer is not None:
+                    if (isinstance(outer, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                           ast.Lambda)) and name in bindings[outer]):
+                        bind(outer, name, None)
+                        break
+                    outer = parents[outer]
+
+    def resolve(name: str, scope: ast.AST) -> str | None:
+        current: ast.AST | None = scope
+        in_function = isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                         ast.Lambda, ast.ListComp, ast.SetComp,
+                                         ast.DictComp, ast.GeneratorExp))
+        while current is not None:
+            # Python methods do not capture names assigned in a class body.
+            if not (in_function and isinstance(current, ast.ClassDef)):
+                if name in bindings[current]:
+                    return bindings[current][name]
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                    ast.Lambda, ast.ListComp, ast.SetComp,
+                                    ast.DictComp, ast.GeneratorExp)):
+                in_function = True
+            current = parents[current]
+        return "__import__" if name == "__import__" else None
+
+    calls: dict[ast.Call, str] = {}
+    for node, scope in containing.items():
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name):
+            helper = resolve(func.id, scope)
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            module = resolve(func.value.id, scope)
+            helper = module + "." + func.attr if module in {"importlib", "pkgutil", "builtins"} else None
+        else:
+            helper = None
+        if helper in {"__import__", "builtins.__import__", "importlib.import_module", "pkgutil.resolve_name"}:
+            calls[node] = helper
+    return calls
+
+
 def assess_architecture_migration(
     inventory: Mapping[str, Any],
     scenarios: Mapping[str, Any],
@@ -177,9 +350,48 @@ def assess_architecture_migration(
         for path, tree in trees.items():
             source_module = _module(path)
             if source_module is None:
+                # Tests and scripts outside src/ are still Python consumers.
+                # A textual search misses split from-imports because the
+                # complete old dotted name never appears on the source line:
+                #     from orchard.sky import view
+                # Record only these split imports here. Full dotted imports
+                # remain covered by the existing text-reference scan below,
+                # avoiding duplicate evidence for the same site.
+                for node in ast.walk(tree):
+                    if not isinstance(node, ast.ImportFrom) or node.level:
+                        continue
+                    base = node.module or ""
+                    for alias in node.names:
+                        if alias.name == "*":
+                            # A star import from the moved module is already
+                            # visible to the text scan. A star import from an
+                            # ancestor package is not: it could re-export the
+                            # moved child through __all__ or initializer code.
+                            # This is a potential compatibility risk, NOT
+                            # proof that the child is actually exported.
+                            for old, new in old_to_new.items():
+                                if _matches(base, old):
+                                    risk_flags.add("STAR_IMPORT_REVIEW")
+                                elif base and old.startswith(base + "."):
+                                    sites.append(_record(
+                                        path, node.lineno, "STAR_IMPORT",
+                                        base + ":*", hashes[path],
+                                        old, new, "REVIEW_REQUIRED",
+                                    ))
+                                    risk_flags.add("STAR_IMPORT_REVIEW")
+                            continue
+                        target = base + "." + alias.name if base else alias.name
+                        for old, new in old_to_new.items():
+                            if _matches(target, old) and not _matches(base, old):
+                                sites.append(_record(
+                                    path, node.lineno, "TEST_OR_SCRIPT_REFERENCE",
+                                    base + ":" + alias.name, hashes[path],
+                                    old, new, "REVIEW_REQUIRED",
+                                ))
                 continue
             package = source_module if path.endswith("/__init__.py") else source_module.rpartition(".")[0]
             moved_source = path in path_map
+            dynamic_calls = _dynamic_helpers(tree)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
@@ -220,19 +432,66 @@ def assess_architecture_migration(
                                     exported_paths.add(path)
                                     risk_flags.add("INIT_REEXPORT_REVIEW")
                 elif isinstance(node, ast.Call):
-                    f = node.func
-                    func = f.id if isinstance(f, ast.Name) else (
-                        f.value.id + "." + f.attr if isinstance(f, ast.Attribute)
-                        and isinstance(f.value, ast.Name) else "")
-                    if func not in {"__import__", "importlib.import_module", "pkgutil.resolve_name"}:
+                    helper = dynamic_calls.get(node)
+                    if helper not in {"__import__", "builtins.__import__",
+                                      "importlib.import_module", "pkgutil.resolve_name"}:
                         continue
-                    value = (node.args[0].value if node.args and isinstance(
-                        node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
-                        else None)
+                    # The first import target can be positional or supplied as
+                    # the public 'name=' keyword on these three helpers.
+                    # A starred/unknown expression is not a literal witness.
+                    first_arg = (node.args[0] if node.args else next(
+                        (kw.value for kw in node.keywords if kw.arg == "name"), None
+                    ))
+                    value = (first_arg.value if isinstance(first_arg, ast.Constant)
+                             and isinstance(first_arg.value, str) else None)
+                    # pkgutil.resolve_name accepts 'module:object' as well as
+                    # dotted module names. Keep the full literal as evidence.
+                    target = (value.split(":", 1)[0]
+                              if value is not None and helper == "pkgutil.resolve_name"
+                              else value)
+                    if helper in {"__import__", "builtins.__import__"}:
+                        # The fifth positional / level= argument changes
+                        # __import__ from an absolute import into a relative
+                        # import. A relative or dynamic level is not evidence
+                        # that the literal names the proposed old module.
+                        level_arg = (node.args[4] if len(node.args) > 4 else next(
+                            (kw.value for kw in node.keywords if kw.arg == "level"),
+                            None
+                        ))
+                        if (any(isinstance(arg, ast.Starred) for arg in node.args)
+                                or any(kw.arg is None for kw in node.keywords)
+                                or (level_arg is not None and (
+                                    not isinstance(level_arg, ast.Constant)
+                                    or type(level_arg.value) is not int
+                                    or level_arg.value != 0))):
+                            target = None
+                    if (helper == "importlib.import_module" and value is not None
+                            and value.startswith(".")):
+                        # import_module('.child', package='pkg.parent') is an
+                        # absolute consumer of pkg.parent.child. Without a
+                        # literal package the target is not statically known.
+                        package_arg = (node.args[1] if len(node.args) > 1 else next(
+                            (kw.value for kw in node.keywords if kw.arg == "package"),
+                            None
+                        ))
+                        package_name = (package_arg.value
+                                        if isinstance(package_arg, ast.Constant)
+                                        and isinstance(package_arg.value, str) else None)
+                        dots = len(value) - len(value.lstrip("."))
+                        parts = package_name.split(".") if package_name else []
+                        suffix = value[dots:]
+                        if (parts and all(part.isidentifier() for part in parts)
+                                and dots <= len(parts)
+                                and (not suffix or all(part.isidentifier()
+                                                       for part in suffix.split(".")))):
+                            target = ".".join(parts[:len(parts) - dots + 1]
+                                              + (suffix.split(".") if suffix else []))
+                        else:
+                            target = None
                     for old, new in old_to_new.items():
-                        if value is None:
+                        if target is None:
                             risk_flags.add("DYNAMIC_IMPORT_TARGET_UNKNOWN")
-                        elif _matches(value, old):
+                        elif _matches(target, old):
                             sites.append(_record(path, node.lineno, "DYNAMIC_IMPORT_LITERAL",
                                 value, hashes[path], old, new, "REVIEW_REQUIRED"))
                             risk_flags.add("DYNAMIC_IMPORT_REVIEW")
@@ -312,7 +571,9 @@ def assess_architecture_migration(
                 "band_rules": "BLOCKED if namespace collision; HIGH if >10 sites or star/CLI/distribution risk; MEDIUM if >2 sites/multi-file or unresolved dynamic/metadata/export/relative; otherwise LOW",
             },
             "compatibility_status": "BLOCKED" if conflicts else "NOT_EVALUATED",
-            "confidence": "INSUFFICIENT_EVIDENCE" if missing or syntax_errors else "STATIC_PARTIAL",
+            "confidence": ("INSUFFICIENT_EVIDENCE" if missing or syntax_errors
+                           or "INVENTORY_UNREAD_PATHS" in risk_flags
+                           else "STATIC_PARTIAL"),
             "unknowns": sorted(risk_flags),
             "compatibility_options": [
                 "forwarding module or facade subject to independent import tests",
