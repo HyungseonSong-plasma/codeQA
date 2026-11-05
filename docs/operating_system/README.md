@@ -14,7 +14,6 @@
 | **Pinned revision** | `b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3` |
 
 ### Quick routes
-
 | Task | Source of truth |
 | :-- | :-- |
 | Initialize | [BOOTSTRAP.md](BOOTSTRAP.md) |
@@ -28,7 +27,6 @@
 > repository writes, certify scientific results, or approve a merge.
 
 ## codeQA-init
-
 Start at [BOOTSTRAP.md](BOOTSTRAP.md). The pinned source and blob checks are
 specified by [central_skills.json](central_skills.json). Read the central OS index,
 essential rules, `session-bootstrap`, `state-refresh`, and the mandatory
@@ -55,7 +53,6 @@ GitHub connector tools. Init is **read-only** and never deletes a branch.
 A missing connector operation is not global Samuel capability exhaustion.
 
 ## Boundaries
-
 codeQA owns the CCG, adapters, source evidence, QA profiles and local
 repository acceptance policy. Samuel owns generic skill/capability routing,
 GitHub mutations and postcondition mechanics. Neither a successful init nor a
@@ -71,16 +68,13 @@ The permanent consumer execution path is
 See [CENTRAL_SKILLS.md](CENTRAL_SKILLS.md) for the permanent path.
 
 ## Creation and pull-request routing
-
 The pinned Samuel capability catalog covers GitHub file creation/update,
 branch creation/deletion, PR creation/merge and workflow dispatch. These routes
 require separate authorization, current repository evidence and postcondition
 verification. Creation does not imply approval; QA and scientific contracts
 remain codeQA-owned.
 
-
 ## Owner-requested branch cleanup batches (2026-10-27)
-
 `.github/requests/branch-delete-request.json` is normally empty.
 For explicit owner-authorized maintenance, a reviewed, short-lived nonempty
 request may contain **at most 50** independently selected, exact-SHA pinned
