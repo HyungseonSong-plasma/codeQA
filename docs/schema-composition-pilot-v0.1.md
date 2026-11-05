@@ -58,7 +58,7 @@ The tests require:
    normative published contract.
 
 Run it using the existing test runner:
-`python -m unittest tests.test_schema_composition_pilot_v01 -v`.
+`python -m unittest discover -s tests -p 'test_schema_composition_pilot_v01.py' -v`.
 The mandatory `layout` workflow also discovers it.
 
 ## Decision
