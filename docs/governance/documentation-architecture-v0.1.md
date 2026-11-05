@@ -73,6 +73,24 @@ never silently turns a draft into an approved contract.
 - **No duplicate authorities:** A moved document has one canonical text;
   never leave two divergent normative copies to keep old links alive.
 
+## Evidence-based semantic consistency review queue
+
+The following are **observed status/reference tensions**, not permission to
+rewrite an authoritative claim in place:
+
+| Document | Exact finding at baseline | Required reviewer decision |
+| :-- | :-- | :-- |
+| [Architecture assessment design](../architecture-assessment-design-v0.1.md) | Says *Proposed / Issue #165 / human architecture acceptance pending*, while GitHub Issue #165 is now **Closed · completed** | Decide whether this remains a historical design proposal or needs a separate current implementation guide. Do **not** silently equate issue closure with independent architecture acceptance |
+| [Naming coverage v0.2](../naming-coverage-v02.md) | Says its bounded milestone **does not close #69**, but Issue #69 is now **Closed · completed** | Preserve the fact that the old milestone was partial; explain later acceptance by a dated addendum or a successor overview, without retroactively asserting its original scope was complete |
+| [Contract taxonomy decision](../contract-taxonomy-and-composition-v0.1.md) | Labeled *Proposed* despite Issue #282 now **Closed · completed** with an explicit decision not to rename public v0.1 paths | Distinguish accepted reader-facing names from still-proposed future API/version migrations |
+| [Workflow catalog prose](../workflow-catalog-v0.1.md) | Says **22** workflows at a pinned October snapshot; today's baseline tree includes **33** tracked workflow YAML files | Make the historical snapshot label conspicuous; use the current machine catalog/conformance for live status, not this older count |
+| [Samuel preflight](../samuel/220-controller-preflight.md) | Historical bounded write proof already marked **archived** | Keep the archival warning and do not reinterpret it as current cross-repository write authorization |
+
+These checkpoints require document-owner verification of the actual contract,
+effective source revision, evidence scope, issue closure rationale and
+runtime/CI acceptance. Rewriting dates or replacing `Proposed` with
+`Implemented` merely because a GitHub issue is closed would be misleading.
+
 ## Controlled migration sequence
 
 1. **Freeze and classify:** Record exact base commit and Git blob for every
