@@ -159,7 +159,7 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
             "docs/engineering-principles.md": "quality",
             "docs/pinned-dafny-formal-conformance.md": "integrations",
             "docs/contract-taxonomy-and-composition-v0.1.md": "contracts",
-            "docs/schema-composition-pilot-v0.1.md": "contracts",
+            "docs/schema-composition-pilot-v0.1.md": "experiments",
             "docs/adr/0001-contract-authority-and-versioning.md": "decisions",
             "docs/samuel/220-controller-preflight.md": "operations",
             "docs/experiments/README.md": "experiments",
