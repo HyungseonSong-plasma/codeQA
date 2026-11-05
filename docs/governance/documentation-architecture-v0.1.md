@@ -1,5 +1,7 @@
 # Documentation information architecture v0.1 — scope and renewal gates
 
+![Decision: PROPOSED](../assets/document-status/decision-proposed.svg) ![Implementation: NOT_EVALUATED](../assets/document-status/implementation-not-evaluated.svg) ![Review: REVIEW_REQUIRED](../assets/document-status/review-review-required.svg)
+
 **Status:** Proposed for human review in [Issue #288](https://github.com/HyungseonSong-plasma/codeQA/issues/288); documentation-routing policy only.  
 **Exact source snapshot:** `codeQA@23c2166bd3b2b0c825b207e856b95c68e0e24070`.  
 **Initial scope:** 111 tracked `docs/` files: **107 Markdown + 4 JSON**; **89 Markdown** at the `docs/` top level before this proposal.
