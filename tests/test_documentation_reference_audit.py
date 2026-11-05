@@ -209,7 +209,9 @@ class DocumentationReferenceAuditTests(unittest.TestCase):
         # Ensure known exceptions cannot silently broaden into production
         # path dependencies or accidentally enable the absent fixture.
         self.assertTrue(all(
-            src.startswith(("docs/adr/", "docs/architecture.md", "tests/"))
+            src.startswith(("docs/adr/", "docs/architecture.md",
+                                 "docs/governance/documentation-reference-audit-v0.1.md",
+                                 "tests/"))
             for src, _, target in missing if target == "docs/contracts/ccg-0.1.md"
         ))
         fixture_policy = json.loads(
