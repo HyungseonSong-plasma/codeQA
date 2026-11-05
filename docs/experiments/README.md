@@ -7,7 +7,6 @@
 ---
 
 ## Experiment archive
-
 The two experiments ran on **separate codeQA branches**. Their branch-unique
 reports, measurement JSON and exact original workflow text were retained here
 before the experiment refs were deleted.
@@ -18,7 +17,6 @@ before the experiment refs were deleted.
 | Production field · blind vs. codeQA | [Production field comparison](moose-production-field-blind-vs-codeqa-20261023.md) | [Measurement JSON](../../.github/experiments/moose-production-field-20261023/metrics.json) | [Archived workflow](../../.github/experiments/moose-production-field-20261023/workflow.yml.txt) |
 
 ## Evidence boundaries
-
 > [!IMPORTANT]
 > Archived workflow files are **inert `.yml.txt` documents**. Retention does
 > not enable GitHub Actions on `main`, rerun numerical experiments, establish
