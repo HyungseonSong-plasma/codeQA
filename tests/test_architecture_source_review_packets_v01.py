@@ -21,9 +21,9 @@ SOURCES = {
 }
 
 
-def pack(*, edges=None):
+def pack(*, edges=None, sources=None):
     """Source-consistent fixture: every witness resolves to its actual module."""
-    blobs = {path: text.encode("utf-8") for path, text in SOURCES.items()}
+    blobs = {path: text.encode("utf-8") for path, text in (SOURCES if sources is None else sources).items()}
     pairs = (
         ("src/orchard/sky/view.py", "src/orchard/earth/model.py", 1,
          "from orchard.earth.model import Model"),
@@ -172,6 +172,36 @@ class SourceReviewPacketTests(unittest.TestCase):
         ).encode()).hexdigest()
         with self.assertRaises(SourceReviewPacketError):
             render_source_review_packets_markdown(report)
+
+    def test_reject_resealed_nonpositive_excerpt_line(self):
+        # Place the import on line 3 so the excerpt can start at 0 or -1
+        # while the witness line remains positive. The old validator would
+        # accept these consistently renumbered, resealed excerpts.
+        source_path = "src/orchard/sky/late.py"
+        expression = "from orchard.earth.model import Model"
+        worklist, blobs = pack(
+            edges=((source_path, "src/orchard/earth/model.py", 3, expression),),
+            sources={source_path: "# context 1\n# context 2\n" + expression + "\n"},
+        )
+        original = build_source_review_packets(worklist, blobs)
+        for forged in (0, -1):
+            with self.subTest(forged=forged):
+                changed = deepcopy(original)
+                excerpt = changed["packets"][0]["import_excerpts"][0]
+                # Keep the excerpt internally consecutive and its witness
+                # inside the excerpt; a new digest is not source proof.
+                offset = forged - excerpt["lines"][0]["line"]
+                for item in excerpt["lines"]:
+                    item["line"] += offset
+                excerpt["witness_line"] += offset
+                self.assertEqual(excerpt["lines"][0]["line"], forged)
+                self.assertGreater(excerpt["witness_line"], 0)
+                changed["packets_id"] = sha256(json.dumps(
+                    {k: v for k, v in changed.items() if k != "packets_id"},
+                    sort_keys=True, separators=(",", ":"),
+                ).encode()).hexdigest()
+                with self.assertRaises(SourceReviewPacketError):
+                    render_source_review_packets_markdown(changed)
 
     def test_reject_resealed_nonhex_source_digest(self):
         worklist, blobs = pack()

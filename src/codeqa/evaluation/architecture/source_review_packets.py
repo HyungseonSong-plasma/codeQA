@@ -249,6 +249,8 @@ def _validate_rendered_packet_rows(report: Mapping[str, Any]) -> None:
                     or any(type(item["line"]) is not int
                            or not isinstance(item["text"], str)
                            for item in lines)
+                    or type(lines[0]["line"]) is not int
+                    or lines[0]["line"] < 1
                     or [item["line"] for item in lines]
                        != list(range(lines[0]["line"], lines[-1]["line"] + 1))
                     or line not in {item["line"] for item in lines}
