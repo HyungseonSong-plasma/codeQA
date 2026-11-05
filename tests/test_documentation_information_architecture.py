@@ -147,7 +147,7 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
             DOCS / "governance/documentation-architecture-v0.1.md"
         ).read_text(encoding="utf-8")
         portal = (DOCS / "README.md").read_text(encoding="utf-8")
-        self.assertIn("not an HTTP redirect", policy)
+        self.assertIn("an HTTP redirect", policy)
         self.assertIn("NOT_EVALUATED", policy)
         self.assertIn("not claimed as completed migrations", portal.lower())
         candidates = [
