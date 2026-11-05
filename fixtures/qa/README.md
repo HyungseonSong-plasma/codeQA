@@ -7,7 +7,6 @@
 ---
 
 ## Fixture strategy
-
 The executable cases live in
 [`tests/test_qa_result_contract.py`](../../tests/test_qa_result_contract.py).
 They produce actual CCG and Mechanical v0.1 data from small, explicit
@@ -18,7 +17,6 @@ This directory is an explanation of that test strategy; it does **not**
 contain fabricated extracted facts presented as ground truth.
 
 ## Regression coverage
-
 | Class | Adversarial examples |
 | :-- | :-- |
 | **Evidence & source** | Missing provenance, uncovered source, unsafe locations |
