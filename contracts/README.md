@@ -23,6 +23,20 @@ A schema-valid document is **not** automatically a complete analysis,
 approved policy, or quality PASS. Schema evolution and consumer policy
 adoption are separate decisions.
 
+## Architecture naming: analysis versus ontology
+
+| Reader-facing family | What it means | Authority |
+| :-- | :-- | :-- |
+| **Architecture Analysis** (`qa/architecture-*.schema.json`) | Source inventory, structural measurements, scenarios and migration/decision evidence | Bounded QA analysis; no proof of optimal architecture |
+| **Semantic Architecture Ontology** (`semantic/architecture-v0.1.*`) | Typed entities, relations, declared responsibilities and evidence limits | Ontology and static projection; no runtime-truth or QA verdict |
+| **Declared Architecture Rules** (`semantic/declared-rule-*.schema.json`) | Versioned role-policy declarations and scoped rule findings | Explicit policy, not automatically inferred architectural intent |
+
+`*.schema.json` validates document structure; `*.vocabulary.json` holds
+typed semantic terms; `profiles/*.json` supplies policy values. The
+[issue #282 taxonomy and composition analysis](../docs/contract-taxonomy-and-composition-v0.1.md)
+records the **37 tracked contract JSON files** and evaluates a future
+composition framework. Existing v0.1 paths and schema IDs remain unchanged.
+
 ## Contract Catalog
 ### 01 · [`ccg/`](ccg/README.md) — Canonical source facts
 | Contract | Defines |
