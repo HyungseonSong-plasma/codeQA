@@ -35,14 +35,22 @@ against a schema without making its chosen values universally applicable.
 
 ## Existing contract areas
 
-- [`ccg/`](ccg/README.md) — Canonical Code Graph (CCG): source-code
-  facts, nodes and edges, provenance, resolution, and coverage (v0.1).
-- [`adapters/`](adapters/capability-v0.1.schema.json) — language-adapter
-  capability exchange format (v0.1).
-- [`qa/`](qa/README.md) — QA results, metric evidence, coverage, and
-  quality deltas (v0.1).
-- [`semantic/`](semantic/README.md) — Semantic Architecture Ontology
-  vocabulary and report schemas (v0.1), separate from frozen CCG v0.1.
+- [`ccg/`](ccg/README.md)
+  - canonical source-code facts
+  - graph structure
+  - provenance
+  - resolution and coverage (v0.1 initially)
+- [`adapters/`](adapters/capability-v0.1.schema.json)
+  - language-adapter capabilities
+  - supported syntax-extraction features (v0.1)
+- [`qa/`](qa/README.md)
+  - QA results
+  - metric evidence
+  - coverage and quality deltas (v0.1)
+- [`semantic/`](semantic/README.md)
+  - Semantic Architecture Ontology vocabulary
+  - architecture report schemas (v0.1)
+  - separate from frozen CCG v0.1
 
 ## Future contract areas
 
