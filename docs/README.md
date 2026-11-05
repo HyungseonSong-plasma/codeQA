@@ -38,7 +38,7 @@ folders are **not claimed as completed migrations**.
 - [Accepted ADRs](adr/0001-contract-authority-and-versioning.md) · [Frozen repository layout](repository-structure.md).
 - [Workflow catalog and historical provenance](workflow-catalog-v0.1.md) · [Self-audit](self-audit.md).
 - [External evidence admission](external-evidence-v01.md) · [Evidence Gate](evidence-gate-v01.md).
-- [Documentation responsibility and relocation rules](governance/documentation-architecture-v0.1.md).
+- [Documentation responsibility and relocation rules](governance/documentation-architecture-v0.1.md) · [Authority/ownership review](governance/document-authority-review-v0.1.md).
 
 ## Samuel and historical evidence
 
