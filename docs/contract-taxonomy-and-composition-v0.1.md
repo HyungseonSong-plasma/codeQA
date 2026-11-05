@@ -1,6 +1,6 @@
 # Contract taxonomy and composition — issue #282
 
-**Status:** Proposed, evidence-scoped design; implementation/renames are **not** approved by this report.  
+**Status at drafting:** Proposed, evidence-scoped design; public contract renames are **not** approved by this report. **Decision update (2026-11-05):** Issue [#282](https://github.com/HyungseonSong-plasma/codeQA/issues/282) is closed/completed for bounded taxonomy decisions. The [two-contract composition pilot](schema-composition-pilot-v0.1.md) was completed with a **no-go** for a new framework at the measured scope; the optional Mermaid renderer was merged in [Samuel #248](https://github.com/HyungseonSong-plasma/chatgpt-operation/pull/248) and adopted in codeQA [#287](https://github.com/HyungseonSong-plasma/codeQA/pull/287). Existing v0.1 IDs and paths were **not renamed**.  
 **Evidence snapshot:** `codeQA@e7542de9f55eca5de26121bba3e11cd2b27c3066` (2026-11-05).  
 **Owner:** codeQA; [plan #282](https://github.com/HyungseonSong-plasma/codeQA/issues/282).  
 **Related authority:** [ADR 0001](adr/0001-contract-authority-and-versioning.md), [package boundaries](codeqa-package-architecture.md), and the [contract catalog](../contracts/README.md).
@@ -155,9 +155,7 @@ a diagram's attractive appearance. Prefer GitHub-renderable
 `mermaid` fenced blocks, a meaningful textual caption, and preserved
 ordinary Markdown title anchors.
 
-This part is delegated to a separately reviewed Samuel PR. codeQA must not
-silently repin the central OS or adopt the extension before it is merged and
-its exact revision is accepted. Existing README files do not retroactively
+**Historical handoff (now completed):** The Mermaid extension was implemented by Samuel PR #248 and adopted by codeQA PR #287 at the exact approved revision. This older design paragraph is not authority to silently repin the central OS in future. Existing README files do not retroactively
 become proof of graph correctness.
 
 ## Decision status and next actions
@@ -169,7 +167,6 @@ become proof of graph correctness.
 | 3. File count / framework | Measure structural equivalence; two-contract composition pilot with fail-closed parity tests | Pilot implementation and evidence of maintenance improvement |
 | 4. Samuel README diagrams | Opt-in evidence-labelled Mermaid renderer | Central skill implementation, test, review and pinned adoption |
 
-**Do not close this plan issue as if all four features shipped** merely because
-the decisions are documented. Track accepted follow-on implementation and
+**Historical warning, now dispositioned:** Closing #282 does **not** mean all possible public schema renames or a deployed common schema generator shipped. Track accepted follow-on implementation and
 review results separately. A successful schema validation or a beautiful
 diagram is not a proof of code correctness or a license to rewrite contracts.
