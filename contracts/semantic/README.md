@@ -1,5 +1,6 @@
+# Semantic Architecture Contracts
+
 <div align="center">
-<h1>Semantic Architecture Contracts</h1>
 <p><strong>Evidence-backed architecture descriptions and declared rules.</strong></p>
 <p>Companion v0.1 · Non-scoring · Separate from CCG</p>
 </div>
