@@ -1,5 +1,6 @@
+# codeQA
+
 <div align="center">
-<h1>codeQA</h1>
 <p><strong>Evidence-based code quality analysis with explicit coverage and limitations.</strong></p>
 <p>Python-first · Language-neutral CCG contracts · Versioned evidence</p>
 <p><a href="#getting-started">Get started</a> ·
