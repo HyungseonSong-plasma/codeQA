@@ -623,8 +623,8 @@
     },
     {
       "path": "docs/python-override-callback-v02-draft.md",
-      "area": "quality",
-      "candidate_directory": "docs/quality/naming/",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
       "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
       "authority_review": "NOT_EVALUATED"
     },
