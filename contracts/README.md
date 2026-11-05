@@ -1,17 +1,12 @@
 <div align="center">
-
 <h1>codeQA Contracts</h1>
-
 <p><strong>Schemas describe data. Profiles select repository policy.</strong></p>
-
 <p>Versioned · Language-independent · Evidence-scoped</p>
-
 <p>
 <a href="#schema-vs-profile">Schema vs. Profile</a> ·
 <a href="#contract-catalog">Contract Catalog</a> ·
 <a href="#future-areas">Future Areas</a>
 </p>
-
 </div>
 
 ---
