@@ -1,3 +1,200 @@
 {
-  "targets": []
+  "targets": [
+    {
+      "branch": "chore/prune-merged-branches-batch1-20261027",
+      "expected_sha": "f2ec7148aed1e1aaa9d51e36acdff78a8238719f"
+    },
+    {
+      "branch": "close-first/issue-184-evidence-20261105",
+      "expected_sha": "4f948f49624b6f8917b22e0a53faff507b293693"
+    },
+    {
+      "branch": "controller/166-assertion-operand-witnesses-20261028",
+      "expected_sha": "0996735fc03acfadd0574cefe2f5c6259aa75a12"
+    },
+    {
+      "branch": "controller/166-b8-cold-import-evidence-20261029",
+      "expected_sha": "acd819cb9a1b1e31a1cc6b4c9c5ad82e98f484ee"
+    },
+    {
+      "branch": "controller/166-b8-complete-evidence-pack-20261029",
+      "expected_sha": "c4cd45f8dea0d964c67b8b9e51b532d7f6cdf0b9"
+    },
+    {
+      "branch": "controller/166-b8-import-line-execution-witness-20261029",
+      "expected_sha": "bb9f8a483ec37c4fb72e0bc64c874ddfe8e6d947"
+    },
+    {
+      "branch": "controller/166-b8-import-witness-target-20261029",
+      "expected_sha": "47c698261e62f657c0eaeb174b65f9c12ff4047d"
+    },
+    {
+      "branch": "controller/166-b8-lexical-import-usage-20261029",
+      "expected_sha": "cf65304a97f4555635258cccc93165fcfa3a39c1"
+    },
+    {
+      "branch": "controller/166-b8-runtime-edge-correlation-20261029",
+      "expected_sha": "32119e9771f54d069661c2825903de69b549e6de"
+    },
+    {
+      "branch": "controller/166-b8-runtime-pair-e2e-20261029",
+      "expected_sha": "2838d80932179af3ab657820b93fa608dbbc49fd"
+    },
+    {
+      "branch": "controller/166-b8-runtime-sample-expansion-20261029",
+      "expected_sha": "68fb716ba36b01ba75df900cc53a6af7d863fe12"
+    },
+    {
+      "branch": "controller/166-b8-target-cache-evidence-20261029",
+      "expected_sha": "6efe3c56b7aa0d92518832b8819c121854265bb7"
+    },
+    {
+      "branch": "controller/166-bounded-no-move-disposition-20261028",
+      "expected_sha": "f37a4feb63a5d63932c33afb48b919cffaffe1af"
+    },
+    {
+      "branch": "controller/166-cold-import-init-witness-20261029",
+      "expected_sha": "e62c4babf2486ba8b8186e43c270a7eff9111e7b"
+    },
+    {
+      "branch": "controller/166-conservative-assertion-evidence-20261028",
+      "expected_sha": "a88004d792e230d026dcfc57549bef0a9c78eb23"
+    },
+    {
+      "branch": "controller/166-runtime-call-pair-witness-20261029",
+      "expected_sha": "01ae4b1a55bfe5c2c051b18022f89b03c7b9c494"
+    },
+    {
+      "branch": "controller/166-runtime-test-module-binding-20261029",
+      "expected_sha": "ee559ecaf4e2457b092fe516c91c2d5bfe06abb5"
+    },
+    {
+      "branch": "controller/166-runtime-unittest-receipts-20261029",
+      "expected_sha": "306eca96b52770e78544af12a6542ee41caa3436"
+    },
+    {
+      "branch": "controller/166-scoped-test-import-evidence-20261028",
+      "expected_sha": "528d75cc7566ddc5ae080c7e156b66ccbe361df1"
+    },
+    {
+      "branch": "controller/166-static-behavioral-test-candidates-20261028",
+      "expected_sha": "ff0a6ee0d48d25b58c1d273b5ba582574d71eedf"
+    },
+    {
+      "branch": "controller/184-b4-collision-identity-20261103",
+      "expected_sha": "9e873e7a2879b80331c98f45093fc05955d231d6"
+    },
+    {
+      "branch": "controller/184-b7-disposition-replay-20261031",
+      "expected_sha": "e721cfc1501eb6f6eac95b36ae228215cc3381ba"
+    },
+    {
+      "branch": "controller/184-b8-callee-spine-20261030",
+      "expected_sha": "0cbafda4a0de88c35e009b7db9f7591fd5f7d55a"
+    },
+    {
+      "branch": "controller/184-b8-import-witness-binding-20261030",
+      "expected_sha": "d11a13923fbad36beb728049cbae8bad086f7627"
+    },
+    {
+      "branch": "controller/184-b8-nested-profiler-guard-20261103",
+      "expected_sha": "ac6a6b76f6f0729e61fbafdcb9aa4df5398582d9"
+    },
+    {
+      "branch": "controller/184-collision-kind-evidence-20261030-1114",
+      "expected_sha": "15ea26e6cffcb68e701d36ee0710d387a8c6ad6d"
+    },
+    {
+      "branch": "controller/184-concentration-disposition-20261028",
+      "expected_sha": "0ebcb3d1bab80aaab37b4d1d3696640439f37a1a"
+    },
+    {
+      "branch": "controller/184-consumer-witness-integrity-20261031",
+      "expected_sha": "7925f1663ffec5dc66fdd00e7b9da2731ec35fbe"
+    },
+    {
+      "branch": "controller/184-edge-responsibility-evidence-20261028",
+      "expected_sha": "7dd7f67a6e97443e7d919d10fed2bbffcdb05413"
+    },
+    {
+      "branch": "controller/184-forbidden-boundary-witnesses-20261101",
+      "expected_sha": "77d5657243521a53ee25ed4ed73ff941c65d26dd"
+    },
+    {
+      "branch": "controller/184-independent-collision-alternative-20261030",
+      "expected_sha": "f13657106b9bf32441597b7c842dcf26cf48375a"
+    },
+    {
+      "branch": "controller/184-matched-scope-git-ownership-20261102",
+      "expected_sha": "0db5af5ee7169405c98573ebbe00045c056e3a01"
+    },
+    {
+      "branch": "controller/184-namespace-shadow-collision-20261030",
+      "expected_sha": "3d06248a8718be7acc0545db2d31bc7f434a2ff7"
+    },
+    {
+      "branch": "controller/184-naming-optin-role-calls-20261103",
+      "expected_sha": "d9e2a6a6e09d5eeac3ef845ff7b6584d14be343a"
+    },
+    {
+      "branch": "controller/184-naming-role-calls-20261102",
+      "expected_sha": "f783d9c5dc07389491c52aa1bcfc7f56e88bcec3"
+    },
+    {
+      "branch": "controller/184-package-consumer-exposure-20261028",
+      "expected_sha": "ed61555e09d39c57b1bbc226ae5de9f0295ebdfb"
+    },
+    {
+      "branch": "controller/184-package-discovery-20261030-1215",
+      "expected_sha": "7bfbb0ecc025aed2d0b06f254ac7d45ef8bd9f3e"
+    },
+    {
+      "branch": "controller/184-pipeline-optional-impact-calls-20261102",
+      "expected_sha": "82ea488abd26c8d223831f2997150882dec1302f"
+    },
+    {
+      "branch": "controller/184-pipeline-optional-roles-runtime-20261102",
+      "expected_sha": "ba8a62bba575f18829b86c0b05d605fa3a02d6ba"
+    },
+    {
+      "branch": "controller/184-pipeline-runtime-composition-20261102",
+      "expected_sha": "febfa94bfb5bb1ec5bec95dae260e891990ed93f"
+    },
+    {
+      "branch": "controller/184-wheel-behavior-parity-20261031",
+      "expected_sha": "17e05014f54e1384499808253a01c73fb177ebd5"
+    },
+    {
+      "branch": "controller/184-wheel-cross-role-imports-20261102",
+      "expected_sha": "4aba32401a5c8e6a2977e3135eb9439217ebb9d2"
+    },
+    {
+      "branch": "controller/184-wheel-import-20261031",
+      "expected_sha": "c5c7bfef73eab440a1bbc7810278b0a0ab1fab2d"
+    },
+    {
+      "branch": "controller/architecture-callsite-context-20261029",
+      "expected_sha": "aa7791962b3ff31c714eb50325292a6840c44e60"
+    },
+    {
+      "branch": "controller/architecture-callsite-context-proof-227",
+      "expected_sha": "003c52a6213fd15846327f8bc8bda27b251939db"
+    },
+    {
+      "branch": "controller/architecture-callsite-syntax-20261029",
+      "expected_sha": "b47ff027dff8d360bfa243d2751f973f06138f24"
+    },
+    {
+      "branch": "controller/architecture-edge-review-evidence-modes-20261030",
+      "expected_sha": "7007867a4075ed5efdce0d9497880251d8b693b8"
+    },
+    {
+      "branch": "controller/architecture-edge-review-ledger-20261029",
+      "expected_sha": "7cd03a092b8c7098f840db7d941f7f05fb1ee493"
+    },
+    {
+      "branch": "controller/architecture-edge-syntax-context-20261030",
+      "expected_sha": "4a53496fe6f4d2a67e475ee681f6eed2f0a3da7d"
+    }
+  ]
 }
