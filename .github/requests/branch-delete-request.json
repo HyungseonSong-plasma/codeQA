@@ -1,12 +1,3 @@
 {
-  "targets": [
-    {
-      "branch": "chore/samuel-documentation-refinement-adoption-20261105",
-      "expected_sha": "d41a2d1634860a4c96c604ca0371355f8bb7337e"
-    },
-    {
-      "branch": "docs/contracts-schema-vs-profiles-20261105",
-      "expected_sha": "44674fb67d9fbbba315329d23b67a34adc4d3016"
-    }
-  ]
+  "targets": []
 }
