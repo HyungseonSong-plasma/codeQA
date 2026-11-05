@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "policy_id": "codeqa-samuel-native-pr-create-e2e-v1",
+  "enabled": false,
+  "repository": "HyungseonSong-plasma/codeQA",
+  "source_repository": "HyungseonSong-plasma/chatgpt-operation",
+  "source_revision": "b56b6cdc0d24f9a50e23165503ca6a4bbd70a771",
+  "issue_number": 156,
+  "required_issue_label": "native-pr-e2e-authorized",
+  "allowed_dispatch_actor": "HyungseonSong-plasma",
+  "base_branch": "main",
+  "head_pattern": "^samuel/native-pr-create-e2e-156-[0-9]{8}$",
+  "sole_fixture_path": "docs/samuel-native-pr-e2e-fixture.md",
+  "expected_changes": 1,
+  "allowed_operation": "pr.create",
+  "auto_merge": false,
+  "require_independent_review": true
+}
