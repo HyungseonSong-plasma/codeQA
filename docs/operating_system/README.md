@@ -1,12 +1,33 @@
 # codeQA Samuel operating-system binding
 
-**Consumer:** `HyungseonSong-plasma/codeQA`  
-**Central authority:** `HyungseonSong-plasma/chatgpt-operation`  
-**Expected OS:** Samuel  
-**Immutable revision:** `b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3`
+<div align="center">
+<p><strong>Exact-revision operating-system binding and capability routing.</strong></p>
+<p>Immutable source · Read-only bootstrap · Governed mutations</p>
+</div>
+
+---
+
+| Binding | Value |
+| :-- | :-- |
+| **Consumer** | `HyungseonSong-plasma/codeQA` |
+| **Central authority** | `HyungseonSong-plasma/chatgpt-operation` |
+| **OS** | Samuel |
+| **Pinned revision** | `b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3` |
+
+### Quick routes
+| Task | Source of truth |
+| :-- | :-- |
+| Initialize | [BOOTSTRAP.md](BOOTSTRAP.md) |
+| Verify pin and skill hashes | [central_skills.json](central_skills.json) |
+| Load Samuel capabilities | [CENTRAL_SKILLS.md](CENTRAL_SKILLS.md) |
+| Request guarded branch deletion | [Request manifest](../../.github/requests/branch-delete-request.json) |
+| Invoke documentation refinement | `DOCUMENTATION_REFINEMENT` (on-demand; not `INIT`) |
+
+> [!NOTE]
+> `codeQA-init` verifies routing and restores context; it does not execute
+> repository writes, certify scientific results, or approve a merge.
 
 ## codeQA-init
-
 Start at [BOOTSTRAP.md](BOOTSTRAP.md). The pinned source and blob checks are
 specified by [central_skills.json](central_skills.json). Read the central OS index,
 essential rules, `session-bootstrap`, `state-refresh`, and the mandatory
@@ -33,7 +54,6 @@ GitHub connector tools. Init is **read-only** and never deletes a branch.
 A missing connector operation is not global Samuel capability exhaustion.
 
 ## Boundaries
-
 codeQA owns the CCG, adapters, source evidence, QA profiles and local
 repository acceptance policy. Samuel owns generic skill/capability routing,
 GitHub mutations and postcondition mechanics. Neither a successful init nor a
@@ -45,20 +65,21 @@ Do not create any new root entry; the codeQA frozen root layout is unchanged.
 
 The permanent consumer execution path is
 `.github/workflows/samuel-branch-delete.yml`, consuming
-`.github/requests/branch-delete-request.json`. The obsolete one-shot cleanup
-workflow is retired. See [CENTRAL_SKILLS.md](CENTRAL_SKILLS.md).
+`.github/requests/branch-delete-request.json`. The historical one-shot cleanup workflow is not a general deletion route.
+See [CENTRAL_SKILLS.md](CENTRAL_SKILLS.md) for the permanent path.
 
 ## Creation and pull-request routing
-
-This explicit Samuel adoption registers GitHub file create/update, branch create and pull-request create, in addition to the existing PR merge, branch delete and workflow dispatch. Creation does not imply approval, and all QA/scientific contracts remain consumer-owned.
-
+The pinned Samuel capability catalog covers GitHub file creation/update,
+branch creation/deletion, PR creation/merge and workflow dispatch. These routes
+require separate authorization, current repository evidence and postcondition
+verification. Creation does not imply approval; QA and scientific contracts
+remain codeQA-owned.
 
 ## Owner-requested branch cleanup batches (2026-10-27)
-
-\`.github/requests/branch-delete-request.json\` is normally empty.
+`.github/requests/branch-delete-request.json` is normally empty.
 For explicit owner-authorized maintenance, a reviewed, short-lived nonempty
 request may contain **at most 50** independently selected, exact-SHA pinned
-non-default branch heads. \`validate_branch_delete_request.py\` rejects unsafe
+non-default branch heads. `validate_branch_delete_request.py` rejects unsafe
 names, duplicates, malformed SHA and default-branch deletion. The pinned Samuel
 Action performs its own GitHub live HEAD lease check and verifies deletion.
 A stale or moved branch must never be forced or treated as successfully removed.
@@ -68,7 +89,7 @@ the already installed workflow's supported nonempty request behavior. The test
 now validates both the transient approved batch and the safe empty default;
 this does not modify the actual manifest validator or delete contract.
 After all targeted branch deletions have independent readback, restore
-\`{"targets":[]}\` in a separate normal, reviewed maintenance commit.
+`{"targets":[]}` in a separate normal, reviewed maintenance commit.
 Do not interpret any CI PASS or stale request as upstream safety-screening
 clearance, and preserve unmerged branches/PR review records unless separately
-dispositioned. The versioned workflow catalog and provenance remain unchanged.
+dispositioned. The versioned workflow catalog and Git blob provenance are checked separately.

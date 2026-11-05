@@ -1,9 +1,42 @@
 # codeQA
 
-A language-independent, evidence-based code quality evaluation system.
+<div align="center">
+<p><strong>Evidence-based code quality analysis with explicit coverage and limitations.</strong></p>
+<p>Python-first · Language-neutral CCG contracts · Versioned evidence</p>
+<p><a href="#getting-started">Get started</a> ·
+<a href="#contracts--language-coverage">Contracts &amp; coverage</a> ·
+<a href="#analysis-capabilities">Analysis</a> ·
+<a href="#evidence--assurance">Evidence</a></p>
+</div>
 
-## codeQA-init — Samuel capability-ready bootstrap
+---
 
+A language-independent, evidence-based code quality evaluation system
+with a **Python-first implementation**. Its language-neutral contracts
+do not establish complete non-Python analysis.
+
+**At a glance:** `codeqa 0.2.0a1` preview (Python ≥3.12);
+Python AST + scoped Mechanical review; versioned CCG.
+Opt-in companions are **not** universal QA PASS.
+Samuel is exact-revision bound; `codeQA-init` is read-only.
+
+> [!IMPORTANT]
+> A source-backed feature, passing CI, or an opt-in Gate result does **not**
+> certify full P1–P8 correctness, runtime behavior, or production readiness.
+
+## Explore
+[Samuel bootstrap](docs/operating_system/BOOTSTRAP.md) ·
+[Python package](docs/python-package.md) ·
+[Contract catalog](contracts/README.md) ·
+[CCG](contracts/ccg/README.md) ·
+[QA](contracts/qa/README.md) ·
+[Repository layout](docs/repository-structure.md) ·
+[Package architecture](docs/codeqa-package-architecture.md) ·
+[Mechanical pipeline](docs/mechanical-pipeline.md) ·
+[Language matrix](docs/language-execution-matrix-v0.1.md)
+
+## Getting started
+### codeQA-init — Samuel capability-ready bootstrap
 Run `codeQA-init` using the canonical [consumer bootstrap](docs/operating_system/BOOTSTRAP.md).
 It verifies the exact Samuel binding, essential rules and init skills, including
 the mandatory `problem-oriented-response` README + machine contract;
@@ -19,8 +52,74 @@ exact-SHA-guarded change to
 The connector's missing delete operation is not evidence that Samuel deletion is
 unavailable.
 
-## Supported surface (source-backed v0.1 inventory)
+### Repository status
+The Python-first foundation, CCG v0.1 and adapter development
+were established through [Issue #1](https://github.com/HyungseonSong-plasma/codeQA/issues/1)
+and [Issue #2](https://github.com/HyungseonSong-plasma/codeQA/issues/2).
 
+### Repository layout
+The `repository_layout` policy is resolved through the
+`[tool.codeqa.resources]` registry in `pyproject.toml`.
+The root layout is frozen. The evaluator reads directory and file names
+**only from the JSON policy**, and
+`tests/test_repository_layout.py` checks the tracked repository layout.
+
+- `.github/`: repository automation and CI
+- `contracts/`: language-independent schema and interface contracts
+- `docs/`: architectural decisions, principles and documentation
+- `fixtures/`: fixed conformance test inputs and expected results
+- `profiles/`: reusable quality profiles and codeQA's own layout policy
+- `skills/`: QA skills invoked by the central OS
+- `src/`: Python-first Core, adapters, evaluation, pipeline, governance and infrastructure
+- `tests/`: contract, unit and integration tests
+
+The implementation language for codeQA and adapter integration is Python-first.
+An adapter may invoke external language-specific parsers; CCG contracts remain
+independent of implementation languages. GitHub mutation remains owned by
+`chatgpt-operation`.
+
+### Resource location independence
+Consumers reference logical IDs rather than hard-coded resource file paths:
+
+```python
+from codeqa.infrastructure.resources import ResourceRegistry
+from codeqa.evaluation.layout import evaluate_layout
+
+policy = ResourceRegistry(repository_root).load_json("repository_layout")
+result = evaluate_layout(tracked_source_paths, policy)
+```
+
+Only the repository-root `pyproject.toml` is a fixed bootstrap locator.
+Moving a resource changes just its `[tool.codeqa.resources]` mapping.
+The resolver fails closed on missing, malformed and unsafe resources.
+
+The separate CI frozen-policy guard compares policy contents against the Git
+base commit, irrespective of their paths. See `docs/repository-structure.md`
+for its enforcement boundaries and [package structure](docs/codeqa-package-architecture.md).
+
+### Validation
+```bash
+python3 -m pip install -e .
+python3 -m unittest discover -s tests -v
+```
+
+Git snapshot reads use `codeqa.infrastructure.git.GitReader`; pure
+policy comparisons no longer invoke Git processes directly.
+
+CCG v0.1, the conservative Python AST adapter and Mechanical QA v0.1
+pipeline are implemented and tested. Full P1–P8 quality certification is not.
+
+### Python distribution preview
+A **codeqa 0.2.0a1** candidate wheel, sdist and separately hashed policy
+resource bundle are built and smoke-tested by
+[Python Package CI](.github/workflows/python-package.yml).
+For isolated install instructions, explicit resource-root usage and release
+boundaries, see [Python package](docs/python-package.md). The package is not
+a public PyPI release; full external framework and migration compatibility
+remain tracked in Naming v0.3 issues #91–#94.
+
+## Contracts & language coverage
+### Supported surface (source-backed v0.1 inventory)
 The table below is validated against the [versioned support manifest](docs/support-surface-v0.1.json),
 registered resource IDs, current Python entrypoint symbols and package metadata by
 `tests/test_support_surface.py` in the existing Layout CI. It records **source witnesses only**;
@@ -52,106 +151,10 @@ Formal `ALLOW_FIXTURE_ONLY` is never a production merge or semantic-preservation
 approval. Language-neutral CCG schemas are not full Rust/C++/MOOSE analyzers.
 The official Naming v0.5 opt-in policy applies to **one pinned Python field only**; the broader v0.3/v0.4 semantic candidate glossary remains unadopted. Human newcomer comprehension remains `NOT_EVALUATED` pending independent study.
 
-## Language execution coverage
-
+### Language execution coverage
 The [versioned per-language execution matrix](docs/language-execution-matrix-v0.1.md) distinguishes the language-neutral CCG **contract** from the actual Python AST pipeline. Rust and C++/MOOSE source fixtures and Dafny-generated Python Formal Gate receipts do not establish end-to-end non-Python Mechanical or production ABI support. Source/workflow references are checked, but actual matching-revision CI must be verified separately; unsupported capabilities remain `NOT_EVALUATED`.
 
-## Repository status
-
-Foundation bootstrap. The canonical engineering principles, CCG v0.1 and Python adapter
-are tracked separately in [Issue #1](https://github.com/HyungseonSong-plasma/codeQA/issues/1)
-and [Issue #2](https://github.com/HyungseonSong-plasma/codeQA/issues/2).
-
-## Repository layout
-
-The `repository_layout` policy is resolved through the
-`[tool.codeqa.resources]` registry in `pyproject.toml`.
-The root layout is frozen. The evaluator reads directory and file names
-**only from the JSON policy**, and
-`tests/test_repository_layout.py` checks the tracked repository layout.
-
-- `.github/`: repository automation and CI
-- `contracts/`: language-independent schema and interface contracts
-- `docs/`: architectural decisions, principles and documentation
-- `fixtures/`: fixed conformance test inputs and expected results
-- `profiles/`: reusable quality profiles and codeQA's own layout policy
-- `skills/`: QA skills invoked by the central OS
-- `src/`: Python-first Core, adapters, evaluation, pipeline, governance and infrastructure
-- `tests/`: contract, unit and integration tests
-
-The implementation language for codeQA and adapter integration is Python-first.
-An adapter may invoke external language-specific parsers; CCG contracts remain
-independent of implementation languages. GitHub mutation remains owned by
-`chatgpt-operation`.
-
-## Resource location independence
-
-Consumers reference logical IDs rather than hard-coded resource file paths:
-
-```python
-from codeqa.infrastructure.resources import ResourceRegistry
-from codeqa.evaluation.layout import evaluate_layout
-
-policy = ResourceRegistry(repository_root).load_json("repository_layout")
-result = evaluate_layout(tracked_source_paths, policy)
-```
-
-Only the repository-root `pyproject.toml` is a fixed bootstrap locator.
-Moving a resource changes just its `[tool.codeqa.resources]` mapping.
-The resolver fails closed on missing, malformed and unsafe resources.
-
-The separate CI frozen-policy guard compares policy contents against the Git
-base commit, irrespective of their paths. See `docs/repository-structure.md`
-for its enforcement boundaries and [package structure](docs/codeqa-package-architecture.md).
-
-## External Evidence v0.1 (opt-in)
-
-The independent [typed external evidence contract](docs/external-evidence-v01.md)
-records tool execution, source/scan coverage, artifact hashes and proof
-assumptions; its strict admission validator **never** issues a quality PASS.
-External Semgrep adapters, Policy Gates and proof-to-implementation binding
-remain follow-up issues #100, #99 and #102.
-
-## Evidence Policy Gate v0.1 (opt-in)
-
-The independent [fail-closed Policy Gate](docs/evidence-gate-v01.md) consumes
-admitted external evidence with an exact, pinned source/policy context and
-returns scoped PASS/FAIL/UNKNOWN plus Decision Trace. It does **not** execute
-external scanners or merge pull requests. Live Semgrep and formal binding
-remain #100 and #102.
-
-## Pinned Semgrep pilot (opt-in)
-
-The [Semgrep 1.182.1 JSON adapter](docs/semgrep-integration-v01.md) has a
-separate GitHub Actions workflow for actual local-rule scans and evidence
-Gate conformance, without a runtime Semgrep dependency or universal safety
-claim. It does not scan user code until a caller supplies a trusted isolated
-execution environment and pinned policy.
-
-## Conservative persistent CCG cache (opt-in)
-
-The [persistent file-local CCG cache](docs/persistent-ccg-cache-v01.md) safely
-reuses exact-source extraction facts with trusted-store locking and checksum
-validation. Snapshot-wide CCG relationships and QA verdicts are always
-recomputed; real-codeQA p50/p95 and full-oracle differential benchmarks run
-in a separate conformance workflow. This is not a claim of complete
-incremental semantic analysis.
-
-## Validation
-
-```bash
-python3 -m pip install -e .
-python3 -m unittest discover -s tests -v
-```
-
-Git snapshot reads use `codeqa.infrastructure.git.GitReader`; pure
-policy comparisons no longer invoke Git processes directly.
-
-CCG v0.1, the conservative Python AST adapter and Mechanical QA v0.1
-pipeline are implemented and tested. Full P1–P8 quality certification is not.
-
-## CCG graph contract
-
+### CCG graph contract
 The initial, language-independent CCG v0.1 exchange schema is registered as
 `ccg_schema` in `[tool.codeqa.resources]` and documented in
 [`contracts/ccg/README.md`](contracts/ccg/README.md).
@@ -172,8 +175,33 @@ Python AST extraction is available, including conservative source-local
 lexical function linking; runtime dispatch and cross-file resolution remain
 unimplemented.
 
-## Python mechanical analysis pipeline
+### Language Adapter capability contract v0.1
+Issue #29 defines the versioned cross-language adapter capability declaration
+(`adapter_capability_schema`) and a checked Python AST support profile
+(`python_adapter_capability`). See
+[Language Adapter contract](docs/contracts/language-adapter-0.1.md).
+This is a declaration of syntax-extraction support, never code-quality PASS.
 
+### QA Result and Quality Delta v0.1
+Issue #28 introduces versioned public schemas `qa_result_schema` and
+`qa_delta_schema`, a source-grounded opt-in Mechanical result converter
+and strict compatibility checks for descriptive review-count deltas.
+Old Python reports and CCG v0.1 remain unchanged. See
+[QA Result and Delta](docs/contracts/qa-result-0.1.md).
+
+### Semantic Architecture Ontology v0.1
+Optional, non-scoring projection of declared directory responsibilities,
+source-grounded import/CCG relationships, constraints and evidence; cannot
+infer actual runtime behavior or certifiable semantic alignment. See
+[Semantic Architecture Ontology](docs/semantic-architecture-ontology.md).
+
+### Responsibility & Behavior v0.1
+Optional imported-API syntax observations and evidence-backed role conflict
+**review**, with no runtime side-effect inference or automatic semantic PASS.
+See [Responsibility & Behavior](docs/responsibility-behavior.md).
+
+## Analysis capabilities
+### Python mechanical analysis pipeline
 `codeqa.pipeline.python.analyze_python` composes the syntax-only Python
 Adapter, CCG Core validation and conservative mechanical review signals.
 The `mechanical_profile` resource ID supplies explicit thresholds.
@@ -196,32 +224,20 @@ print(result.quality.analysis_status)  # Independent evidence limitations
 print(result.quality.analysis_limitations)
 ```
 
-## Reproducible QA self-audit
-
-The [self-audit workflow](.github/workflows/self-audit.yml) executes codeQA on
-its own immutable Git snapshot. A second analysis of a **fixed pre-refactor
-snapshot** checks that CCG extraction and previous heuristic findings have
-not silently changed with analyzer-only refactoring. Call-site observations,
-resolved target identities, unresolved calls and unknown external dependencies
-are reported separately. See [self-audit](docs/self-audit.md).
-
-## Static dependency and change impact analysis
-
+### Static dependency and change impact analysis
 `analyze_python` now includes a separate static dependency graph.
 `codeqa.evaluation.impact.analyze_change_impact` reports potential
 reverse-import direct/transitive impact paths, witnesses and unknowns.
 This is **observed potential static impact**, not proof of runtime coupling,
 a complete impact bound or safe exclusion of tests. See [Dependency and Impact v0.1](docs/dependency-impact.md).
 
-## Efficient evidence and incremental analysis
-
+### Efficient evidence and incremental analysis
 The Python pipeline now parses each source once per analysis, supports opt-in
 content-addressed reuse, shares cross-report evidence references and provides
 a unified summary. Impact traversal is optional and only reports potential
 static Import paths. See [Efficient Evidence Pipeline](docs/efficient-evidence-pipeline.md).
 
-## Contextual Call Review
-
+### Contextual Call Review
 Raw call-site warnings now have a non-scoring AST context overlay (call shape,
 repeated callee syntax, control flow, unresolved targets). No library identity,
 fluent semantics, runtime dependency or coupling score is inferred from source
@@ -229,56 +245,53 @@ syntax. The pinned [moose-test-repo audit](.github/workflows/moose-test-audit.ym
 compares the unchanged CCG/Mechanical baseline with the enriched report.
 See [contextual call review](docs/contextual-call-review.md).
 
-## Cross-module declaration evidence
-
+### Cross-module declaration evidence
 The Python analysis pipeline can now report conservative cross-module
 function **declaration candidates** reached by explicit unique imports,
 with source and target IDs. This is not proven runtime call resolution,
 does not modify CCG or v0.1 Mechanical findings, and never certifies
 low coupling. See [cross-module symbol evidence](docs/cross-module-symbol-evidence.md).
 
-## Semantic Architecture Ontology v0.1
+## Evidence & assurance
+### External Evidence v0.1 (opt-in)
+The independent [typed external evidence contract](docs/external-evidence-v01.md)
+records tool execution, source/scan coverage, artifact hashes and proof
+assumptions; its strict admission validator **never** issues a quality PASS.
+External Semgrep adapters, Policy Gates and proof-to-implementation binding
+remain follow-up issues #100, #99 and #102.
 
-Optional, non-scoring projection of declared directory responsibilities,
-source-grounded import/CCG relationships, constraints and evidence; cannot
-infer actual runtime behavior or certifiable semantic alignment. See
-[Semantic Architecture Ontology](docs/semantic-architecture-ontology.md).
+### Evidence Policy Gate v0.1 (opt-in)
+The independent [fail-closed Policy Gate](docs/evidence-gate-v01.md) consumes
+admitted external evidence with an exact, pinned source/policy context and
+returns scoped PASS/FAIL/UNKNOWN plus Decision Trace. It does **not** execute
+external scanners or merge pull requests. Live Semgrep and formal binding
+remain #100 and #102.
 
-## Responsibility & Behavior v0.1
+### Pinned Semgrep pilot (opt-in)
+The [Semgrep 1.182.1 JSON adapter](docs/semgrep-integration-v01.md) has a
+separate GitHub Actions workflow for actual local-rule scans and evidence
+Gate conformance, without a runtime Semgrep dependency or universal safety
+claim. It does not scan user code until a caller supplies a trusted isolated
+execution environment and pinned policy.
 
-Optional imported-API syntax observations and evidence-backed role conflict
-**review**, with no runtime side-effect inference or automatic semantic PASS.
-See [Responsibility & Behavior](docs/responsibility-behavior.md).
+### Conservative persistent CCG cache (opt-in)
+The [persistent file-local CCG cache](docs/persistent-ccg-cache-v01.md) safely
+reuses exact-source extraction facts with trusted-store locking and checksum
+validation. Snapshot-wide CCG relationships and QA verdicts are always
+recomputed; real-codeQA p50/p95 and full-oracle differential benchmarks run
+in a separate conformance workflow. This is not a claim of complete
+incremental semantic analysis.
 
-## Language Adapter capability contract v0.1
+### Reproducible QA self-audit
+The [self-audit workflow](.github/workflows/self-audit.yml) executes codeQA on
+its own immutable Git snapshot. A second analysis of a **fixed pre-refactor
+snapshot** checks that CCG extraction and previous heuristic findings have
+not silently changed with analyzer-only refactoring. Call-site observations,
+resolved target identities, unresolved calls and unknown external dependencies
+are reported separately. See [self-audit](docs/self-audit.md).
 
-Issue #29 defines the versioned cross-language adapter capability declaration
-(`adapter_capability_schema`) and a checked Python AST support profile
-(`python_adapter_capability`). See
-[Language Adapter contract](docs/contracts/language-adapter-0.1.md).
-This is a declaration of syntax-extraction support, never code-quality PASS.
-
-## Samuel Python Adapter integration fixture
-
+### Samuel Python Adapter integration fixture
 Issue #24 validates the original pinned Samuel conformance requirement with
 byte-identical controller sources, selected ground-truth CCG nodes/edges,
 negative syntax cases and a dedicated CI cross-check. See
 [Samuel Adapter Conformance](docs/samuel-adapter-conformance.md).
-
-## QA Result and Quality Delta v0.1
-
-Issue #28 introduces versioned public schemas `qa_result_schema` and
-`qa_delta_schema`, a source-grounded opt-in Mechanical result converter
-and strict compatibility checks for descriptive review-count deltas.
-Old Python reports and CCG v0.1 remain unchanged. See
-[QA Result and Delta](docs/contracts/qa-result-0.1.md).
-
-## Python distribution preview
-
-A **codeqa 0.2.0a1** candidate wheel, sdist and separately hashed policy
-resource bundle are built and smoke-tested by
-[Python Package CI](.github/workflows/python-package.yml).
-For isolated install instructions, explicit resource-root usage and release
-boundaries, see [Python package](docs/python-package.md). The package is not
-a public PyPI release; full external framework and migration compatibility
-remain tracked in Naming v0.3 issues #91–#94.

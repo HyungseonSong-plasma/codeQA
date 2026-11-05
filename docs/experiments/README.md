@@ -1,20 +1,32 @@
 # Archived codeQA/MOOSE A/B experiments (2026-10-23)
 
-The two completed experiments were developed on separate `codeQA` branches.
-The branch-unique report, measurement JSON, and exact original workflow bytes
-were preserved here before deletion of those experiment refs.
+<div align="center">
+<p><strong>Completed A/B comparisons preserved as immutable historical evidence.</strong></p>
+<p>23 October 2026 · Archived reports · Inert workflow snapshots</p>
+</div>
 
-- [Initial CI guard comparison](moose-refactor-blind-versus-codeqa-20261023.md)
-  and [measurements](../../.github/experiments/moose-refactor-20261023/metrics.json).
-  Original executable workflow is archived *inertly* as
-  `.github/experiments/moose-refactor-20261023/workflow.yml.txt`.
-- [Production field comparison](moose-production-field-blind-vs-codeqa-20261023.md)
-  and [measurements](../../.github/experiments/moose-production-field-20261023/metrics.json).
-  Original executable workflow is archived *inertly* as
-  `.github/experiments/moose-production-field-20261023/workflow.yml.txt`.
+---
 
-Archiving workflow text does **not** enable Actions on `main`, rerun
-numerical experiments, prove equivalence, or change the MOOSE repository.
-Exact experiment commit SHA, frozen source scope and historical Actions run
-URLs remain in the corresponding reports and JSON files. The immutable Git
-history remains accessible after branch removal through recorded commits.
+## Experiment archive
+The two experiments ran on **separate codeQA branches**. Their branch-unique
+reports, measurement JSON and exact original workflow text were retained here
+before the experiment refs were deleted.
+
+- **Initial CI guard · blind vs. codeQA:** 
+  [Report](moose-refactor-blind-versus-codeqa-20261023.md) ·
+  [Measurements](../../.github/experiments/moose-refactor-20261023/metrics.json) ·
+  [Inert workflow](../../.github/experiments/moose-refactor-20261023/workflow.yml.txt)
+- **Production field · blind vs. codeQA:** 
+  [Report](moose-production-field-blind-vs-codeqa-20261023.md) ·
+  [Measurements](../../.github/experiments/moose-production-field-20261023/metrics.json) ·
+  [Inert workflow](../../.github/experiments/moose-production-field-20261023/workflow.yml.txt)
+
+## Evidence boundaries
+> [!IMPORTANT]
+> Archived workflow files are **inert `.yml.txt` documents**. Retention does
+> not enable GitHub Actions on `main`, rerun numerical experiments, establish
+> numerical/semantic equivalence or modify the MOOSE repository.
+
+Exact experiment commits, frozen source scope and historical Actions-run URLs
+remain recorded in the individual reports and JSON artifacts. Those recorded
+commits preserve Git history even after the experiment branches are removed.
