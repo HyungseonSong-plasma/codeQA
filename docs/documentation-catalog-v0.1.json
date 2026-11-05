@@ -197,6 +197,11 @@
     },
     {
       "path": "docs/architecture.md",
+      "status_labels": {
+        "decision": "ADOPTED",
+        "implementation": "NOT_EVALUATED",
+        "review": "NOT_EVALUATED"
+      },
       "area": "architecture",
       "candidate_directory": "docs/",
       "disposition": "STABLE_ENTRYPOINT",
@@ -517,6 +522,11 @@
     },
     {
       "path": "docs/governance/documentation-architecture-v0.1.md",
+      "status_labels": {
+        "decision": "PROPOSED",
+        "implementation": "NOT_EVALUATED",
+        "review": "REVIEW_REQUIRED"
+      },
       "area": "governance",
       "candidate_directory": "docs/governance/",
       "disposition": "RETAIN_CURRENT_DIRECTORY",
