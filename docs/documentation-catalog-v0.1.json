@@ -526,6 +526,16 @@
       "role_review": "SCOPE_AND_PRIMARY_TOPIC_REVIEWED"
     },
     {
+      "path": "docs/governance/documentation-reference-audit-v0.1.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED",
+      "authority_role": "REVIEW_EVIDENCE",
+      "responsible_boundary": "REPOSITORY_GOVERNANCE",
+      "role_review": "SCOPE_AND_PRIMARY_TOPIC_REVIEWED"
+    },
+    {
       "path": "docs/historical-branch-reconciliation-2026-11-05.md",
       "area": "governance",
       "candidate_directory": "docs/governance/",
