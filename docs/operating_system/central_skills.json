@@ -2,7 +2,7 @@
   "schema_version": 2,
   "source_repository": "HyungseonSong-plasma/chatgpt-operation",
   "operating_system": {
-    "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
+    "revision": "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3",
     "expected_version": "Samuel",
     "index": {
       "path": "docs/operating_system/README.md",
@@ -19,7 +19,7 @@
       "load_on": [
         "INIT"
       ],
-      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
+      "revision": "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3",
       "path": "skills/session-bootstrap/README.md",
       "expected_blob_sha": "6a7a3c23a05907677d0a75ba5412973da37eae54"
     },
@@ -29,7 +29,7 @@
         "INIT",
         "SCHEDULED_CONTROLLER"
       ],
-      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
+      "revision": "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3",
       "path": "skills/state-refresh/README.md",
       "expected_blob_sha": "4efe6135b93456f2cc9da31786967f5f6ac80033"
     },
@@ -38,7 +38,7 @@
       "load_on": [
         "INIT"
       ],
-      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
+      "revision": "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3",
       "path": "skills/problem-oriented-response/README.md",
       "expected_blob_sha": "c0d255134664a35db2250fa62bf3b06b3d8e3313",
       "contract": {
@@ -60,7 +60,7 @@
         "GITHUB_FILE_UPDATE",
         "GITHUB_BRANCH_CREATE"
       ],
-      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
+      "revision": "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3",
       "path": "skills/repository-mutation/README.md",
       "expected_blob_sha": "496f3c52e8c5c3a8f376abffa23f5317c291f76b"
     },
@@ -69,14 +69,28 @@
       "load_on": [
         "GITHUB_PR_CREATE"
       ],
-      "revision": "7b5b31e143474f4859fb6c85fb4a27afbad4eed3",
+      "revision": "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3",
       "path": "skills/pull-request-create/README.md",
       "expected_blob_sha": "b8917ebcde313229b6d7ff91db95e41dae7ddf7f"
+    },
+    {
+      "name": "documentation-refinement",
+      "load_on": [
+        "DOCUMENTATION_REFINEMENT"
+      ],
+      "revision": "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3",
+      "path": "skills/documentation-refinement/README.md",
+      "expected_blob_sha": "502ab4ac4e71f3e6bb4ca41738d858523d255edd",
+      "contract": {
+        "path": "skills/documentation-refinement/contract.json",
+        "expected_blob_sha": "aa79e0404488e14483147d4d15b3d506f0889c6c",
+        "expected_contract_id": "samuel.documentation-refinement.v0.1"
+      }
     }
   ],
   "skill_catalog": {
     "path": "skills/catalog.json",
-    "expected_blob_sha": "392015dcb52f4cb00e2e32ef7a8fca5f04dd4194"
+    "expected_blob_sha": "d007eaae12fca4b55effcce61aff7bdc56e424f0"
   },
   "capability_registry": {
     "path": "skills/capability-registry.json",
