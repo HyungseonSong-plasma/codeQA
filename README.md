@@ -25,6 +25,7 @@ Samuel is exact-revision bound; `codeQA-init` is read-only.
 > certify full P1–P8 correctness, runtime behavior, or production readiness.
 
 ## Explore
+[Documentation hub](docs/README.md) ·
 [Samuel bootstrap](docs/operating_system/BOOTSTRAP.md) ·
 [Python package](docs/python-package.md) ·
 [Contract catalog](contracts/README.md) ·
