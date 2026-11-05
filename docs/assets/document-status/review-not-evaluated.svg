@@ -1,9 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="179" height="20" role="img" aria-label="Review: NOT EVALUATED">
-  <title>Review: NOT EVALUATED</title>
-  <rect width="64" height="20" fill="#555555"/>
-  <rect x="64" width="115" height="20" fill="#6E7781"/>
-  <g font-family="DejaVu Sans,Verdana,sans-serif" font-size="11" font-weight="600" text-anchor="middle">
-    <text x="32" y="14" fill="#FFFFFF">Review</text>
-    <text x="121" y="14" fill="#FFFFFF">NOT EVALUATED</text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="113" height="22" role="img" aria-label="Review: NOT_EVALUATED">
+  <title>Review: NOT_EVALUATED</title>
+  <rect x="0.5" y="0.5" width="112" height="21" rx="11" fill="#EAECEF" stroke="#D0D7DE"/>
+  <text x="56" y="15" font-family="DejaVu Sans,Verdana,sans-serif" font-size="11" font-weight="600" text-anchor="middle" fill="#57606A">NOT_EVALUATED</text>
 </svg>
