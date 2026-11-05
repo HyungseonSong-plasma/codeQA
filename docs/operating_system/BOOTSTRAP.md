@@ -10,7 +10,7 @@
 2. Read local `docs/operating_system/README.md` and
    `docs/operating_system/central_skills.json`; reject floating or mixed pins.
 3. Fetch and verify the exact central `chatgpt-operation` commit
-   `7b5b31e143474f4859fb6c85fb4a27afbad4eed3`; read the Samuel index, `ESSENTIAL_RULES.md`,
+   `b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3`; read the Samuel index, `ESSENTIAL_RULES.md`,
    `session-bootstrap` and `state-refresh` at this commit. Verify their
    expected blob SHA values before using them.
 4. **Always** fetch and verify both `skills/catalog.json` and
@@ -45,7 +45,11 @@
    GITHUB_BRANCH_DELETE_ROUTE=READY|BLOCKED
    GITHUB_MUTATION_PREFLIGHT=TRIGGER_REQUIRED
    ```
-9. Stop **read-only**. A successful init is neither permission nor an
+9. For later documentation tasks, resolve `DOCUMENTATION_REFINEMENT` only
+   when requested, using the pinned `documentation-refinement` README and
+   machine contract from `central_skills.json`. Its transformation is
+   read-only; repository writes require the separate Samuel mutation route.
+10. Stop **read-only**. A successful init is neither permission nor an
    automatic request to delete branches.
 
 ## Fail-closed contract

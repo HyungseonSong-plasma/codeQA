@@ -3,7 +3,7 @@
 **Consumer:** `HyungseonSong-plasma/codeQA`  
 **Central authority:** `HyungseonSong-plasma/chatgpt-operation`  
 **Expected OS:** Samuel  
-**Immutable revision:** `7b5b31e143474f4859fb6c85fb4a27afbad4eed3`
+**Immutable revision:** `b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3`
 
 ## codeQA-init
 
@@ -17,6 +17,11 @@ registry. If the response skill or contract does not resolve, init fails closed 
 For the requested always-ready branch-delete path, resolve
 `GITHUB_BRANCH_DELETE` and load central `repository-mutation` as a
 deliberate init-time immediate-obligation trigger.
+
+`DOCUMENTATION_REFINEMENT` is an **on-demand** Samuel skill, verified against
+its exact pinned README and contract when requested. It is not part of `INIT`;
+its read-only document candidate never authorizes GitHub mutation or changes
+codeQA-owned domain semantics.
 
 Successful init reports `response_contract=samuel.problem-first-response.v1`,
 `response_mode=problem_first`, `detail_policy=on_request`. After init, show
