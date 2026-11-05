@@ -1,6 +1,8 @@
 # Architecture QA design v0.1 — evidence-first question discovery, then reorganization
 
-**Status:** Proposed (Issue [#165](https://github.com/HyungseonSong-plasma/codeQA/issues/165)); human architecture acceptance pending.  
+> **Reader update (2026-11-05):** This is the historical design-stage proposal at its original source scope. Issue [#165](https://github.com/HyungseonSong-plasma/codeQA/issues/165) is now **closed/completed** (2026-10-28), and the bounded B1–B8 implementation is documented separately in [architecture assessment](architecture-assessment-v0.1.md) and [self-diagnostic](architecture-self-diagnostic-v0.1.md). Issue closure does **not** certify independent semantic architecture approval or authorize moving packages.
+
+**Historical design status:** Proposed (Issue [#165](https://github.com/HyungseonSong-plasma/codeQA/issues/165)); independent human architecture acceptance was pending *at drafting time*.  
 **Phase:** design-only; no analyzer implementation, source move or compatibility certification.  
 **Design fixture:** [architecture scenarios](../fixtures/architecture/design-scenarios-v0.1.json).  
 **Feature roadmap:** [#166](https://github.com/HyungseonSong-plasma/codeQA/issues/166), children #167–#174.
