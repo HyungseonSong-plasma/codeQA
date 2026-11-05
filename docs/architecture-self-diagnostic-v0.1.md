@@ -45,3 +45,19 @@ source SHA-256 and any existing target SHA-256. The B8 human report renders
 those witnesses. This improves reproducibility of the *rejection*; it does not
 turn a rejected move into a viable candidate or authorize any source migration.
 
+
+## Real codeQA close-first assessment ledger (#184 / #166)
+
+The exact-source original and subsequent B8 artifacts were independently
+compared in [the 43-edge evidence ledger](architecture-qa-184-close-first-evidence.md).
+It records all witnessed Pipeline source/target pairs and the measured B4
+occupied-destination and forbidden-direction rejections, while preserving
+`SEMANTIC_RESPONSIBILITY_NOT_EVALUATED` and external-consumer limitations.
+An observed cross-role ratio must not prompt a forced package move when all
+measured imports follow the documented composition direction and no independently
+supported, noncolliding migration has survived review. `NO_MOVE` is an action
+under insufficient evidence, not an architecture quality PASS.
+
+The B8 workflow still derives its question(s) from actual source evidence,
+not these written findings. Any subsequent source change requires a fresh
+matched-scope B1–B8 comparison, test and API assessment and separate approval.
