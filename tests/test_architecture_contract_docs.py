@@ -63,7 +63,7 @@ class ArchitectureDocumentationTests(unittest.TestCase):
         return (ROOT / path).read_text(encoding="utf-8")
 
     def test_every_normative_local_reference_resolves_in_repo(self) -> None:
-        for name in (*DOCS, "README.md"):
+        for name in (*DOCS, "README.md", "docs/contract-taxonomy-and-composition-v0.1.md"):
             prose = _prose(self.read(name))
             for match in LINK_RE.finditer(prose):
                 with self.subTest(source=name, reference=match.group(1)):
@@ -113,6 +113,30 @@ class ArchitectureDocumentationTests(unittest.TestCase):
         self.assertIn("NOT_EVALUATED", text)
         self.assertIn("P1/P3", text)
         self.assertIn("analysis=LIMITED", text)
+
+    def test_issue282_contract_taxonomy_preserves_distinct_authorities(self) -> None:
+        catalog = self.read("contracts/README.md")
+        design = self.read("docs/contract-taxonomy-and-composition-v0.1.md")
+        for label in ("Architecture Analysis", "Semantic Architecture Ontology",
+                      "Declared Architecture Rules"):
+            self.assertIn(label, catalog)
+        for term in ("**36**", "**1**", "self-contained JSON Schema",
+                     "same kind of evidence", "separate approved ADR"):
+            self.assertIn(term, design)
+        analysis = json.loads(self.read(
+            "contracts/qa/architecture-assessment-v0.1.schema.json"
+        ))
+        ontology = json.loads(self.read(
+            "contracts/semantic/architecture-v0.1.schema.json"
+        ))
+        vocabulary = json.loads(self.read(
+            "contracts/semantic/architecture-v0.1.vocabulary.json"
+        ))
+        self.assertIn("$schema", analysis)
+        self.assertIn("$schema", ontology)
+        self.assertNotIn("$schema", vocabulary)
+        self.assertIn("relation_kinds", vocabulary)
+        self.assertNotEqual(analysis["$id"], ontology["$id"])
 
     def test_adr_authority_and_resource_registry_match_actual_schemas(self) -> None:
         registry = tomllib.loads(self.read("pyproject.toml"))["tool"]["codeqa"]["resources"]
