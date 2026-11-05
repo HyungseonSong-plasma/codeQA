@@ -1,11 +1,7 @@
 <div align="center">
-
 <h1>Canonical Code Graph · CCG</h1>
-
 <p><strong>Source-code facts with explicit evidence, not quality verdicts.</strong></p>
-
 <p>Schema v0.1 · Language-neutral · Owned by codeQA Core</p>
-
 </div>
 
 ---
