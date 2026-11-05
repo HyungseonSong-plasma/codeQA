@@ -1,9 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="193" height="20" role="img" aria-label="Review: REVIEW REQUIRED">
-  <title>Review: REVIEW REQUIRED</title>
-  <rect width="64" height="20" fill="#555555"/>
-  <rect x="64" width="129" height="20" fill="#BF8700"/>
-  <g font-family="DejaVu Sans,Verdana,sans-serif" font-size="11" font-weight="600" text-anchor="middle">
-    <text x="32" y="14" fill="#FFFFFF">Review</text>
-    <text x="128" y="14" fill="#24292F">REVIEW REQUIRED</text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="127" height="22" role="img" aria-label="Review: REVIEW_REQUIRED">
+  <title>Review: REVIEW_REQUIRED</title>
+  <rect x="0.5" y="0.5" width="126" height="21" rx="11" fill="#FFF8C5" stroke="#E7D08A"/>
+  <text x="63" y="15" font-family="DejaVu Sans,Verdana,sans-serif" font-size="11" font-weight="600" text-anchor="middle" fill="#7D4E00">REVIEW_REQUIRED</text>
 </svg>
