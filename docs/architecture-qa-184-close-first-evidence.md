@@ -80,12 +80,48 @@ The later B8 artifact records **zero viable automatic virtual candidates**, thre
 
 **Policy-rejected alternatives:** moving `pipeline/naming_internal_import_census_v04.py` into Core introduces Core imports to Infrastructure/Pipeline; moving `pipeline/naming_product.py` into Adapters introduces an Adapters-to-Evaluation import. These are **hypothetical** forbidden new dependencies, not violations in the existing pipeline.
 
+## Independently justified, already merged structural cleanup (#187 / PR #188)
+
+The original B8 observation was followed by an independently scoped source-backed
+fix: [Issue #187](https://github.com/HyungseonSong-plasma/codeQA/issues/187)
+and [merged PR #188](https://github.com/HyungseonSong-plasma/codeQA/pull/188),
+merge commit `565bedc0bdf2cc9faf2f17f6e5ea1cc3ae5075b6`.
+The adopted package architecture explicitly assigns all local Git subprocess
+execution to `infrastructure.git.GitReader`, but two Pipeline source-selection
+modules called Git directly. The merged change placed `tree_sha/tree_entries`
+on the single read-only infrastructure adapter and retained public Naming
+census entrypoints, exact Git tree identity and blob checks.
+
+**Matched scope: the same 12 tracked `src/codeqa/pipeline/*.py` files.**
+
+| Measured code fact | Before: `fb54b6c92363476b07a726008fbe8c1ab35f1a6a` | After: `6aa15e8613b95bf39233a7b191a730f257d7adb3` |
+|---|---:|---:|
+| Tracked Pipeline Python files | 12 | 12 |
+| Pipeline modules importing `subprocess` | 2 | 0 |
+| Direct Pipeline `subprocess` import sites | 2 | 0 |
+| Git subprocess implementation owner | Pipeline and Infrastructure | Infrastructure only |
+
+This exact-commit source comparison was independently read back from GitHub
+for all 12 files, not inferred from a passing CI badge. Before, direct import
+sites were `naming_scope_discovery_v04.py:14` and
+`naming_snapshot_coverage_v03.py:9`; after, neither file imports
+`subprocess`. PR #188 added `tests/test_git_tree_reader_v01.py`:
+historical 95-file Git tree/blob denominator comparison, malformed/duplicate
+record negative controls and a 12-file no-direct-subprocess regression;
+the existing B8 E2E also tests the no-subprocess rule.
+
+**Important measurement nuance:** this is a genuine source ownership cleanup
+even though the B3/B8 cross-role import pair count remains 43/48. These are
+different metrics. Do not describe unchanged import proxies as lack of the
+observed Git subprocess improvement; do not claim the entire system is now
+semantically optimal or that external public consumers have been attested.
+
 ## Bounded structural choice and acceptance limits
 
-**Action: `NO_MOVE`. Assessment: `INSUFFICIENT_EVIDENCE` until independent domain judgment.** The observed module responsibilities are composition-consistent and policy-allowed. No evidence-backed, noncolliding alternative survived the measured B4 constraints, so there is no justified migration or matched before/after improvement claim. Avoid gaming a structural percentage by merely moving files or changing role labels.
+**Action for the 43 B8 import pairs: `NO_MOVE`. Assessment: `INSUFFICIENT_EVIDENCE` for unreviewed semantic ownership/external consumers.** Their source roles are composition-consistent and policy-allowed; no evidence-backed, noncolliding package move survived B4. A different, independently justified implementation-ownership cleanup **was completed by PR #188** and has a matched 2→0 direct Git subprocess import-site result. Avoid gaming the import ratio by moving package paths; retain the verified targeted cleanup benefit without claiming an unsupported package migration.
 
 **Issue #184 disposition gate:** classify import-site roles and any suspected ownership leaks independently; record why KEEP/no move is favored over the rejected alternatives, including unresolved external consumers and test/API risks.
 
-**Issue #166 product-outcome gate:** the unprompted B8 signal/question pipeline and negative controls are implemented, but actual source cleanup, if supported, would need distinct approval and matched before/after evidence. An unsuccessful structural migration must not be fabricated to close #166.
+**Issue #166 product-outcome evidence:** the unprompted B8 signal/question pipeline and negative controls operate; an approved, independently bounded source cleanup was merged via #188, and the same 12-file source denominator now records 0 direct Git subprocess import sites versus 2 before. The current documentation-only PR triggers a fresh exact-head B8 run, which must be independently verified before claiming the final matched-scope self-audit. This demonstrates the specific ownership improvement, not universal semantic/API compatibility.
 
-**Fresh re-audit required:** these ZIPs are historical. The present documentation-only PR should cause the existing B8 workflow to run at its exact proposed HEAD; inspect that generated artifact and keep the original/current B1/B2/B3/B5/B7 denominators and limitations visible. B8 CI success alone never proves architecture quality.
+**Fresh re-audit evidence:** the documentation-only PR runs the existing B8 workflow at its exact proposed HEAD; verify the uploaded manifest and compare the 43 unique import pairs, 43/48 signal, B4 rejections and source-role scope against original B8. The 12-file direct-subprocess metric is independently verified above. A green B8 job alone does not prove architecture quality; unresolved consumers remain explicit.
