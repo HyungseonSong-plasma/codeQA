@@ -47,6 +47,34 @@ versus historical witness), `evidence_revision`, `primary_owner`,
 the catalog intentionally records authority review as `NOT_EVALUATED`,
 never silently turns a draft into an approved contract.
 
+## Boundary cases: classify by primary claim, not filename
+
+When a document spans more than one subject, select its **primary observed
+claim and owning source component** first. Use the documentation portal for
+cross-links; a file cannot have two canonical locations.
+
+- `docs/python-override-callback-v02-draft.md` describes bounded Python
+  runtime signature and callback observations from
+  `codeqa.evaluation.python_binding_runtime_v02`. Although it arose from
+  Naming follow-up #70, its primary topic is **Python integration/runtime
+  evidence**, not a lexical Naming style rule. Its *proposed* directory is
+  `docs/integrations/python/`.
+- `docs/naming-external-ancestor.md` directly supports the opt-in Naming
+  decision about protected spellings using pinned ancestor declarations:
+  `docs/quality/naming/` remains the more precise candidate.
+- `docs/architecture-assessment-v0.1.md` analyzes architecture quality,
+  whereas `docs/semantic-architecture-ontology.md` defines typed semantic
+  roles and relations. They belong to separate architecture subfamilies,
+  not one undifferentiated `architecture/` bucket.
+- A **dated source-evidence ledger** may remain with the domain whose
+  decision it supports (e.g. B8) rather than move to `evidence/` solely
+  because its filename contains `evidence`. The `governance/evidence/`
+  family is for provenance/admission rules, not a global warehouse.
+
+These are **routing proposals**, not authority approvals or observed
+runtime-success claims. A future evidence-backed review may revise any
+candidate location without rewriting the historical source document.
+
 ## Canonical source and path invariants
 
 - **Contract authority:** Published JSON Schemas live only under
