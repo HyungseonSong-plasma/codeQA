@@ -1,6 +1,7 @@
-# One-shot cleanup of the final redundant, already-merged codeQA branch.
-# Preserves Git history and uses the same pinned SHA-guarded Samuel action.
-name: Retire final merged cleanup branch (one-shot)
+# One-shot, owner-authorized retirement of the two completed cleanup PR heads.
+# Runs only after this workflow's reviewed change is merged to main.
+# Both deletions use pinned Samuel exact-SHA guarded action and live readback.
+name: Retire branch-cleanup maintenance PR heads (one-shot)
 
 on:
   push:
@@ -18,55 +19,101 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Verify exact merged PR and current branch head
+      - name: Checkout exact merged revision
+        uses: actions/checkout@v4
+
+      - name: Verify merged cleanup PRs, expected SHAs and empty request
         id: evidence
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TARGET_BRANCH: cleanup/merged-branches-final-20261105
         run: |
           set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" > "$RUNNER_TEMP/associated-prs.json"
           python3 - <<'PY'
           import json
           import os
           from pathlib import Path
           import re
           import subprocess
-          import sys
+          from urllib.parse import quote
 
           repo = "HyungseonSong-plasma/codeQA"
-          branch = "cleanup/merged-branches-final-20261105"
+          previous_branch = "chore/close-pr-and-clean-branches-20261105"
+          this_branch = "chore/restore-delete-request-and-retire-maintenance-20261105"
+          previous_head = "7e3c2f95d6eba5992f3bfdb68526901b8b9f2b4a"
+          previous_merge = "9a411243baef789c0d9a83ca35947341b3bf2cb1"
           main_sha = os.environ["GITHUB_SHA"]
-          assert os.environ["GITHUB_REPOSITORY"] == repo
-          assert os.environ["GITHUB_REF"] == "refs/heads/main"
-          records = json.loads((Path(os.environ["RUNNER_TEMP"]) / "associated-prs.json").read_text())
-          matches = [item for item in records
-                     if item.get("merged_at") is not None
-                     and item.get("merge_commit_sha") == main_sha
-                     and item.get("head", {}).get("ref") == branch
-                     and item.get("head", {}).get("repo", {}).get("full_name") == repo
-                     and item.get("base", {}).get("ref") == "main"]
-          if len(matches) != 1:
-              raise SystemExit("FINAL_REF_RETIREMENT_MERGED_PR_IDENTITY_NOT_ATTESTED")
-          head = matches[0]["head"]["sha"]
-          if not isinstance(head, str) or not re.fullmatch(r"[0-9a-f]{40}", head):
-              raise SystemExit("FINAL_REF_RETIREMENT_HEAD_SHA_INVALID")
-          response = subprocess.run(
-              ["gh", "api", f"repos/{repo}/git/ref/heads/{branch}"],
-              capture_output=True, text=True, check=True, timeout=30)
-          live = json.loads(response.stdout)
-          if live.get("object", {}).get("sha") != head or head == main_sha:
-              raise SystemExit("FINAL_REF_RETIREMENT_LIVE_SHA_CHANGED")
+
+          if os.environ["GITHUB_REPOSITORY"] != repo or os.environ["GITHUB_REF"] != "refs/heads/main":
+              raise SystemExit("CLEANUP_REPOSITORY_OR_REF_MISMATCH")
+          git_head = subprocess.run(["git", "rev-parse", "HEAD"],
+                                    check=True, text=True, capture_output=True).stdout.strip()
+          if git_head != main_sha:
+              raise SystemExit("CLEANUP_CHECKOUT_SHA_MISMATCH")
+          if json.loads(Path(".github/requests/branch-delete-request.json").read_text()) != {"targets": []}:
+              raise SystemExit("CLEANUP_REQUEST_NOT_EMPTY")
+
+          def gh(path):
+              result = subprocess.run(
+                  ["gh", "api", "repos/" + repo + "/" + path],
+                  check=True, capture_output=True, text=True, timeout=30,
+              )
+              return json.loads(result.stdout)
+
+          def validate_pr(pr, branch, *, expected_sha=None, merge_sha=None):
+              head = pr.get("head") or {}
+              if (pr.get("merged_at") is None
+                  or pr.get("state") != "closed"
+                  or pr.get("base", {}).get("ref") != "main"
+                  or head.get("ref") != branch
+                  or (head.get("repo") or {}).get("full_name") != repo):
+                  raise SystemExit("CLEANUP_PR_IDENTITY_MISMATCH")
+              if merge_sha is not None and pr.get("merge_commit_sha") != merge_sha:
+                  raise SystemExit("CLEANUP_MERGE_SHA_MISMATCH")
+              sha = head.get("sha")
+              if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
+                  raise SystemExit("CLEANUP_HEAD_SHA_INVALID")
+              if expected_sha is not None and sha != expected_sha:
+                  raise SystemExit("CLEANUP_PR_HEAD_CHANGED")
+              if sha == main_sha:
+                  raise SystemExit("CLEANUP_DEFAULT_BRANCH_TARGET")
+              open_heads = gh("pulls?state=open&head=" +
+                              quote("HyungseonSong-plasma:" + branch, safe="") + "&per_page=100")
+              if open_heads:
+                  raise SystemExit("CLEANUP_OPEN_PR_PROTECTED")
+              live = gh("git/ref/heads/" + quote(branch, safe="/"))
+              if live.get("object", {}).get("sha") != sha:
+                  raise SystemExit("CLEANUP_LIVE_BRANCH_SHA_MISMATCH")
+              return sha
+
+          previous = gh("pulls/279")
+          sha279 = validate_pr(previous, previous_branch,
+                              expected_sha=previous_head, merge_sha=previous_merge)
+          candidates = gh("pulls?state=closed&head=" +
+                          quote("HyungseonSong-plasma:" + this_branch, safe="") + "&per_page=100")
+          current = [pr for pr in candidates if pr.get("merge_commit_sha") == main_sha]
+          if len(current) != 1:
+              raise SystemExit("CLEANUP_CURRENT_MERGED_PR_NOT_UNIQUE")
+          sha_current = validate_pr(current[0], this_branch, merge_sha=main_sha)
+
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"expected_sha={head}\n")
-          print("FINAL_REF_RETIREMENT_EXACT_PR_HEAD_VERIFIED", head)
+              output.write("prior_sha=" + sha279 + "\n")
+              output.write("current_sha=" + sha_current + "\n")
+          print("CLEANUP_EXACT_HEADS_VERIFIED", sha279, sha_current)
           PY
 
-      - name: Retire branch using pinned Samuel exact-SHA guard
-        uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@7b5b31e143474f4859fb6c85fb4a27afbad4eed3
+      - name: Retire prior merged maintenance branch
+        uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3
         with:
           repository: HyungseonSong-plasma/codeQA
-          branch: cleanup/merged-branches-final-20261105
-          expected-sha: ${{ steps.evidence.outputs.expected_sha }}
+          branch: chore/close-pr-and-clean-branches-20261105
+          expected-sha: ${{ steps.evidence.outputs.prior_sha }}
+          github-token: ${{ github.token }}
+
+      - name: Retire current merged maintenance branch
+        uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3
+        with:
+          repository: HyungseonSong-plasma/codeQA
+          branch: chore/restore-delete-request-and-retire-maintenance-20261105
+          expected-sha: ${{ steps.evidence.outputs.current_sha }}
           github-token: ${{ github.token }}
