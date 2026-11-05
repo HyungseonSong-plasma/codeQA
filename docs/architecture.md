@@ -1,5 +1,7 @@
 # codeQA canonical architecture
 
+![Decision: ADOPTED](assets/document-status/decision-adopted.svg) ![Implementation: NOT_EVALUATED](assets/document-status/implementation-not-evaluated.svg) ![Review: NOT_EVALUATED](assets/document-status/review-not-evaluated.svg)
+
 > **Revision boundary (reviewed 2026-11-05):** This is an adopted **at-revision** architecture guide based on the source SHA stated below, not a full refreshed audit of today's codeQA tree. Newer architecture-analysis modules and Samuel documentation capabilities may not be reflected; consult [the bounded architecture assessment](architecture-assessment-v0.1.md), [contract taxonomy](contract-taxonomy-and-composition-v0.1.md), and the [documentation authority review](governance/document-authority-review-v0.1.md). Do not infer universal P1–P8 or runtime semantic certification.
 
 **Status:** Adopted description of implementation boundaries; foundation Issue #1,
