@@ -1,11 +1,7 @@
 <div align="center">
-
 <h1>QA Result Conformance Fixtures</h1>
-
 <p><strong>Positive and adversarial tests for source-grounded exchange contracts.</strong></p>
-
 <p>Explicit in-memory snapshots · Fail-closed checks · No fabricated ground truth</p>
-
 </div>
 
 ---
