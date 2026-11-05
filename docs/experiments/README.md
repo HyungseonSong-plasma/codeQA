@@ -11,10 +11,14 @@ The two experiments ran on **separate codeQA branches**. Their branch-unique
 reports, measurement JSON and exact original workflow text were retained here
 before the experiment refs were deleted.
 
-| Comparison | Report | Measurements | Original workflow (inert text) |
-| :-- | :-- | :-- | :-- |
-| Initial CI guard · blind vs. codeQA | [Initial CI guard comparison](moose-refactor-blind-versus-codeqa-20261023.md) | [Measurement JSON](../../.github/experiments/moose-refactor-20261023/metrics.json) | [Archived workflow](../../.github/experiments/moose-refactor-20261023/workflow.yml.txt) |
-| Production field · blind vs. codeQA | [Production field comparison](moose-production-field-blind-vs-codeqa-20261023.md) | [Measurement JSON](../../.github/experiments/moose-production-field-20261023/metrics.json) | [Archived workflow](../../.github/experiments/moose-production-field-20261023/workflow.yml.txt) |
+- **Initial CI guard · blind vs. codeQA:** 
+  [Report](moose-refactor-blind-versus-codeqa-20261023.md) ·
+  [Measurements](../../.github/experiments/moose-refactor-20261023/metrics.json) ·
+  [Inert workflow](../../.github/experiments/moose-refactor-20261023/workflow.yml.txt)
+- **Production field · blind vs. codeQA:** 
+  [Report](moose-production-field-blind-vs-codeqa-20261023.md) ·
+  [Measurements](../../.github/experiments/moose-production-field-20261023/metrics.json) ·
+  [Inert workflow](../../.github/experiments/moose-production-field-20261023/workflow.yml.txt)
 
 ## Evidence boundaries
 > [!IMPORTANT]
