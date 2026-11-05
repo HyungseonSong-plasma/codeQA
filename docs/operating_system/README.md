@@ -1,11 +1,7 @@
 <div align="center">
-
 <h1>Samuel · codeQA</h1>
-
 <p><strong>Exact-revision operating-system binding and capability routing.</strong></p>
-
 <p>Immutable source · Read-only bootstrap · Governed mutations</p>
-
 </div>
 
 ---
