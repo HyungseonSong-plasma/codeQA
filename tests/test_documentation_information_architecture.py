@@ -97,7 +97,7 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
                 optional = {"lifecycle", "authority", "evidence_revision",
                             "primary_owner", "canonical_location",
                             "external_deep_link_policy", "review_revision",
-                            "review_issue", "stable_reason"}
+                            "review_issue", "stable_reason", "status_labels"}
                 self.assertTrue(required <= set(item))
                 self.assertTrue(set(item) <= required | optional)
                 path = item["path"]
