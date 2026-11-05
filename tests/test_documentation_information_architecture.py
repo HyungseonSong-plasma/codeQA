@@ -149,7 +149,7 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
         portal = (DOCS / "README.md").read_text(encoding="utf-8")
         self.assertIn("not an HTTP redirect", policy)
         self.assertIn("NOT_EVALUATED", policy)
-        self.assertIn("without", portal.lower())
+        self.assertIn("not claimed as completed migrations", portal.lower())
         candidates = [
             d for d in self.catalog["documents"]
             if d["disposition"] == "CANDIDATE_REQUIRES_BACKLINK_AUDIT"
