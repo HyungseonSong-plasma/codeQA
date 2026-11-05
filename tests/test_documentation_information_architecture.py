@@ -19,7 +19,7 @@ DOCS = ROOT / "docs"
 CATALOG = DOCS / "documentation-catalog-v0.1.json"
 AREAS = frozenset({
     "navigation", "architecture", "quality", "integrations", "governance",
-    "contracts", "operations", "experiments", "evidence", "decisions",
+    "contracts", "operations", "experiments", "decisions",
 })
 AUTHORITY_ROLES = frozenset({
     "NAVIGATION_INDEX", "ACCEPTED_ADR", "CONTRACT_EXPLANATION",
