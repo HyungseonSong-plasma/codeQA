@@ -40,9 +40,14 @@ against a schema without making its chosen values universally applicable.
   - graph structure
   - provenance
   - resolution and coverage (v0.1 initially)
-- [`adapters/`](adapters/capability-v0.1.schema.json)
-  - language-adapter capabilities
-  - supported syntax-extraction features (v0.1)
+- [`adapters/`](adapters/)
+  - [`capability-v0.1.schema.json`](adapters/capability-v0.1.schema.json) —
+    declares an adapter's language/parser, supported input/output formats,
+    feature support, and known limitations; not proof of analysis success.
+  - [`source-selection-v0.1.schema.json`](adapters/source-selection-v0.1.schema.json) —
+    records an immutable source snapshot, caller-supplied included/excluded
+    file inventory, per-file language/category, and inventory completeness;
+    not automatic source discovery.
 - [`qa/`](qa/README.md)
   - QA results
   - metric evidence
