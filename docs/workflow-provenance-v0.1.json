@@ -102,7 +102,7 @@
     },
     {
       "path": ".github/workflows/retire-final-merged-branch-20261105.yml",
-      "blob_sha": "38a73567c7d189bb0c069332f389d9a31344929c"
+      "blob_sha": "3611009708bfba7a0c9d36546a0e1030150388ab"
     },
     {
       "path": ".github/workflows/rust-ccg-conformance.yml",

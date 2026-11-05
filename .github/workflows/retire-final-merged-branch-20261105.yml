@@ -1,7 +1,7 @@
-# One-shot, owner-authorized retirement of the two completed cleanup PR heads.
+# One-shot, owner-authorized retirement of merged README PR #281 and this maintenance PR head.
 # Runs only after this workflow's reviewed change is merged to main.
 # Both deletions use pinned Samuel exact-SHA guarded action and live readback.
-name: Retire branch-cleanup maintenance PR heads (one-shot)
+name: Retire merged README and cleanup branch heads (one-shot)
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
       - name: Checkout exact merged revision
         uses: actions/checkout@v4
 
-      - name: Verify merged cleanup PRs, expected SHAs and empty request
+      - name: Verify merged README PR and cleanup PR, exact SHAs and empty request
         id: evidence
         shell: bash
         env:
@@ -38,10 +38,10 @@ jobs:
           from urllib.parse import quote
 
           repo = "HyungseonSong-plasma/codeQA"
-          previous_branch = "chore/close-pr-and-clean-branches-20261105"
-          this_branch = "chore/restore-delete-request-and-retire-maintenance-20261105"
-          previous_head = "7e3c2f95d6eba5992f3bfdb68526901b8b9f2b4a"
-          previous_merge = "9a411243baef789c0d9a83ca35947341b3bf2cb1"
+          previous_branch = "docs/refresh-all-readmes-samuel-v01-20261105"
+          this_branch = "chore/retire-readme-refresh-branch-20261105"
+          previous_head = "ef82d78c8fb7feb11e6de5d9418219583418225c"
+          previous_merge = "ecf268bc4fff4c503580e595ef1737154592199d"
           main_sha = os.environ["GITHUB_SHA"]
 
           if os.environ["GITHUB_REPOSITORY"] != repo or os.environ["GITHUB_REF"] != "refs/heads/main":
@@ -86,8 +86,8 @@ jobs:
                   raise SystemExit("CLEANUP_LIVE_BRANCH_SHA_MISMATCH")
               return sha
 
-          previous = gh("pulls/279")
-          sha279 = validate_pr(previous, previous_branch,
+          previous = gh("pulls/281")
+          sha281 = validate_pr(previous, previous_branch,
                               expected_sha=previous_head, merge_sha=previous_merge)
           candidates = gh("pulls?state=closed&head=" +
                           quote("HyungseonSong-plasma:" + this_branch, safe="") + "&per_page=100")
@@ -97,16 +97,16 @@ jobs:
           sha_current = validate_pr(current[0], this_branch, merge_sha=main_sha)
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write("prior_sha=" + sha279 + "\n")
+              output.write("prior_sha=" + sha281 + "\n")
               output.write("current_sha=" + sha_current + "\n")
-          print("CLEANUP_EXACT_HEADS_VERIFIED", sha279, sha_current)
+          print("CLEANUP_EXACT_HEADS_VERIFIED", sha281, sha_current)
           PY
 
-      - name: Retire prior merged maintenance branch
+      - name: Retire merged README refresh branch
         uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3
         with:
           repository: HyungseonSong-plasma/codeQA
-          branch: chore/close-pr-and-clean-branches-20261105
+          branch: docs/refresh-all-readmes-samuel-v01-20261105
           expected-sha: ${{ steps.evidence.outputs.prior_sha }}
           github-token: ${{ github.token }}
 
@@ -114,6 +114,6 @@ jobs:
         uses: HyungseonSong-plasma/chatgpt-operation/.github/actions/branch-delete@b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3
         with:
           repository: HyungseonSong-plasma/codeQA
-          branch: chore/restore-delete-request-and-retire-maintenance-20261105
+          branch: chore/retire-readme-refresh-branch-20261105
           expected-sha: ${{ steps.evidence.outputs.current_sha }}
           github-token: ${{ github.token }}
