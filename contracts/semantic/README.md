@@ -1,9 +1,36 @@
-# Semantic Architecture Contracts
+<div align="center">
 
-- `architecture-v0.1.vocabulary.json` declares entity kinds, typed relationship endpoints, assurance types, assessment states and unsupported dimensions.
-- `architecture-v0.1.schema.json` validates the companion report; graph referential integrity and vocabulary domain/range correctness are verified in ground-truth tests.
+<h1>Semantic Architecture Contracts</h1>
 
-CCG v0.1 stays independent and unchanged. Policies are repository-specific under `profiles/` or supplied by callers. No ontology relation establishes actual runtime behavior by itself.
+<p><strong>Evidence-backed architecture descriptions and declared rules.</strong></p>
 
-- `responsibility-behavior-v0.1.schema.json` describes a separate,
-  non-scoring syntax-observation and role-placement review report.
+<p>Companion v0.1 · Non-scoring · Separate from CCG</p>
+
+</div>
+
+---
+
+## Contract catalog
+
+| Contract | Responsibility |
+| :-- | :-- |
+| [Architecture vocabulary v0.1](architecture-v0.1.vocabulary.json) | Entity kinds, typed relation endpoints, assurance types, assessment states and unsupported dimensions |
+| [Architecture report v0.1](architecture-v0.1.schema.json) | Evidence-based entities, relations, assessments and explicitly unassessed dimensions |
+| [Declared rule policy v0.1](declared-rule-policy-v0.1.schema.json) | Scoped directory responsibilities, policy revision and explicit exceptions |
+| [Declared rule report v0.1](declared-rule-report-v0.1.schema.json) | Source-backed evaluation of declared architecture rules |
+| [Responsibility–Behavior v0.1](responsibility-behavior-v0.1.schema.json) | Independent, non-scoring imported-API syntax observations and role-placement review |
+
+## Validation & boundaries
+
+- JSON Schema defines report shape. **Graph referential integrity** and
+  vocabulary domain/range correctness also require the ground-truth semantic
+  tests; schema validity alone is insufficient.
+- These companions **do not modify CCG v0.1**. Repository-specific policies
+  belong under [`profiles/`](../../profiles/) or are supplied by callers.
+- An ontology relation, declared responsibility or imported-API observation
+  **does not prove actual runtime behavior, semantic correctness or quality
+  PASS**. Unsupported dimensions remain explicit.
+
+See the [contract catalog](../README.md) and
+[architecture semantics overview](../../docs/semantic-architecture-ontology.md)
+for the relationship to CCG and codeQA evaluation.
