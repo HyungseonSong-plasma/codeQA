@@ -1,11 +1,7 @@
 <div align="center">
-
 <h1>QA Contracts</h1>
-
 <p><strong>Versioned findings, measurements and scoped quality evidence.</strong></p>
-
 <p>29 schemas · Source-grounded · No automatic quality certification</p>
-
 </div>
 
 ---
