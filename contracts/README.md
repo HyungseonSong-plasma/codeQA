@@ -12,7 +12,6 @@
 ---
 
 ## Schema vs. Profile
-
 | | **Schema** (`contracts/`) | **Profile** (`profiles/`) |
 | :-- | :-- | :-- |
 | **Defines** | Fields, types, valid structures | Rules, thresholds, scoped settings |
@@ -24,22 +23,18 @@ approved policy, or quality PASS. Schema evolution and consumer policy
 adoption are separate decisions.
 
 ## Contract Catalog
-
 ### 01 · [`ccg/`](ccg/README.md) — Canonical source facts
-
 | Contract | Defines |
 | :-- | :-- |
 | [Graph v0.1](ccg/graph-v0.1.schema.json) | Source snapshot, nodes, edges, provenance, resolution and coverage |
 
 ### 02 · [`adapters/`](adapters/) — Language integration
-
 | Contract | Defines |
 | :-- | :-- |
 | [Capability v0.1](adapters/capability-v0.1.schema.json) | Parser details, input/output, feature support and limitations |
 | [Source Selection v0.1](adapters/source-selection-v0.1.schema.json) | Pinned snapshot and caller-supplied included/excluded file inventory |
 
 ### 03 · [`qa/`](qa/README.md) — Quality and architecture evidence
-
 | Contract group | Defines |
 | :-- | :-- |
 | [Result](qa/result-v0.1.schema.json) · [Delta](qa/delta-v0.1.schema.json) | Scoped findings and descriptive quality changes |
@@ -52,7 +47,6 @@ The [QA directory guide](qa/README.md) indexes all current schemas by
 responsibility, including draft and opt-in companions.
 
 ### 04 · [`semantic/`](semantic/README.md) — Architecture semantics
-
 | Contract group | Defines |
 | :-- | :-- |
 | [Vocabulary](semantic/architecture-v0.1.vocabulary.json) · [Architecture report](semantic/architecture-v0.1.schema.json) | Ontology terms and evidence-based reports |
@@ -65,7 +59,6 @@ runtime behavior.
 ---
 
 ## Future Areas
-
 Create future contract areas **only after their contents are designed**.
 `contracts/profile/` is **planned, not implemented**: it could validate
 profile structure, but must not prescribe repository-specific policy values.
