@@ -1,5 +1,6 @@
+# codeQA contracts
+
 <div align="center">
-<h1>codeQA Contracts</h1>
 <p><strong>Schemas describe data. Profiles select repository policy.</strong></p>
 <p>Versioned · Language-independent · Evidence-scoped</p>
 <p>
