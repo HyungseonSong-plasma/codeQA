@@ -1,5 +1,7 @@
 # Workflow governance catalog v0.1 (#124)
 
+> **Historical snapshot, not the current workflow count (2026-11-05).** The 22-workflow inventory below is pinned to the explicitly named 2026-10-26 revision. The codeQA review baseline `23c2166bd3b2b0c825b207e856b95c68e0e24070` contains **33 tracked workflow YAML files**; current catalog/provenance JSON and exact-HEAD CI, rather than the old prose count, determine the live policy evidence. The historical branch-ruleset observation is not a present-day permissions grant.
+
 The [machine-readable catalog](workflow-catalog-v0.1.json) inventories **22
 tracked workflows** at codeQA main `82e1678b6fb6dd784456770f38f45fa538f04245`.
 The controller independently read GitHub repository ruleset **25360323**,
