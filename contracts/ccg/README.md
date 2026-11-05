@@ -7,7 +7,6 @@
 ---
 
 ## Contract at a glance
-
 | Item | Contract |
 | :-- | :-- |
 | **Schema** | [graph-v0.1.schema.json](graph-v0.1.schema.json) · JSON Schema Draft 2020-12 |
@@ -24,7 +23,6 @@ instances must not be silently reinterpreted. Language-specific adapters
 this does not establish equivalent analyzer implementations.
 
 ## Graph structure
-
 The required instance fields are `schema_version`, `snapshot`, `nodes`,
 `edges` and `coverage`; `diagnostics` is optional.
 
@@ -38,7 +36,6 @@ The required instance fields are `schema_version`, `snapshot`, `nodes`,
 | **Diagnostics (optional)** | Parser failures and extraction messages, never invented graph facts |
 
 ## Semantic validation
-
 JSON Schema validates structural and conditional edge fields. The Core
 validator in `src/codeqa/core/validation.py` additionally checks:
 
@@ -57,7 +54,6 @@ adapters must produce consistent identifiers and evidence for identical pinned
 inputs, configuration and tool versions.
 
 ## Ownership & limitations
-
 | Owns | Does not own |
 | :-- | :-- |
 | Immutable CCG data and validation (`core/`) | Scores, thresholds or PASS/FAIL quality decisions (`evaluation/`, `profiles/`) |
