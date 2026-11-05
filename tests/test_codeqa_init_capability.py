@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = "7b5b31e143474f4859fb6c85fb4a27afbad4eed3"
+PIN = "b088fdbe86e72f0ca6af79bb70bf6a5100c4a4c3"
 MANIFEST = ROOT / "docs/operating_system/central_skills.json"
 REQUEST = ROOT / ".github/requests/branch-delete-request.json"
 WORKFLOW = ROOT / ".github/workflows/samuel-branch-delete.yml"
@@ -33,7 +33,7 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
                        manifest["skill_catalog"], manifest["capability_registry"]]:
             self.assertRegex(record["expected_blob_sha"], r"^[0-9a-f]{40}$")
         by_name = {entry["name"]: entry for entry in manifest["skills"]}
-        self.assertEqual(set(by_name), {"session-bootstrap", "state-refresh", "problem-oriented-response", "repository-mutation", "pull-request-create"})
+        self.assertEqual(set(by_name), {"session-bootstrap", "state-refresh", "problem-oriented-response", "repository-mutation", "pull-request-create", "documentation-refinement"})
         self.assertEqual(by_name["session-bootstrap"]["load_on"], ["INIT"])
         self.assertEqual(by_name["state-refresh"]["load_on"], ["INIT", "SCHEDULED_CONTROLLER"])
         response = by_name["problem-oriented-response"]
@@ -52,6 +52,27 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
             "GITHUB_FILE_CREATE", "GITHUB_FILE_UPDATE", "GITHUB_BRANCH_CREATE"
         ])
         self.assertEqual(by_name["pull-request-create"]["load_on"], ["GITHUB_PR_CREATE"])
+        # Optional documentation refinement is bound to this same exact pin.
+        # It must not silently become an INIT skill.
+        refinement = by_name["documentation-refinement"]
+        self.assertEqual(refinement["load_on"], ["DOCUMENTATION_REFINEMENT"])
+        self.assertEqual(refinement["path"], "skills/documentation-refinement/README.md")
+        self.assertEqual(
+            refinement["expected_blob_sha"],
+            "502ab4ac4e71f3e6bb4ca41738d858523d255edd",
+        )
+        self.assertEqual(
+            refinement["contract"],
+            {
+                "path": "skills/documentation-refinement/contract.json",
+                "expected_blob_sha": "aa79e0404488e14483147d4d15b3d506f0889c6c",
+                "expected_contract_id": "samuel.documentation-refinement.v0.1",
+            },
+        )
+        self.assertEqual(
+            manifest["skill_catalog"]["expected_blob_sha"],
+            "d007eaae12fca4b55effcce61aff7bdc56e424f0",
+        )
         for item in by_name.values():
             self.assertEqual(item["revision"], PIN)
             self.assertRegex(item["expected_blob_sha"], r"^[0-9a-f]{40}$")
