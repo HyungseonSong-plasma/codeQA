@@ -1,0 +1,772 @@
+{
+  "schema_version": "0.1",
+  "source_commit": "23c2166bd3b2b0c825b207e856b95c68e0e24070",
+  "scope": "docs/**/*.md",
+  "purpose": "navigation and future migration planning only; not claim or lifecycle certification",
+  "initial_markdown_count": 107,
+  "documents": [
+    {
+      "path": "docs/README.md",
+      "area": "navigation",
+      "candidate_directory": "docs/",
+      "disposition": "STABLE_ENTRYPOINT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/adr/0001-contract-authority-and-versioning.md",
+      "area": "decisions",
+      "candidate_directory": "docs/adr/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/adr/0002-repository-policy-as-data.md",
+      "area": "decisions",
+      "candidate_directory": "docs/adr/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/adr/0003-evidence-coverage-and-verdicts.md",
+      "area": "decisions",
+      "candidate_directory": "docs/adr/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/adr/0004-versioned-naming-conventions-and-scope.md",
+      "area": "decisions",
+      "candidate_directory": "docs/adr/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/adr/0005-external-evidence-admissibility.md",
+      "area": "decisions",
+      "candidate_directory": "docs/adr/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/adr/0006-evidence-gate-authority.md",
+      "area": "decisions",
+      "candidate_directory": "docs/adr/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/adr/0007-persistent-ccg-cache-safety.md",
+      "area": "decisions",
+      "candidate_directory": "docs/adr/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/analysis-request-v0.1.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-adapter-boundaries-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-assessment-design-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-assessment-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-inventory-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-metrics-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-migration-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-opportunities-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-policy-triage-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-qa-184-close-first-evidence.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-scenarios-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture-self-diagnostic-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/architecture.md",
+      "area": "architecture",
+      "candidate_directory": "docs/",
+      "disposition": "STABLE_ENTRYPOINT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/authority-propagation-v0.1.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/evidence/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/body-complexity-v02.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/mechanical/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/codeqa-package-architecture.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/complexity-analyzer.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/mechanical/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/contextual-call-review.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/mechanical/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/contract-taxonomy-and-composition-v0.1.md",
+      "area": "contracts",
+      "candidate_directory": "docs/contracts/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/contracts/language-adapter-0.1.md",
+      "area": "contracts",
+      "candidate_directory": "docs/contracts/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/contracts/qa-result-0.1.md",
+      "area": "contracts",
+      "candidate_directory": "docs/contracts/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/contracts/quality-delta-0.2.md",
+      "area": "contracts",
+      "candidate_directory": "docs/contracts/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/cpp-moose-naming-v02-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/cpp-parser-evidence-v0.1.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/cpp/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/cross-module-symbol-evidence.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/dependency/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/declared-architecture-rules.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/semantic/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/dependency-impact.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/dependency/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/dependency-metrics.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/dependency/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/domain-inventory-v0.1.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/analysis/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/dto-orm-runtime-v02-draft.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/duplication-detector.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/mechanical/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/efficient-evidence-pipeline.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/engineering-principles.md",
+      "area": "quality",
+      "candidate_directory": "docs/",
+      "disposition": "STABLE_ENTRYPOINT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/evidence-gate-v01.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/evidence/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/experiments/README.md",
+      "area": "experiments",
+      "candidate_directory": "docs/experiments/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/experiments/codeqa-self-refactor-evidence-20261023.md",
+      "area": "experiments",
+      "candidate_directory": "docs/experiments/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/experiments/moose-production-field-blind-vs-codeqa-20261023.md",
+      "area": "experiments",
+      "candidate_directory": "docs/experiments/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/experiments/moose-refactor-blind-versus-codeqa-20261023.md",
+      "area": "experiments",
+      "candidate_directory": "docs/experiments/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/external-evidence-v01.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/evidence/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/extraction-aware-p3.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/mechanical/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/formal-binding-identity-v01.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/evidence/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/formal-proof-receipt-v0.1.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/evidence/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/generated-formal-fixture-gate-v01.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/evidence/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/governance/documentation-architecture-v0.1.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/historical-branch-reconciliation-2026-11-05.md",
+      "area": "evidence",
+      "candidate_directory": "docs/evidence/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/language-execution-matrix-v0.1.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/mechanical-pipeline.md",
+      "area": "quality",
+      "candidate_directory": "docs/",
+      "disposition": "STABLE_ENTRYPOINT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/mixed-source-coverage.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-conventions.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-coverage-v02.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-directional-fields.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-external-ancestor.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-field-classification-v03.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-glossary-governance-v02-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-glossary.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-import-scope-gate-v04.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-internal-import-census-v04.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-migration-review-v0.1-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-migration-stages-v0.1-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-node-id-role-evidence-v04.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-official-adoption-v05-proposal.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-official-policy-v05.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-policy-precedence-v03-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-product-boundary-v0.1.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-rename-impact-v02-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-review-worklist-v03.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-rule-acceptance-v03.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-scope-discovery-v04.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-semantic-candidate-v04.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-source-delta.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/naming-v02-bounded-acceptance.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/operating_system/BOOTSTRAP.md",
+      "area": "operations",
+      "candidate_directory": "docs/operating_system/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/operating_system/CENTRAL_SKILLS.md",
+      "area": "operations",
+      "candidate_directory": "docs/operating_system/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/operating_system/README.md",
+      "area": "operations",
+      "candidate_directory": "docs/operating_system/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/persistent-ccg-cache-v01.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/pinned-dafny-formal-conformance.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/tools/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/public-api-benchmark-v01.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/public-python-sdk-benchmark-v01.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/python-adapter.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/python-naming-inventory-review-v02-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/python-override-callback-v02-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/python-package.md",
+      "area": "integrations",
+      "candidate_directory": "docs/",
+      "disposition": "STABLE_ENTRYPOINT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/python-sdk-conformance.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/repository-structure.md",
+      "area": "governance",
+      "candidate_directory": "docs/",
+      "disposition": "STABLE_ENTRYPOINT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/responsibility-behavior.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/semantic/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/rust-ccg-reference.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/rust/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/rust-naming-manual-v02-draft.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/naming/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/rust-parser-evidence-v0.1.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/rust/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/samuel-adapter-conformance.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/python/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/samuel-cross-repository-preflight-2026-10-25.md",
+      "area": "operations",
+      "candidate_directory": "docs/samuel/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/samuel-crossrepo-target-preflight.md",
+      "area": "operations",
+      "candidate_directory": "docs/samuel/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/samuel-issue92-executor-review.md",
+      "area": "operations",
+      "candidate_directory": "docs/samuel/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/samuel/220-controller-preflight.md",
+      "area": "operations",
+      "candidate_directory": "docs/samuel/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/schema-composition-pilot-v0.1.md",
+      "area": "contracts",
+      "candidate_directory": "docs/contracts/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/self-audit.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/semantic-architecture-ontology.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/semantic/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/semantic-directory-roles.md",
+      "area": "architecture",
+      "candidate_directory": "docs/architecture/semantic/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/semgrep-integration-v01.md",
+      "area": "integrations",
+      "candidate_directory": "docs/integrations/tools/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/statement-similarity-v02.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/mechanical/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/structural-p3-delta.md",
+      "area": "quality",
+      "candidate_directory": "docs/quality/mechanical/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    },
+    {
+      "path": "docs/workflow-catalog-v0.1.md",
+      "area": "governance",
+      "candidate_directory": "docs/governance/workflows/",
+      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "authority_review": "NOT_EVALUATED"
+    }
+  ]
+}
