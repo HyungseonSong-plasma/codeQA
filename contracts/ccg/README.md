@@ -1,63 +1,72 @@
-# Canonical Code Graph (CCG) contract
+<div align="center">
 
-**Version:** 0.1 (initial, deliberately minimal). **Owner:** codeQA Core.
+<h1>Canonical Code Graph · CCG</h1>
 
-The CCG expresses observed **source-code facts**, not quality verdicts. A Python,
-C++, Rust or Fortran adapter can produce the same language-neutral graph format.
-The source input is a pinned snapshot supplied by the external orchestrator.
+<p><strong>Source-code facts with explicit evidence, not quality verdicts.</strong></p>
 
-## Contract
+<p>Schema v0.1 · Language-neutral · Owned by codeQA Core</p>
 
-- **Logical resource ID:** `ccg_schema`. Resolve with
-  `ResourceRegistry(root).load_json("ccg_schema")`; do not hard-code this directory.
-- **Current schema:** `graph-v0.1.schema.json` (JSON Schema Draft 2020-12).
-- **Instance version:** `schema_version: "0.1"`. Schema upgrades require an
-  explicit new version; do not silently reinterpret existing instances.
+</div>
 
-The graph requires five elements:
+---
 
-1. **Graph / snapshot** — immutable source snapshot identity and an instance
-   schema version. It does not fetch source or perform GitHub operations.
-2. **Node** — stable ID, canonical kind, name and provenance; an optional
-   source location for facts with concrete source coordinates.
-3. **Edge** — source node, relation, resolution state and provenance. A
-   `resolved` edge **must** name a target node ID. An `unresolved` edge
-   **must** retain the observed `target_hint` and **must not** invent a target.
-4. **Provenance / location** — every node and edge identifies its producer
-   and method; location records a snapshot-relative path and line span when
-   available. Line numbers are 1-based; columns are 0-based.
-5. **Coverage / diagnostics** — explicitly mark complete, partial or no
-   analysis; list analyzed and unprocessed paths with reasons. Parsing errors
-   and unsupported cases are not equivalent to successful analysis.
+## Contract at a glance
 
-An optional `diagnostics` collection preserves parser failures and other
-extraction messages. It must not be used to invent graph facts.
+| Item | Contract |
+| :-- | :-- |
+| **Schema** | [graph-v0.1.schema.json](graph-v0.1.schema.json) · JSON Schema Draft 2020-12 |
+| **Instance version** | `schema_version: "0.1"` |
+| **Logical resource ID** | `ccg_schema` |
+| **Source identity** | One pinned snapshot supplied by the external orchestrator |
+| **Implementation** | `codeqa.core` — immutable `Graph`, `Node`, `Edge`, `Coverage`, `SourceLocation` and validators |
 
-## Semantic invariants beyond JSON Schema
+Resolve the schema through
+`ResourceRegistry(root).load_json("ccg_schema")`, **not** a hard-coded
+directory path. Upgrades require a new explicit schema version; existing
+instances must not be silently reinterpreted. Language-specific adapters
+(Python, C++, Rust, Fortran, etc.) may target the same exchange format;
+this does not establish equivalent analyzer implementations.
 
-JSON Schema checks shape and conditional edge fields. The Core validator in
-`src/codeqa/core/validation.py` now additionally checks unique node IDs,
-edge source/target existence, location span ordering, snapshot-relative paths,
-coverage overlap, repeated unprocessed paths and coverage status consistency.
-Node/edge facts with a source location must refer to an analyzed file.
+## Graph structure
 
-`canonical_json(graph)` gives deterministic order/encoding for equivalent
-facts. It does **not** prove reproducible extraction or stable ID generation:
-Adapters must generate consistent IDs and evidence for identical pinned input,
-configuration and tool versions.
+The required instance fields are `schema_version`, `snapshot`, `nodes`,
+`edges` and `coverage`; `diagnostics` is optional.
 
-No quality scores, thresholds, PASS/FAIL verdicts, repository-specific policy,
-or language-specific AST objects belong in the CCG. Those are owned by
-`evaluation/`, `profiles/`, and `adapters/` respectively.
+| Element | Required semantics |
+| :-- | :-- |
+| **Snapshot** | Immutable identity of the analyzed source; no fetching or GitHub mutation |
+| **Node** | Stable ID, canonical kind, name and producer/method provenance; source location when known |
+| **Edge** | Source node, relation, resolution status and provenance. A `resolved` edge has a target node ID; an `unresolved` edge retains `target_hint` and invents no target |
+| **Provenance & location** | Snapshot-relative path and span when available; **1-based lines, 0-based columns** |
+| **Coverage** | Complete, partial or none; analyzed/unprocessed paths with reasons. Errors and unsupported input are not successful coverage |
+| **Diagnostics (optional)** | Parser failures and extraction messages, never invented graph facts |
 
-## Scope boundary
+## Semantic validation
 
-The contract is implemented in `codeqa.core` by immutable data classes
-(`Graph`, `Node`, `Edge`, `Coverage`, `SourceLocation`, etc.).
-`parse_graph(document, schema)` validates against the supplied versioned
-JSON Schema and then checks graph-wide invariants. It raises
-`GraphValidationError` with structured `GraphIssue` details on failure.
+JSON Schema validates structural and conditional edge fields. The Core
+validator in `src/codeqa/core/validation.py` additionally checks:
 
-The Core **does not** load the schema, read Git, interpret language-specific
-ASTs, resolve calls or make quality judgments. Adapters and full semantic
-resolution remain separate future implementation tasks.
+- Unique node IDs and existence of edge sources and resolved targets.
+- Source span ordering and safe snapshot-relative location paths.
+- Coverage overlap, repeated unprocessed paths, coverage-status consistency,
+  and source-location references restricted to analyzed files.
+
+`parse_graph(document, schema)` enforces the supplied schema and graph-wide
+invariants, raising `GraphValidationError` with structured `GraphIssue`
+details on failure.
+
+`canonical_json(graph)` gives deterministic ordering and encoding of
+equivalent facts. It does **not** prove reproducible extraction or stable IDs;
+adapters must produce consistent identifiers and evidence for identical pinned
+inputs, configuration and tool versions.
+
+## Ownership & limitations
+
+| Owns | Does not own |
+| :-- | :-- |
+| Immutable CCG data and validation (`core/`) | Scores, thresholds or PASS/FAIL quality decisions (`evaluation/`, `profiles/`) |
+| Language-neutral graph structure | Language-specific AST objects (`adapters/`) |
+| Scoped provenance and coverage | Reading Git, loading the schema itself, resolving runtime calls or performing semantic certification |
+
+The Core receives the schema **as data from the caller**. Full cross-file or
+runtime call resolution and language-specific analysis remain separate tasks.
