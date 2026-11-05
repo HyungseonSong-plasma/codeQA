@@ -55,6 +55,33 @@ versus historical witness), `evidence_revision`, `primary_owner`,
 the catalog intentionally records authority review as `NOT_EVALUATED`,
 never silently turns a draft into an approved contract.
 
+## Top-of-document status badges — staged pilot
+
+**Required display policy for opted-in documents:** immediately below the first Markdown H1,
+show three local, flat-square SVG badges in this order: `Decision`, `Implementation`,
+`Review`. Their displayed values must match the explicit `status_labels` entry
+in [the Markdown catalog](../documentation-catalog-v0.1.json), and the referenced
+local SVG must exist with the declared color. Plain-text image alternatives
+preserve the status meanings when images are disabled.
+
+- Decision and implementation are **independent axes**. An adopted design can
+  be only partly implemented or not evaluated.
+- `authority_review=NOT_EVALUATED` is independent of the displayed labels:
+  a green `ADOPTED` describes the document's recorded declaration, **not**
+  a new independent claim-level certification.
+- The first two pilot pages are the [canonical architecture](../architecture.md)
+  and **this proposed documentation policy**. Remaining historical documents
+  have **not** been assigned verified statuses or mass-modified. Their
+  labels are a separate, evidence-gated rollout.
+- The reusable SVG palette/validator is proposed in Samuel under
+  `DOCUMENTATION_CONSISTENCY_QA`. codeQA's consumer pin remains unchanged;
+  until reviewed adoption, this PR uses a bounded local CI check for the
+  pilot only. Neither the pilot nor a matching icon proves implementation,
+  semantic correctness, or human acceptance.
+- New status claims, including `IMPLEMENTED` or `REVIEWED`, require
+  separately recorded consumer-owned evidence and approval as appropriate.
+  Do not infer them merely from a closed issue, matching code path or CI success.
+
 ## Boundary cases: classify by primary claim, not filename
 
 When a document spans more than one subject, select its **primary observed
