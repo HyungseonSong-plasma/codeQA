@@ -7,7 +7,7 @@
 
 ---
 
-## Contract at a glance
+## Contract
 | Item | Contract |
 | :-- | :-- |
 | **Schema** | [graph-v0.1.schema.json](graph-v0.1.schema.json) · JSON Schema Draft 2020-12 |
@@ -36,7 +36,7 @@ The required instance fields are `schema_version`, `snapshot`, `nodes`,
 | **Coverage** | Complete, partial or none; analyzed/unprocessed paths with reasons. Errors and unsupported input are not successful coverage |
 | **Diagnostics (optional)** | Parser failures and extraction messages, never invented graph facts |
 
-## Semantic validation
+## Semantic invariants beyond JSON Schema
 JSON Schema validates structural and conditional edge fields. The Core
 validator in `src/codeqa/core/validation.py` additionally checks:
 
