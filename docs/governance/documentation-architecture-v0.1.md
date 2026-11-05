@@ -30,11 +30,17 @@ not catch-all folders named `draft`, `old` or `final`:
 | `governance/` | Frozen policies, provenance, security/authority gates, CI catalog and documentation maintenance | `evidence/`, `workflows/` |
 | `contracts/` | **Human explanations** of versioned contracts and taxonomy, never extra normative JSON Schema copies | existing `contracts/` |
 | `operating_system/` and `samuel/` | Consumer-specific operating-system pin/routing and controller integration receipts | existing stable directories |
-| `experiments/` and `evidence/` | Completed experiments, historical comparisons and one-time source-backed decisions | existing experiment archive; proposed `evidence/` |
+| `experiments/` | Reproducible bounded experiments and historical experimental comparisons, including documented no-go findings | existing experiment archive |
 | `adr/` | Accepted architectural decisions | existing `adr/`, keep numbered files |
 
 The physical proposal is recorded for **every Markdown file** in
-[the complete catalog](../documentation-catalog-v0.1.json). That catalog is
+[the complete catalog](../documentation-catalog-v0.1.json).
+The [authority and responsibility review](document-authority-review-v0.1.md)
+assigns a bounded **document role** and a **proposed reviewing component**
+to each catalog entry, without claiming that historical technical statements
+were independently verified. A one-file top-level `evidence/` silo is
+rejected: the branch-reconciliation witness belongs to Governance, while
+specific experimental receipts remain with their experimental domain. That catalog is
 a *routing and migration candidate inventory*, **not an attestation that the
 document's claim or stated status has been independently verified**.
 Docs [index](../README.md) is the reader entrypoint.
@@ -145,8 +151,8 @@ runtime/CI acceptance. Rewriting dates or replacing `Proposed` with
 
 ## Present PR acceptance boundary
 
-This **phase 1** only creates a portal, this taxonomy, a complete catalog and
-a regression check. It does **not** move or delete the 107 existing Markdown
+This **phase 1** only creates a portal, this taxonomy, a complete catalog,
+a documented authority/ownership role review and regression checks. It does **not** move or delete the 107 existing Markdown
 documents or the four JSON witnesses. The repository root and its published
 paths/anchors remain unchanged. Subsequent migrations need individual
 old→new path manifests, measured backlinks and independently reviewed PRs.
