@@ -60,6 +60,8 @@ the **type of document authority** has been reviewed.
 
 ## Content-status reconciliation, still separate from routing
 
+All states below were re-checked against issue/ref snapshots on 2026-11-05. The corresponding historical documents receive **dated reader updates**, preserving the original experiment assertions and scope. Such corrections are not full per-claim certification.
+
 | File | Verified boundary | Content-renewal disposition |
 | :-- | :-- | :-- |
 | [B1–B8 design](../architecture-assessment-design-v0.1.md) | Issue #165 **closed/completed**, but document is historically *Proposed/design-only* | Keep historical design; link accepted implementation separately |
@@ -67,7 +69,7 @@ the **type of document authority** has been reviewed.
 | [Contract taxonomy](../contract-taxonomy-and-composition-v0.1.md) | #282 **closed/completed**, but future schema renames remain unapproved | Separate accepted terminology from deferred migration |
 | [Workflow catalog](../workflow-catalog-v0.1.md) | 22 workflows are explicitly tied to an older Git revision, not current workflow count | Display prominently as historical snapshot |
 | [Canonical architecture](../architecture.md) | Adopted guide pins an older source snapshot | Keep adopted-at-revision limit; refresh against code separately |
-| [MOOSE archive](../experiments/moose-refactor-blind-versus-codeqa-20261023.md) | Report says experiment branches existed; archive explains they were later removed | Past-tense archival clarification needed |
+| [MOOSE archive](../experiments/moose-refactor-blind-versus-codeqa-20261023.md) | GitHub **still shows both** experiment branch refs at their recorded SHAs; the repository main has advanced from the 2026-10-23 baseline | Preserve immutable experiment evidence; clarify historical versus current main without implying branch deletion or merge |
 | [Samuel preflight](../samuel/220-controller-preflight.md) | Already explicitly archival | Preserve warning |
 | [Naming #144 draft](../naming-official-adoption-v05-proposal.md) | #144 **closed/not_planned**; narrower official v0.5 adopted independently | Classify as historical proposal, no broader policy authority |
 
