@@ -118,7 +118,7 @@
     },
     {
       "path": ".github/workflows/samuel-branch-delete.yml",
-      "blob_sha": "d77b9cb88e22a2aacf3a8a905bcfcba2196efbe2"
+      "blob_sha": "63566e927e69bcde87decbc43a8287834979f07e"
     },
     {
       "path": ".github/workflows/samuel-codeqa-issue-execute.yml",
