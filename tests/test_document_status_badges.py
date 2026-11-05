@@ -30,6 +30,13 @@ ALLOWED = {
         "NOT_EVALUATED": "6E7781",
     },
 }
+CHIP_PALETTE = {
+    "2DA44E": ("DAFBE1", "116329", "ACE6BF"),
+    "0969DA": ("DDF4FF", "0550AE", "B6DEFA"),
+    "BF8700": ("FFF8C5", "7D4E00", "E7D08A"),
+    "CF222E": ("FFEBE9", "B42318", "F5B5B4"),
+    "6E7781": ("EAECEF", "57606A", "D0D7DE"),
+}
 PILOT = {
     "docs/architecture.md": {
         "decision": "ADOPTED",
@@ -76,11 +83,17 @@ class DocumentStatusBadgesTests(unittest.TestCase):
                     self.assertEqual(asset.name, expected_name)
                     root = ElementTree.fromstring(asset.read_text(encoding="utf-8"))
                     self.assertEqual(root.attrib.get("role"), "img")
-                    self.assertEqual(root.attrib.get("height"), "20")
+                    self.assertEqual(root.attrib.get("height"), "22")
                     rects = [node for node in root if node.tag.endswith("rect")]
-                    self.assertEqual(len(rects), 2)
-                    self.assertEqual(rects[1].attrib.get("fill"),
-                                     "#" + ALLOWED[axis][value])
+                    self.assertEqual(len(rects), 1)
+                    background, ink, border = CHIP_PALETTE[ALLOWED[axis][value]]
+                    self.assertEqual(rects[0].attrib.get("rx"), "11")
+                    self.assertEqual(rects[0].attrib.get("fill"), "#" + background)
+                    self.assertEqual(rects[0].attrib.get("stroke"), "#" + border)
+                    texts = [node for node in root if node.tag.endswith("text")]
+                    self.assertEqual(len(texts), 1)
+                    self.assertEqual(texts[0].text, value)
+                    self.assertEqual(texts[0].attrib.get("fill"), "#" + ink)
                 self.assertEqual(seen, set(expected))
 
     def test_labels_do_not_claim_completed_semantic_review(self):
