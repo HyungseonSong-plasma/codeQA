@@ -7,7 +7,6 @@
 ---
 
 ## Contract catalog
-
 | Contract | Responsibility |
 | :-- | :-- |
 | [Architecture vocabulary v0.1](architecture-v0.1.vocabulary.json) | Entity kinds, typed relation endpoints, assurance types, assessment states and unsupported dimensions |
@@ -17,7 +16,6 @@
 | [Responsibility–Behavior v0.1](responsibility-behavior-v0.1.schema.json) | Independent, non-scoring imported-API syntax observations and role-placement review |
 
 ## Validation & boundaries
-
 - JSON Schema defines report shape. **Graph referential integrity** and
   vocabulary domain/range correctness also require the ground-truth semantic
   tests; schema validity alone is insufficient.
