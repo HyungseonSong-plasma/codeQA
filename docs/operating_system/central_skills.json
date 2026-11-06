@@ -86,6 +86,22 @@
         "expected_blob_sha": "945ecac9ee87cb070825867ee99fdec2c8bfe26a",
         "expected_contract_id": "samuel.documentation-refinement.v0.2"
       }
+    },
+    {
+      "name": "document-consistency",
+      "load_on": [
+        "DOCUMENTATION_CONSISTENCY_QA"
+      ],
+      "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
+      "path": "skills/document-consistency/README.md",
+      "expected_blob_sha": "1a63010c3cb8ef43e4a7abd8b2d093f8c26a6d90",
+      "contract": {
+        "path": "skills/document-consistency/contract-v0.1.json",
+        "expected_blob_sha": "753ab44591160c9c68643b62ba03b4a1e8dc2e05",
+        "expected_contract_id": "samuel.documentation-consistency.v0.1",
+        "expected_execution_mode": "READ_ONLY",
+        "expected_trigger": "DOCUMENTATION_CONSISTENCY_QA"
+      }
     }
   ],
   "skill_catalog": {

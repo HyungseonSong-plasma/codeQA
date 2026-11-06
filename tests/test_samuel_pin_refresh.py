@@ -60,7 +60,7 @@ class SamuelPinRefreshTests(unittest.TestCase):
                                     if "contract" in skill else []))
         ]
         paths = [entry["path"] for entry in resources]
-        self.assertEqual(len(resources), 12)
+        self.assertEqual(len(resources), 14)
         self.assertEqual(len(paths), len(set(paths)))
         for item in resources:
             with self.subTest(path=item["path"]):
@@ -141,12 +141,26 @@ class SamuelPinRefreshTests(unittest.TestCase):
         self.assertIs(local["enabled"], False)
         self.assertEqual(local["repository"], "HyungseonSong-plasma/codeQA")
 
-    def test_phase_b_documentation_activation_is_not_included(self):
-        self.assertNotIn("document-consistency",
-                         {skill["name"] for skill in self.pin["skills"]})
-        for item in self.pin["skills"]:
-            self.assertNotIn("DOCUMENTATION_CONSISTENCY_QA",
-                             item["load_on"])
+    def test_phase_b_documentation_activation_is_trigger_only(self):
+        entries = {skill["name"]: skill for skill in self.pin["skills"]}
+        self.assertIn("document-consistency", entries)
+        qa = entries["document-consistency"]
+        self.assertEqual(qa["load_on"], ["DOCUMENTATION_CONSISTENCY_QA"])
+        self.assertEqual(qa["revision"], NEW_REVISION)
+        self.assertEqual(qa["expected_blob_sha"],
+                         "1a63010c3cb8ef43e4a7abd8b2d093f8c26a6d90")
+        self.assertEqual(qa["contract"], {
+            "path": "skills/document-consistency/contract-v0.1.json",
+            "expected_blob_sha": "753ab44591160c9c68643b62ba03b4a1e8dc2e05",
+            "expected_contract_id": "samuel.documentation-consistency.v0.1",
+            "expected_execution_mode": "READ_ONLY",
+            "expected_trigger": "DOCUMENTATION_CONSISTENCY_QA",
+        })
+        self.assertEqual(
+            {name for name, skill in entries.items()
+             if "INIT" in skill["load_on"]},
+            {"session-bootstrap", "state-refresh", "problem-oriented-response"},
+        )
 
 
 if __name__ == "__main__":

@@ -45,10 +45,18 @@
    GITHUB_BRANCH_DELETE_ROUTE=READY|BLOCKED
    GITHUB_MUTATION_PREFLIGHT=TRIGGER_REQUIRED
    ```
-9. For later documentation tasks, resolve `DOCUMENTATION_REFINEMENT` only
-   when requested, using the pinned `documentation-refinement` README and
-   machine contract from `central_skills.json`. Its transformation is
-   read-only; repository writes require the separate Samuel mutation route.
+9. For later documentation tasks, load optional skills **only on their
+   explicit triggers**, never during `INIT`:
+   - `DOCUMENTATION_REFINEMENT` resolves the pinned `documentation-refinement`
+     README and machine contract. Its candidate transformation is read-only.
+   - `DOCUMENTATION_CONSISTENCY_QA` resolves the pinned
+     `document-consistency` README and
+     `contract-v0.1.json`, checks both Git blob identities, and uses only the
+     read-only two-document local badge presentation pilot described in
+     `CENTRAL_SKILLS.md`. Do not turn a presentation match or Gate 1 scoped
+     check into Gate 2 review approval.
+   Neither trigger allows a repository write; all future mutations require
+   separately authorized, target-bound routes.
 10. Stop **read-only**. A successful init is neither permission nor an
    automatic request to delete branches.
 

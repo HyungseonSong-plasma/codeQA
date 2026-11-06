@@ -64,8 +64,17 @@ class DocumentStatusBadgesTests(unittest.TestCase):
                 file = ROOT / doc_path
                 lines = file.read_text(encoding="utf-8").splitlines()
                 self.assertTrue(lines[0].startswith("# "), "H1 must be first")
-                badges = BADGE_RE.findall("\n".join(lines[1:11]))
-                self.assertEqual(len(badges), 3, "exactly three badges below H1")
+                self.assertEqual(lines[1], "", "blank line follows first H1")
+                badges = BADGE_RE.findall(lines[2])
+                self.assertEqual(len(badges), 3, "exactly three badges immediately below H1")
+                self.assertEqual(
+                    [axis.lower() for axis, _value, _target in badges],
+                    ["decision", "implementation", "review"],
+                )
+                self.assertEqual(
+                    BADGE_RE.findall("\n".join(lines[3:11])), [],
+                    "no extra status badges in the introductory block",
+                )
                 seen = set()
                 for axis_name, value, target in badges:
                     axis = axis_name.casefold()
@@ -84,6 +93,11 @@ class DocumentStatusBadgesTests(unittest.TestCase):
                     root = ElementTree.fromstring(asset.read_text(encoding="utf-8"))
                     self.assertEqual(root.attrib.get("role"), "img")
                     self.assertEqual(root.attrib.get("height"), "22")
+                    self.assertEqual(root.attrib.get("aria-label"),
+                                     f"{axis_name}: {value}")
+                    titles = [node.text for node in root
+                              if node.tag.endswith("title")]
+                    self.assertEqual(titles, [f"{axis_name}: {value}"])
                     rects = [node for node in root if node.tag.endswith("rect")]
                     self.assertEqual(len(rects), 1)
                     background, ink, border = CHIP_PALETTE[ALLOWED[axis][value]]
@@ -99,8 +113,14 @@ class DocumentStatusBadgesTests(unittest.TestCase):
     def test_labels_do_not_claim_completed_semantic_review(self):
         catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
         entries = {item["path"]: item for item in catalog["documents"]}
+        self.assertEqual(
+            {path for path, entry in entries.items() if "status_labels" in entry},
+            set(PILOT),
+            "Phase B should not silently expand the reviewed pilot inventory",
+        )
         for doc in PILOT:
             self.assertEqual(entries[doc]["authority_review"], "NOT_EVALUATED")
+            self.assertNotEqual(entries[doc]["status_labels"]["review"], "REVIEWED")
 
 
 if __name__ == "__main__":
