@@ -48,6 +48,14 @@ def impact_report() -> dict:
                      for d in docs)
     assert row["disposition"] == "CANDIDATE_REQUIRES_BACKLINK_AUDIT"
     assert row["authority_review"] == "NOT_EVALUATED"
+    # Coverage must be explicit: suffix filtering is not an exhaustive scan of
+    # every tracked blob. Do not interpret missing hits as proof of absence.
+    excluded = sorted(
+        source for source in tracked
+        if (ROOT / source).is_file()
+        and (ROOT / source).suffix.lower() not in TEXT_SUFFIXES
+    )
+    unreadable_text = []
     inbound, outbound, literals, external = [], [], [], []
     for source in sorted(tracked):
         file = ROOT / source
@@ -56,6 +64,7 @@ def impact_report() -> dict:
         try:
             text = file.read_text(encoding="utf-8")
         except UnicodeDecodeError:
+            unreadable_text.append(source)
             continue
         if source.endswith(".md"):
             for lineno, href in links_from_markdown(text):
@@ -83,7 +92,12 @@ def impact_report() -> dict:
         "head": git_head(), "source": OLD, "proposed_destination": NEW,
         "source_git_blob": subprocess.check_output(
             ["git", "hash-object", OLD], cwd=ROOT, text=True).strip(),
-        "tracked_files": len(tracked), "catalog_documents": len(docs),
+        "tracked_files": len(tracked),
+        "scan_scope": "tracked UTF-8 files with TEXT_SUFFIXES; parsed links only in Markdown",
+        "excluded_tracked_files": excluded,
+        "unreadable_included_text_files": unreadable_text,
+        "unscanned_file_types_complete": False,
+        "catalog_documents": len(docs),
         "catalog_relocation_candidates": candidates,
         "responsible_area": row.get("area"),
         "authority_review": row["authority_review"],
@@ -97,6 +111,7 @@ def impact_report() -> dict:
         "cross_repository_references": "UNKNOWN",
         "rendered_github_fragments": "NOT_EVALUATED",
         "semantic_review": "NOT_EVALUATED",
+        "destination_index_compatibility": "REQUIRES_HUMAN_TAXONOMY_REVIEW",
         "rollback": "Do not move in this PR. For a later approved move, restore OLD "
                     "and its original relative links, revert inbound link rewrites, "
                     "catalog and navigation edits; validate exact HEAD and historical anchors.",
@@ -116,6 +131,9 @@ class FirstFamilyImpactTests(unittest.TestCase):
                          "acf90d0bf9484a56beca66bfbb41dc0037345c6e")
         self.assertTrue(report["heading_fragments"])
         self.assertEqual(report["external_deep_links"], "UNKNOWN")
+        self.assertFalse(report["unscanned_file_types_complete"])
+        self.assertEqual(report["destination_index_compatibility"],
+                         "REQUIRES_HUMAN_TAXONOMY_REVIEW")
 
 
 if __name__ == "__main__":
