@@ -63,6 +63,46 @@ CodeQA owns interpretation of its schemas, profiles and reports.
 Apply accepted changes through Samuel's separately authorized file/PR routes,
 with exact-head validation and review.
 
+## Documentation Consistency QA v0.1 (Phase B, on demand)
+
+`DOCUMENTATION_CONSISTENCY_QA` now resolves the pinned
+`skills/document-consistency/README.md` and
+`skills/document-consistency/contract-v0.1.json` with exact Git blob SHA
+verification at the **same** Samuel revision as the required INIT skills.
+Contract identity: `samuel.documentation-consistency.v0.1`. The execution
+mode is **`READ_ONLY`** and activation is **`trigger`**, never `INIT`
+or an unattended Controller job.
+
+**On an explicit documentation-status QA request:**
+1. Resolve `document-consistency` from `central_skills.json` and the
+   exact pinned central catalog; reject mismatched source revision, Git blobs,
+   contract ID, trigger, read-only mode or unexpected status vocabulary.
+2. Read the codeQA-owned `docs/documentation-catalog-v0.1.json` as
+   **declared metadata**, not independent review authority. The pilot
+   currently identifies only two `status_labels` documents:
+   `docs/architecture.md` and
+   `docs/governance/documentation-architecture-v0.1.md`.
+3. Run the local, **read-only pilot presentation check** from codeQA root:
+   `python3 -m unittest discover -s tests -p 'test_document_status_badges.py' -v`.
+   It checks each pilot document's declared status values, H1 badge placement
+   and local SVG assets. The rest of the documentation catalog is not
+   silently assigned statuses or treated as passed.
+4. For Samuel's portable `audit_document_labels` API, the caller must
+   separately provide exact source bytes, a 40-hex snapshot revision and
+   **complete** source inventory, as required by its contract. The local
+   pilot test alone does **not** attest that full-source witness.
+5. Report **presentation MATCH/MISMATCH separately from semantic status**.
+   A green check means the declared labels were displayed consistently:
+   `semantic_status=NOT_EVALUATED` and
+   `authority_upgrade=FORBIDDEN`. The optional scoped static Gate 1
+   result is not Gate 2 approval. Gate 2 independently remains
+   `REVIEW_REQUIRED` until authenticated domain review is completed.
+
+The command performs no GitHub writes, pin upgrades, document migrations,
+automatic badge edits or mutations. Any later proposed edit requires a
+separate reviewed, target-bound codeQA mutation path. Samuel #264's generic
+cross-repository native mutation is **still unsupported**.
+
 ## GitHub creation and update routing
 
 Samuel `28abfb4d640e433818f3a9f75312721f9f195a52` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
