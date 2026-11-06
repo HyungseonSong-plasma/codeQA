@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = "c803cd6b77c6d112df33d8679bac32f993a658b0"
+PIN = "28abfb4d640e433818f3a9f75312721f9f195a52"
 MANIFEST = ROOT / "docs/operating_system/central_skills.json"
 REQUEST = ROOT / ".github/requests/branch-delete-request.json"
 WORKFLOW = ROOT / ".github/workflows/samuel-branch-delete.yml"
@@ -72,7 +72,7 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
         )
         self.assertEqual(
             manifest["skill_catalog"]["expected_blob_sha"],
-            "e60bfc71d94764ef13699272ac77ad85d8d1b2b8",
+            "d1abedc2800b2acb1bfe08182995b51d7dea1770",
         )
         for item in by_name.values():
             self.assertEqual(item["revision"], PIN)
