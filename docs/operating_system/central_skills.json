@@ -2,7 +2,7 @@
   "schema_version": 2,
   "source_repository": "HyungseonSong-plasma/chatgpt-operation",
   "operating_system": {
-    "revision": "c803cd6b77c6d112df33d8679bac32f993a658b0",
+    "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
     "expected_version": "Samuel",
     "index": {
       "path": "docs/operating_system/README.md",
@@ -19,7 +19,7 @@
       "load_on": [
         "INIT"
       ],
-      "revision": "c803cd6b77c6d112df33d8679bac32f993a658b0",
+      "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
       "path": "skills/session-bootstrap/README.md",
       "expected_blob_sha": "6a7a3c23a05907677d0a75ba5412973da37eae54"
     },
@@ -29,7 +29,7 @@
         "INIT",
         "SCHEDULED_CONTROLLER"
       ],
-      "revision": "c803cd6b77c6d112df33d8679bac32f993a658b0",
+      "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
       "path": "skills/state-refresh/README.md",
       "expected_blob_sha": "4efe6135b93456f2cc9da31786967f5f6ac80033"
     },
@@ -38,7 +38,7 @@
       "load_on": [
         "INIT"
       ],
-      "revision": "c803cd6b77c6d112df33d8679bac32f993a658b0",
+      "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
       "path": "skills/problem-oriented-response/README.md",
       "expected_blob_sha": "c0d255134664a35db2250fa62bf3b06b3d8e3313",
       "contract": {
@@ -60,25 +60,25 @@
         "GITHUB_FILE_UPDATE",
         "GITHUB_BRANCH_CREATE"
       ],
-      "revision": "c803cd6b77c6d112df33d8679bac32f993a658b0",
+      "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
       "path": "skills/repository-mutation/README.md",
-      "expected_blob_sha": "496f3c52e8c5c3a8f376abffa23f5317c291f76b"
+      "expected_blob_sha": "a015776c54d6dc6f507c8da0ca09a36554f6a9de"
     },
     {
       "name": "pull-request-create",
       "load_on": [
         "GITHUB_PR_CREATE"
       ],
-      "revision": "c803cd6b77c6d112df33d8679bac32f993a658b0",
+      "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
       "path": "skills/pull-request-create/README.md",
-      "expected_blob_sha": "b8917ebcde313229b6d7ff91db95e41dae7ddf7f"
+      "expected_blob_sha": "38b53644b2c9a846cab9387afb7c8c7fcdb8c7a4"
     },
     {
       "name": "documentation-refinement",
       "load_on": [
         "DOCUMENTATION_REFINEMENT"
       ],
-      "revision": "c803cd6b77c6d112df33d8679bac32f993a658b0",
+      "revision": "28abfb4d640e433818f3a9f75312721f9f195a52",
       "path": "skills/documentation-refinement/README.md",
       "expected_blob_sha": "bc9c2ba40236c10ebc143d3970fe3b8663306889",
       "contract": {
@@ -90,7 +90,7 @@
   ],
   "skill_catalog": {
     "path": "skills/catalog.json",
-    "expected_blob_sha": "e60bfc71d94764ef13699272ac77ad85d8d1b2b8"
+    "expected_blob_sha": "d1abedc2800b2acb1bfe08182995b51d7dea1770"
   },
   "capability_registry": {
     "path": "skills/capability-registry.json",

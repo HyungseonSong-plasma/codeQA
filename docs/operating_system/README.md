@@ -12,7 +12,7 @@
 | **Consumer** | `HyungseonSong-plasma/codeQA` |
 | **Central authority** | `HyungseonSong-plasma/chatgpt-operation` |
 | **OS** | Samuel |
-| **Pinned revision** | `c803cd6b77c6d112df33d8679bac32f993a658b0` |
+| **Pinned revision** | `28abfb4d640e433818f3a9f75312721f9f195a52` |
 
 ### Quick routes
 | Task | Source of truth |
@@ -74,6 +74,25 @@ branch creation/deletion, PR creation/merge and workflow dispatch. These routes
 require separate authorization, current repository evidence and postcondition
 verification. Creation does not imply approval; QA and scientific contracts
 remain codeQA-owned.
+
+## Phase A execution scope
+
+The central capability registry describes potential provider routes; a
+successfully verified `codeQA-init` **does not** establish live write
+authorization. At this pin, Samuel's generic `REPOSITORY_MUTATION` native
+workflow is **unsupported for cross-repository codeQA file/branch changes**:
+its canonical policy is bound to the Samuel repository, not codeQA.
+Report `TARGET_POLICY_NOT_ESTABLISHED` and stop, rather than silently
+dispatching that workflow or reusing Samuel's policy for codeQA. See
+[CENTRAL_SKILLS.md](CENTRAL_SKILLS.md) and
+[Samuel #264](https://github.com/HyungseonSong-plasma/chatgpt-operation/issues/264).
+
+This does not disable the separately authorized codeQA-owned exact-SHA
+branch-delete workflow. The scoped Issue #92 target-owned executor also remains
+disabled by its local `enabled=false` policy. GitHub connector requests, if
+made separately, still require their own target-specific safety and mutation
+checks; central routing metadata is not approval. Documentation Consistency QA
+activation is reserved for Phase B. Gate 2 is still `REVIEW_REQUIRED`.
 
 ## Owner-requested branch cleanup batches (2026-10-27)
 `.github/requests/branch-delete-request.json` is normally empty.

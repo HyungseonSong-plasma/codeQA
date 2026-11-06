@@ -1,6 +1,6 @@
 # Central Samuel skills — codeQA consumer
 
-**Source:** `HyungseonSong-plasma/chatgpt-operation@c803cd6b77c6d112df33d8679bac32f993a658b0`
+**Source:** `HyungseonSong-plasma/chatgpt-operation@28abfb4d640e433818f3a9f75312721f9f195a52`
 
 ## Required init
 
@@ -65,7 +65,44 @@ with exact-head validation and review.
 
 ## GitHub creation and update routing
 
-Samuel `c803cd6b77c6d112df33d8679bac32f993a658b0` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
+Samuel `28abfb4d640e433818f3a9f75312721f9f195a52` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
+
+## Phase A consumer execution boundary (Samuel Issue #264)
+
+This exact-revision pin verifies Samuel **source identities and routing metadata**;
+it does not turn every catalog entry into an approved codeQA execution provider.
+
+- `codeQA-init` remains read-only. Resolving `GITHUB_FILE_CREATE`,
+  `GITHUB_FILE_UPDATE`, or `GITHUB_BRANCH_CREATE` from the central catalog is
+  **routing discovery**, not permission to execute.
+- The Samuel `REPOSITORY_MUTATION` gateway/native workflow uses
+  `automation/samuel/repository-mutation-policy.json` bound to
+  `HyungseonSong-plasma/chatgpt-operation`. It is **not a supported provider
+  for codeQA-targeted generic file/branch mutation** at this pin. Without a
+  separately verified, target-repository policy and authorized execution
+  provider, stop as `TARGET_POLICY_NOT_ESTABLISHED`; do not dispatch the
+  Samuel native workflow or substitute its policy for codeQA.
+- The central catalog lists the `github-connector` before the native
+  mutation fallback. Such a provider can be considered only after its own
+  original safety screening, codeQA-targeted policy, actor permissions,
+  expected SHA and postcondition gates pass. An upstream refusal is a hard
+  stop; do not try the native provider to evade it.
+- Existing codeQA `.github/workflows/samuel-branch-delete.yml` is a
+  **separate target-owned exact-SHA path**, requiring an explicit reviewed
+  request. Its pinned Action and underlying deletion module are byte-identical
+  across the old/new Samuel revisions. Initialization never dispatches it.
+- The target-owned Issue #92 `samuel-codeqa-issue-execute.yml` has a separate,
+  narrow local policy `profiles/samuel-issue92-target-executor-v1.json`;
+  that policy remains `enabled=false`. It is not evidence that the generic
+  Samuel cross-repository gateway is ready.
+- Samuel [Issue #264](https://github.com/HyungseonSong-plasma/chatgpt-operation/issues/264)
+  tracks proper target-bound native-policy design independently. Until its
+  evidence is accepted, do not promote any consumer mutation readiness claim
+  based on this pin upgrade or green CI.
+
+Documentation Consistency QA remains **Phase B**, separately activated after
+this pin migration. Gate 2 independent semantic approval stays
+`REVIEW_REQUIRED`; no documentation badges gain review status automatically.
 
 ## GitHub connector authorization and error triage
 
