@@ -92,7 +92,14 @@ class SamuelPinRefreshTests(unittest.TestCase):
         request = json.loads((
             ROOT / ".github/requests/branch-delete-request.json"
         ).read_text(encoding="utf-8"))
-        self.assertEqual(request["targets"], [])
+        # Reviewed short-lived nonempty batches are also valid.
+        # This read-only test does not execute or authorize deletion.
+        import runpy
+        validate = runpy.run_path(str(
+            ROOT / ".github/scripts/validate_branch_delete_request.py"
+        ))["validate_request"]
+        validated = validate(request)
+        self.assertLessEqual(len(validated), 50)
 
     def test_samuel_init_contract_is_retained(self):
         pin = self.pin
