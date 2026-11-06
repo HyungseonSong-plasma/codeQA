@@ -1,6 +1,6 @@
 # Central Samuel skills — codeQA consumer
 
-**Source:** `HyungseonSong-plasma/chatgpt-operation@c803cd6b77c6d112df33d8679bac32f993a658b0`
+**Source:** `HyungseonSong-plasma/chatgpt-operation@28abfb4d640e433818f3a9f75312721f9f195a52`
 
 ## Required init
 
@@ -65,7 +65,7 @@ with exact-head validation and review.
 
 ## GitHub creation and update routing
 
-Samuel `c803cd6b77c6d112df33d8679bac32f993a658b0` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
+Samuel `28abfb4d640e433818f3a9f75312721f9f195a52` registers `GITHUB_FILE_CREATE`, `GITHUB_FILE_UPDATE`, and `GITHUB_BRANCH_CREATE` through `repository-mutation`: `github-connector` first, then the bounded `repository-native` provider. `GITHUB_PR_CREATE` is handled through `pull-request-create` using **`github-connector` only**. Safety-screening and repository policy denials are hard stops, not permission diagnostics or fallback triggers. Existing native-first `GITHUB_BRANCH_DELETE` and guarded `GITHUB_PR_MERGE` routes remain unchanged. GitHub permission diagnosis must use original error evidence; never assert an upstream screening block is a GitHub 403.
 
 ## GitHub connector authorization and error triage
 
