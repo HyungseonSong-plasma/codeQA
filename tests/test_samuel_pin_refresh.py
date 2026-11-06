@@ -118,6 +118,29 @@ class SamuelPinRefreshTests(unittest.TestCase):
         self.assertIn("GITHUB_BRANCH_DELETE",
                       skills["repository-mutation"]["load_on"])
 
+    def test_generic_cross_repo_native_mutation_is_not_asserted_ready(self):
+        central = (ROOT / "docs/operating_system/CENTRAL_SKILLS.md").read_text(
+            encoding="utf-8")
+        intro = (ROOT / "docs/operating_system/README.md").read_text(
+            encoding="utf-8")
+        for marker in (
+            "TARGET_POLICY_NOT_ESTABLISHED",
+            "REPOSITORY_MUTATION",
+            "Issue #264",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, central)
+        self.assertIn("TARGET_POLICY_NOT_ESTABLISHED", intro)
+        self.assertIn("unsupported for cross-repository", intro)
+        self.assertIn("Gate 2", intro)
+        # This separately governed target-owned executor must remain disabled
+        # and cannot stand in for the Samuel generic native execution route.
+        local = json.loads((
+            ROOT / "profiles/samuel-issue92-target-executor-v1.json"
+        ).read_text(encoding="utf-8"))
+        self.assertIs(local["enabled"], False)
+        self.assertEqual(local["repository"], "HyungseonSong-plasma/codeQA")
+
     def test_phase_b_documentation_activation_is_not_included(self):
         self.assertNotIn("document-consistency",
                          {skill["name"] for skill in self.pin["skills"]})
