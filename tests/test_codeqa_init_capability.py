@@ -33,7 +33,7 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
                        manifest["skill_catalog"], manifest["capability_registry"]]:
             self.assertRegex(record["expected_blob_sha"], r"^[0-9a-f]{40}$")
         by_name = {entry["name"]: entry for entry in manifest["skills"]}
-        self.assertEqual(set(by_name), {"session-bootstrap", "state-refresh", "problem-oriented-response", "repository-mutation", "pull-request-create", "documentation-refinement"})
+        self.assertEqual(set(by_name), {"session-bootstrap", "state-refresh", "problem-oriented-response", "repository-mutation", "pull-request-create", "documentation-refinement", "document-consistency"})
         self.assertEqual(by_name["session-bootstrap"]["load_on"], ["INIT"])
         self.assertEqual(by_name["state-refresh"]["load_on"], ["INIT", "SCHEDULED_CONTROLLER"])
         response = by_name["problem-oriented-response"]
@@ -74,6 +74,19 @@ class CodeQaInitCapabilityTests(unittest.TestCase):
             manifest["skill_catalog"]["expected_blob_sha"],
             "d1abedc2800b2acb1bfe08182995b51d7dea1770",
         )
+        consistency = by_name["document-consistency"]
+        self.assertEqual(consistency["load_on"], ["DOCUMENTATION_CONSISTENCY_QA"])
+        self.assertNotIn("INIT", consistency["load_on"])
+        self.assertEqual(consistency["path"], "skills/document-consistency/README.md")
+        self.assertEqual(consistency["expected_blob_sha"],
+                         "1a63010c3cb8ef43e4a7abd8b2d093f8c26a6d90")
+        self.assertEqual(consistency["contract"], {
+            "path": "skills/document-consistency/contract-v0.1.json",
+            "expected_blob_sha": "753ab44591160c9c68643b62ba03b4a1e8dc2e05",
+            "expected_contract_id": "samuel.documentation-consistency.v0.1",
+            "expected_execution_mode": "READ_ONLY",
+            "expected_trigger": "DOCUMENTATION_CONSISTENCY_QA",
+        })
         for item in by_name.values():
             self.assertEqual(item["revision"], PIN)
             self.assertRegex(item["expected_blob_sha"], r"^[0-9a-f]{40}$")
