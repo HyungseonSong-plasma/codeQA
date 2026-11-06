@@ -22,6 +22,7 @@
 | Load Samuel capabilities | [CENTRAL_SKILLS.md](CENTRAL_SKILLS.md) |
 | Request guarded branch deletion | [Request manifest](../../.github/requests/branch-delete-request.json) |
 | Invoke documentation refinement | `DOCUMENTATION_REFINEMENT` (on-demand; not `INIT`) |
+| Check documentation status presentation | `DOCUMENTATION_CONSISTENCY_QA` (on-demand read-only; not `INIT`) |
 
 > [!NOTE]
 > `codeQA-init` verifies routing and restores context; it does not execute
@@ -75,6 +76,26 @@ require separate authorization, current repository evidence and postcondition
 verification. Creation does not imply approval; QA and scientific contracts
 remain codeQA-owned.
 
+## Documentation Consistency QA (Phase B)
+
+The exact Samuel pin now registers the read-only, trigger-only
+`DOCUMENTATION_CONSISTENCY_QA` skill and v0.1 machine contract; it does not
+change the three mandatory INIT skills. With an explicit request, verify both
+remote skill/contract Git blobs, then run the **codeQA-owned, two-document**
+presentation pilot from the repository root:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_document_status_badges.py' -v
+```
+
+The local audit compares codeQA's declared `status_labels`, the header badges
+and local SVG asset palette. It is not a semantic reviewer or proof that all
+documentation was audited. Gate 1's scoped checks, presentation integrity and
+Gate 2 independent approval remain separate; `authority_review` and Review
+status must not be upgraded by a passing local test. Full Samuel portable
+checks require caller-supplied complete source inventory and exact snapshot
+witness. See [the bound trigger and contract](CENTRAL_SKILLS.md).
+
 ## Phase A execution scope
 
 The central capability registry describes potential provider routes; a
@@ -92,7 +113,8 @@ branch-delete workflow. The scoped Issue #92 target-owned executor also remains
 disabled by its local `enabled=false` policy. GitHub connector requests, if
 made separately, still require their own target-specific safety and mutation
 checks; central routing metadata is not approval. Documentation Consistency QA
-activation is reserved for Phase B. Gate 2 is still `REVIEW_REQUIRED`.
+has an independent, on-demand read-only Phase B trigger. Gate 2 is still
+`REVIEW_REQUIRED`.
 
 ## Owner-requested branch cleanup batches (2026-10-27)
 `.github/requests/branch-delete-request.json` is normally empty.
