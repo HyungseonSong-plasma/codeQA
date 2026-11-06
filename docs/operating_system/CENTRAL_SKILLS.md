@@ -140,8 +140,8 @@ it does not turn every catalog entry into an approved codeQA execution provider.
   evidence is accepted, do not promote any consumer mutation readiness claim
   based on this pin upgrade or green CI.
 
-Documentation Consistency QA remains **Phase B**, separately activated after
-this pin migration. Gate 2 independent semantic approval stays
+Documentation Consistency QA is now enabled only as the **on-demand Phase B
+trigger** documented below. Gate 2 independent semantic approval stays
 `REVIEW_REQUIRED`; no documentation badges gain review status automatically.
 
 ## GitHub connector authorization and error triage
