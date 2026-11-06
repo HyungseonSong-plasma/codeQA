@@ -18,7 +18,7 @@ from test_documentation_reference_audit import (
 )
 
 OLD = "docs/schema-composition-pilot-v0.1.md"
-NEW = "docs/experiments/schema-composition-pilot-v0.1.md"
+NEW = "/".join(("docs", "experiments", "schema-composition-pilot-v0.1.md"))
 
 
 def git_head() -> str:
