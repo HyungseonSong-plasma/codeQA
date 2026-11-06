@@ -12,7 +12,7 @@
 | **Consumer** | `HyungseonSong-plasma/codeQA` |
 | **Central authority** | `HyungseonSong-plasma/chatgpt-operation` |
 | **OS** | Samuel |
-| **Pinned revision** | `c803cd6b77c6d112df33d8679bac32f993a658b0` |
+| **Pinned revision** | `28abfb4d640e433818f3a9f75312721f9f195a52` |
 
 ### Quick routes
 | Task | Source of truth |
