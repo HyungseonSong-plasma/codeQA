@@ -28,8 +28,8 @@ parent+helper sum **increases**, 19 → 20. A tool optimizing only the
 trigger could recommend a superficial redistribution of calls.
 
 Source repository and exact independently checked Git blob bytes:
-[provenance manifest](../../fixtures/moose-p3-refactor/provenance.json).
-The [prior A/B report](../experiments/moose-production-field-blind-vs-codeqa-20261023.md)
+[provenance manifest](../fixtures/moose-p3-refactor/provenance.json).
+The [prior A/B report](experiments/moose-production-field-blind-vs-codeqa-20261023.md)
 also documents 253 bounded differential numerical tests, **not proof of all
 possible behavior or physics simulation correctness**.
 

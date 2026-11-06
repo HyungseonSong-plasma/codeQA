@@ -1,6 +1,6 @@
 # Python Naming Coverage v0.2 — opt-in additional evidence (#69)
 
-**Status:** limited Phase 2 implementation; **does not close #69**.
+**Historical milestone status:** limited Phase 2 implementation; this slice **did not itself close #69**. Issue [#69](https://github.com/HyungseonSong-plasma/codeQA/issues/69) was subsequently **closed/completed on 2026-10-24**. That later closure does not enlarge this document's explicitly limited implementation evidence.
 
 This is an *additive* companion to the frozen Naming v0.1 model; it does
 not modify the v0.1 profile, AST extractor, report schema or findings.
@@ -78,7 +78,7 @@ The test of that file demonstrates deterministic **sample evidence**,
 not an independently human-reviewed false-positive/false-negative
 inventory or whole-repository coverage.
 
-**#69 remains OPEN** pending real maintainer-reviewed source inventory,
+**At the time of this bounded milestone, #69 remained open** pending real maintainer-reviewed source inventory,
 more declaration types (including complicated dynamic module bindings,
 import re-exports, nested binding semantics, more complex Final binding transformations),
 full exception precedence and signed source/consumer schema provenance.

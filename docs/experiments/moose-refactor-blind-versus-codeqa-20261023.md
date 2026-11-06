@@ -1,5 +1,7 @@
 # MOOSE codeQA-assisted vs. blinded refactoring — controlled single-file pilot
 
+> **Historical experiment with current ref check (2026-11-05):** The experiment used the immutable main baseline `69be07aab3e5815a1670f7308deb6caf6b49bc79`. A fresh GitHub ref query shows `moose-test-repo` main at `a281bd07d1b61b488e22668fb8a6825417711841`; both experiment branches **still exist** at the exact commit IDs recorded below. This is not proof they were merged into main, nor approval to delete or re-run them.
+
 **Date:** 2026-10-23. **Status:** two experimental branches exist; **neither
 merged to moose-test-repo main**. The target is the CI guard
 `ci/guards/physics_dependency_guard.py`, not a plasma solver kernel.
@@ -93,5 +95,5 @@ equivalence or scientific simulation correctness.
   structural refactors. Those are *future* evaluator design tasks, not
   retrospective changes to this frozen evidence.
 
-**Repository main remains at
-`69be07aab3e5815a1670f7308deb6caf6b49bc79`.**
+**Experiment-time repository main was
+`69be07aab3e5815a1670f7308deb6caf6b49bc79`.** Current main is different as verified in the dated note above; the frozen experimental comparisons are unchanged.

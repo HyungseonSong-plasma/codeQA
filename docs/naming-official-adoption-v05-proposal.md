@@ -1,6 +1,8 @@
 # Official Naming v0.5 — narrowly scoped adoption proposal (Issue #144)
 
-**Status: PENDING_FINAL_OWNER_APPROVAL, not adopted.** This is a concrete
+> **Historical proposal (2026-11-05 status reconciliation):** The pending state below was accurate when written, but a *separate* narrow lexical policy was later adopted in [Official Naming v0.5](naming-official-policy-v05.md). Issue [#144](https://github.com/HyungseonSong-plasma/codeQA/issues/144) was **closed/not planned on 2026-10-27** for broader glossary/external compatibility ambitions. Do not interpret either event as adopting the entire proposal, authorizing renames or proving SDK/DB semantics.
+
+**Status when drafted: PENDING_FINAL_OWNER_APPROVAL, not adopted in this historical proposal.** This is a concrete
 proposal for project-owner decision, not a change to default Naming v0.1
 or evidence that a domain-semantic glossary has been adopted.
 
@@ -73,4 +75,4 @@ to `time_step`, `nodeid` aliases or external consumers.
 
 Until a separately approved adoption commit exists, **official adoption
 remains pending**. Further expansion is a distinct scoped review with
-real source and meaning evidence. Issue #144 stays Open.
+real source and meaning evidence. At the time of this proposal, Issue #144 was open. It was subsequently closed/not planned on 2026-10-27.
