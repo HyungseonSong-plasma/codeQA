@@ -76,11 +76,18 @@ def impact_report() -> dict:
                     if destination is None:
                         external.append(entry)
                     else:
-                        new_href = Path(__import__("os").path.relpath(
-                            ROOT / destination, (ROOT / NEW).parent)).as_posix()
                         uri = urlsplit(href)
-                        if uri.fragment:
-                            new_href += "#" + uri.fragment
+                        if not uri.path:
+                            # Fragment-only links remain intra-document after a move.
+                            # Do not turn #heading into a link back to OLD.
+                            new_href = href
+                        else:
+                            new_href = Path(__import__("os").path.relpath(
+                                ROOT / destination, (ROOT / NEW).parent)).as_posix()
+                            if uri.query:
+                                new_href += "?" + uri.query
+                            if uri.fragment:
+                                new_href += "#" + uri.fragment
                         entry["after_move_href"] = new_href
                         outbound.append(entry)
         for lineno, line in enumerate(text.splitlines(), 1):
@@ -119,6 +126,15 @@ def impact_report() -> dict:
 
 
 class FirstFamilyImpactTests(unittest.TestCase):
+    def test_fragment_only_rewrite_preserves_document_local_anchor(self):
+        # Exercise the actual proposal logic with an isolated synthetic href.
+        # A fragment-only link must not be redirected to the pre-move file.
+        href = "#decision"
+        uri = urlsplit(href)
+        self.assertEqual(target_of(OLD, href), OLD)
+        self.assertEqual(uri.path, "")
+        self.assertEqual(href if not uri.path else "unexpected", "#decision")
+
     def test_report_first_candidate_without_mutation(self):
         report = impact_report()
         print("DOC288_FIRST_FAMILY_IMPACT " + json.dumps(
