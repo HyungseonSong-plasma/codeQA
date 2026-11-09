@@ -31,7 +31,7 @@ folders are **not claimed as completed migrations**.
 
 - [Canonical machine contracts](../contracts/README.md) — JSON Schemas, vocabulary and relevant validation boundaries.
 - [Adapter contract explanation](contracts/language-adapter-0.1.md) · [QA Result explanation](contracts/qa-result-0.1.md) · [Quality Delta v0.2 explanation](contracts/quality-delta-0.2.md).
-- [Contract taxonomy decision record](contract-taxonomy-and-composition-v0.1.md) · [Composition pilot and negative ROI](schema-composition-pilot-v0.1.md).
+- [Contract taxonomy decision record](contract-taxonomy-and-composition-v0.1.md) · [Composition pilot and negative ROI](experiments/schema-composition-pilot-v0.1.md).
 
 ## Governance — accepted decisions, policy and verification
 
