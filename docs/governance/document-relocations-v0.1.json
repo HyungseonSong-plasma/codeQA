@@ -1,0 +1,85 @@
+{
+  "schema_version": "doc288-relocation-contract-v0.1",
+  "source_main_commit": "29124e501afb5ef265460c6f7670de455f34f245",
+  "meaning": "Read-only recorded relocation invariants, not a merge or semantic authority verdict.",
+  "moves": [
+    {
+      "legacy": "docs/schema-composition-pilot-v0.1.md",
+      "canonical": "docs/experiments/schema-composition-pilot-v0.1.md",
+      "original_blob": "acf90d0bf9484a56beca66bfbb41dc0037345c6e",
+      "canonical_blob": "06a4ea8424fe0440116c0760d26f170ad4bf8926",
+      "canonical_area": "experiments",
+      "canonical_role": "SCOPED_DECISION_RECORD",
+      "section_slugs": [
+        "question",
+        "exact-sources-and-findings",
+        "reproducible-executable-pilot",
+        "decision"
+      ],
+      "reverse_link_rewrites": [
+        {
+          "from": "](../../contracts/qa/",
+          "to": "](../contracts/qa/",
+          "count": 2
+        },
+        {
+          "from": "](../../tests/test_schema_composition_pilot_v01.py)",
+          "to": "](../tests/test_schema_composition_pilot_v01.py)",
+          "count": 1
+        }
+      ],
+      "authority_review": "NOT_EVALUATED",
+      "raw_consumers": "UNKNOWN",
+      "external_backlinks": "UNKNOWN"
+    },
+    {
+      "legacy": "docs/formal-binding-identity-v01.md",
+      "canonical": "docs/governance/evidence/formal-binding-identity-v01.md",
+      "original_blob": "9828855c44036823ad8cc8967e0065a6fb7bba0d",
+      "canonical_blob": "9828855c44036823ad8cc8967e0065a6fb7bba0d",
+      "canonical_area": "governance",
+      "canonical_role": "SCOPED_TECHNICAL_GUIDE",
+      "section_slugs": [
+        "canonical-artifact-path-identity"
+      ],
+      "reverse_link_rewrites": [],
+      "authority_review": "NOT_EVALUATED",
+      "raw_consumers": "UNKNOWN",
+      "external_backlinks": "UNKNOWN"
+    },
+    {
+      "legacy": "docs/formal-proof-receipt-v0.1.md",
+      "canonical": "docs/governance/evidence/formal-proof-receipt-v0.1.md",
+      "original_blob": "d6e42028f51d8f59cbcfc2935c640c1fc94ce24d",
+      "canonical_blob": "d6e42028f51d8f59cbcfc2935c640c1fc94ce24d",
+      "canonical_area": "governance",
+      "canonical_role": "SCOPED_TECHNICAL_GUIDE",
+      "section_slugs": [
+        "observed-vs-asserted-tool-provenance",
+        "fail-closed-regression-scope",
+        "canonical-dafny-source-paths"
+      ],
+      "reverse_link_rewrites": [],
+      "authority_review": "NOT_EVALUATED",
+      "raw_consumers": "UNKNOWN",
+      "external_backlinks": "UNKNOWN"
+    },
+    {
+      "legacy": "docs/generated-formal-fixture-gate-v01.md",
+      "canonical": "docs/governance/evidence/generated-formal-fixture-gate-v01.md",
+      "original_blob": "0b2f0961d32279834ca1d8b95f7dbd6684671b5e",
+      "canonical_blob": "0b2f0961d32279834ca1d8b95f7dbd6684671b5e",
+      "canonical_area": "governance",
+      "canonical_role": "SCOPED_TECHNICAL_GUIDE",
+      "section_slugs": [
+        "explicit-authority-boundary",
+        "what-a-fixture-pass-does-not-mean",
+        "full-production-verification-remains-an-independent-design-problem"
+      ],
+      "reverse_link_rewrites": [],
+      "authority_review": "NOT_EVALUATED",
+      "raw_consumers": "UNKNOWN",
+      "external_backlinks": "UNKNOWN"
+    }
+  ]
+}
