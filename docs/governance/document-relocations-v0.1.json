@@ -80,6 +80,47 @@
       "authority_review": "NOT_EVALUATED",
       "raw_consumers": "UNKNOWN",
       "external_backlinks": "UNKNOWN"
+    },
+    {
+      "legacy": "docs/naming-glossary-governance-v02-draft.md",
+      "canonical": "docs/quality/naming/naming-glossary-governance-v02-draft.md",
+      "original_blob": "974aceb412f43231fc075987a1bb596998878b95",
+      "canonical_blob": "974aceb412f43231fc075987a1bb596998878b95",
+      "canonical_area": "quality",
+      "canonical_role": "PROPOSED_DESIGN",
+      "section_slugs": [],
+      "reverse_link_rewrites": [],
+      "authority_review": "NOT_EVALUATED",
+      "raw_consumers": "UNKNOWN",
+      "external_backlinks": "UNKNOWN"
+    },
+    {
+      "legacy": "docs/rust-naming-manual-v02-draft.md",
+      "canonical": "docs/quality/naming/rust-naming-manual-v02-draft.md",
+      "original_blob": "70e1d42c7449ab2a54799441a024a0ac5b44fba3",
+      "canonical_blob": "70e1d42c7449ab2a54799441a024a0ac5b44fba3",
+      "canonical_area": "quality",
+      "canonical_role": "PROPOSED_DESIGN",
+      "section_slugs": [],
+      "reverse_link_rewrites": [],
+      "authority_review": "NOT_EVALUATED",
+      "raw_consumers": "UNKNOWN",
+      "external_backlinks": "UNKNOWN"
+    },
+    {
+      "legacy": "docs/python-naming-inventory-review-v02-draft.md",
+      "canonical": "docs/quality/naming/python-naming-inventory-review-v02-draft.md",
+      "original_blob": "254e55c8933e3edf41668be1e57bd56ca1695a7e",
+      "canonical_blob": "254e55c8933e3edf41668be1e57bd56ca1695a7e",
+      "canonical_area": "quality",
+      "canonical_role": "PROPOSED_DESIGN",
+      "section_slugs": [
+        "required-acceptance-remaining"
+      ],
+      "reverse_link_rewrites": [],
+      "authority_review": "NOT_EVALUATED",
+      "raw_consumers": "UNKNOWN",
+      "external_backlinks": "UNKNOWN"
     }
   ]
 }

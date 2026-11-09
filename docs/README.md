@@ -17,6 +17,7 @@ folders are **not claimed as completed migrations**.
 
 - [Engineering principles and evidence limits](engineering-principles.md) · [Mechanical pipeline](mechanical-pipeline.md) — scoped QA rules, never universal P1–P8 certification.
 - [Naming baseline](naming-conventions.md) · [Adopted Naming v0.5 scope](naming-official-policy-v05.md) · [Naming candidate and draft records](naming-review-worklist-v03.md).
+- [Draft-only Naming evidence](quality/naming/naming-glossary-governance-v02-draft.md) · [Manual Rust naming witnesses (draft)](quality/naming/rust-naming-manual-v02-draft.md) · [Python naming inventory candidates (unapproved)](quality/naming/python-naming-inventory-review-v02-draft.md) — proposals for reviewer navigation, **not** adopted Naming policy or semantic certification.
 - [Complexity](complexity-analyzer.md) · [Duplication](duplication-detector.md) · [Extraction-aware P3](extraction-aware-p3.md).
 - [Static dependency correspondence](dependency-impact.md) · [Dependency metrics](dependency-metrics.md).
 
