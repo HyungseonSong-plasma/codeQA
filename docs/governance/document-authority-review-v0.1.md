@@ -44,7 +44,7 @@ the **type of document authority** has been reviewed.
   glossary. Manual Rust lexical Naming stays under `quality/naming/`.
 - **Contracts vs experiments:** [taxonomy decisions](../contract-taxonomy-and-composition-v0.1.md)
   belong to the explanatory `docs/contracts/` domain; the
-  [schema composition no-go pilot](../schema-composition-pilot-v0.1.md)
+  [schema composition no-go pilot](../experiments/schema-composition-pilot-v0.1.md)
   is an **experiment** and belongs with `docs/experiments/`. Schemas
   themselves remain normative only under `contracts/`.
 - **Governance vs archives:** [branch reconciliation](../historical-branch-reconciliation-2026-11-05.md)
