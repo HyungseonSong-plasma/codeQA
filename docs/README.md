@@ -38,6 +38,7 @@ folders are **not claimed as completed migrations**.
 - [Accepted ADRs](adr/0001-contract-authority-and-versioning.md) · [Frozen repository layout](repository-structure.md).
 - [Workflow catalog and historical provenance](workflow-catalog-v0.1.md) · [Self-audit](self-audit.md).
 - [External evidence admission](external-evidence-v01.md) · [Evidence Gate](evidence-gate-v01.md).
+- [Formal binding identity](governance/evidence/formal-binding-identity-v01.md) · [Typed source-proof receipt](governance/evidence/formal-proof-receipt-v0.1.md) · [Restricted generated fixture Gate](governance/evidence/generated-formal-fixture-gate-v01.md) — evidence-scoped #102 guides, not production implementation authorization.
 - [Documentation responsibility and relocation rules](governance/documentation-architecture-v0.1.md) · [Authority/ownership review](governance/document-authority-review-v0.1.md) · [Reference integrity audit](governance/documentation-reference-audit-v0.1.md).
 
 ## Samuel and historical evidence

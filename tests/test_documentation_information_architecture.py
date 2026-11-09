@@ -126,11 +126,21 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
                 if item["authority_role"] == "CONTRACT_EXPLANATION":
                     self.assertEqual(item["area"], "contracts")
                 if item["authority_role"] == "LEGACY_PATH_ALIAS":
-                    self.assertEqual(path, "docs/schema-composition-pilot-v0.1.md")
+                    expected_aliases = {
+                        "docs/schema-composition-pilot-v0.1.md":
+                            "docs/experiments/schema-composition-pilot-v0.1.md",
+                        "docs/formal-binding-identity-v01.md":
+                            "docs/governance/evidence/formal-binding-identity-v01.md",
+                        "docs/formal-proof-receipt-v0.1.md":
+                            "docs/governance/evidence/formal-proof-receipt-v0.1.md",
+                        "docs/generated-formal-fixture-gate-v01.md":
+                            "docs/governance/evidence/generated-formal-fixture-gate-v01.md",
+                    }
+                    self.assertIn(path, expected_aliases)
                     self.assertEqual(item["area"], "navigation")
                     self.assertEqual(item["responsible_boundary"], "DOCUMENTATION_NAVIGATION")
                     self.assertEqual(item["canonical_location"],
-                                     "docs/experiments/schema-composition-pilot-v0.1.md")
+                                     expected_aliases[path])
                     self.assertEqual(item["authority_review"], "NOT_EVALUATED")
                 if item["authority_role"] == "NAVIGATION_INDEX":
                     self.assertIn(item["path"],
