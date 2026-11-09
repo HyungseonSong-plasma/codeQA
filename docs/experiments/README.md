@@ -30,3 +30,15 @@ before the experiment refs were deleted.
 Exact experiment commits, frozen source scope and historical Actions-run URLs
 remain recorded in the individual reports and JSON artifacts. Those recorded
 commits preserve Git history even after the experiment branches are removed.
+
+## Separate scoped pilot — schema composition (2026-11-05)
+
+- **[Schema composition pilot v0.1 — read-only, no-go](../schema-composition-pilot-v0.1.md):**
+  An evidence-scoped comparison of two JSON Schemas that did **not**
+  justify deploying a new composition framework. This is a separate
+  bounded experiment, **not** part of the archived October MOOSE A/B
+  comparisons and **not** an adopted schema contract.
+
+The linked pilot remains at its existing path. This index does not
+relocate any document, change old URLs or anchors, or certify its
+claims as independently reviewed (`NOT_EVALUATED`).
