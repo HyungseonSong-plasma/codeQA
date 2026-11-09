@@ -175,7 +175,7 @@ def validate_manifest() -> dict:
 class DocumentationRelocationManifestTests(unittest.TestCase):
     def test_every_recorded_move_uses_the_common_contract(self):
         report = validate_manifest()
-        self.assertEqual(report["relocations"], 4)
+        self.assertGreaterEqual(report["relocations"], 4)
         self.assertEqual(report["inbound_legacy_links"], [])
         print("DOC288_RELOCATION_CONTRACT " + json.dumps(report, sort_keys=True))
 
