@@ -26,7 +26,7 @@ AUTHORITY_ROLES = frozenset({
     "POLICY_EXPLANATION", "SCOPED_ADOPTION_POLICY",
     "ADOPTED_ARCHITECTURE_GUIDE", "SCOPED_TECHNICAL_GUIDE",
     "OPERATIONAL_RUNBOOK", "PROPOSED_DESIGN", "HISTORICAL_EVIDENCE",
-    "SCOPED_DECISION_RECORD", "REVIEW_EVIDENCE",
+    "SCOPED_DECISION_RECORD", "REVIEW_EVIDENCE", "LEGACY_PATH_ALIAS",
 })
 RESPONSIBLE_BOUNDARIES = frozenset({
     "DOCUMENTATION_NAVIGATION", "FOUNDATION_ADR",
@@ -125,6 +125,13 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
                                      "FOUNDATION_ADR")
                 if item["authority_role"] == "CONTRACT_EXPLANATION":
                     self.assertEqual(item["area"], "contracts")
+                if item["authority_role"] == "LEGACY_PATH_ALIAS":
+                    self.assertEqual(path, "docs/schema-composition-pilot-v0.1.md")
+                    self.assertEqual(item["area"], "navigation")
+                    self.assertEqual(item["responsible_boundary"], "DOCUMENTATION_NAVIGATION")
+                    self.assertEqual(item["canonical_location"],
+                                     "docs/experiments/schema-composition-pilot-v0.1.md")
+                    self.assertEqual(item["authority_review"], "NOT_EVALUATED")
                 if item["authority_role"] == "NAVIGATION_INDEX":
                     self.assertIn(item["path"],
                                   {"docs/README.md", "docs/experiments/README.md"})
@@ -161,7 +168,8 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
             "docs/engineering-principles.md": "quality",
             "docs/pinned-dafny-formal-conformance.md": "integrations",
             "docs/contract-taxonomy-and-composition-v0.1.md": "contracts",
-            "docs/schema-composition-pilot-v0.1.md": "experiments",
+            "docs/experiments/schema-composition-pilot-v0.1.md": "experiments",
+            "docs/schema-composition-pilot-v0.1.md": "navigation",
             "docs/adr/0001-contract-authority-and-versioning.md": "decisions",
             "docs/samuel/220-controller-preflight.md": "operations",
             "docs/experiments/README.md": "experiments",
@@ -184,8 +192,10 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
                 ("integrations", "docs/integrations/cpp/", "PROPOSED_DESIGN"),
             "docs/python-override-callback-v02-draft.md":
                 ("integrations", "docs/integrations/python/", "PROPOSED_DESIGN"),
-            "docs/schema-composition-pilot-v0.1.md":
+            "docs/experiments/schema-composition-pilot-v0.1.md":
                 ("experiments", "docs/experiments/", "SCOPED_DECISION_RECORD"),
+            "docs/schema-composition-pilot-v0.1.md":
+                ("navigation", "docs/", "LEGACY_PATH_ALIAS"),
             "docs/historical-branch-reconciliation-2026-11-05.md":
                 ("governance", "docs/governance/", "HISTORICAL_EVIDENCE"),
             "docs/naming-official-policy-v05.md":
