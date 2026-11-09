@@ -39,8 +39,8 @@ commits preserve Git history even after the experiment branches are removed.
   bounded experiment, **not** part of the archived October MOOSE A/B
   comparisons and **not** an adopted schema contract.
 
-The canonical pilot is now proposed under this directory in Issue #288's
-**Draft relocation PR**. Its original URL remains a navigation-only alias
-with the five original heading IDs, not an HTTP redirect. The move and
-rendered-anchor compatibility require separate review before merging;
+The canonical pilot is listed under this directory as Issue #288's
+proposed relocation. Its original URL remains a navigation-only alias with
+the five original heading IDs, not an HTTP redirect. GitHub-rendered anchor
+compatibility and external deep links still require independent review;
 the experiment's claim-level authority remains `NOT_EVALUATED`.
