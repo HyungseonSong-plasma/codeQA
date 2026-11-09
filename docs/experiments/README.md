@@ -33,12 +33,14 @@ commits preserve Git history even after the experiment branches are removed.
 
 ## Separate scoped pilot — schema composition (2026-11-05)
 
-- **[Schema composition pilot v0.1 — read-only, no-go](../schema-composition-pilot-v0.1.md):**
+- **[Schema composition pilot v0.1 — read-only, no-go](schema-composition-pilot-v0.1.md):**
   An evidence-scoped comparison of two JSON Schemas that did **not**
   justify deploying a new composition framework. This is a separate
   bounded experiment, **not** part of the archived October MOOSE A/B
   comparisons and **not** an adopted schema contract.
 
-The linked pilot remains at its existing path. This index does not
-relocate any document, change old URLs or anchors, or certify its
-claims as independently reviewed (`NOT_EVALUATED`).
+The canonical pilot is listed under this directory as Issue #288's
+proposed relocation. Its original URL remains a navigation-only alias with
+the five original heading IDs, not an HTTP redirect. GitHub-rendered anchor
+compatibility and external deep links still require independent review;
+the experiment's claim-level authority remains `NOT_EVALUATED`.

@@ -1047,9 +1047,21 @@
     },
     {
       "path": "docs/schema-composition-pilot-v0.1.md",
+      "area": "navigation",
+      "candidate_directory": "docs/",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
+      "authority_review": "NOT_EVALUATED",
+      "authority_role": "LEGACY_PATH_ALIAS",
+      "responsible_boundary": "DOCUMENTATION_NAVIGATION",
+      "role_review": "SCOPE_AND_PRIMARY_TOPIC_REVIEWED",
+      "canonical_location": "docs/experiments/schema-composition-pilot-v0.1.md",
+      "external_deep_link_policy": "LEGACY_PATH_AND_HEADINGS_PRESERVED_RENDER_UNVERIFIED"
+    },
+    {
+      "path": "docs/experiments/schema-composition-pilot-v0.1.md",
       "area": "experiments",
       "candidate_directory": "docs/experiments/",
-      "disposition": "CANDIDATE_REQUIRES_BACKLINK_AUDIT",
+      "disposition": "RETAIN_CURRENT_DIRECTORY",
       "authority_review": "NOT_EVALUATED",
       "authority_role": "SCOPED_DECISION_RECORD",
       "responsible_boundary": "EXPERIMENTAL_EVIDENCE",
