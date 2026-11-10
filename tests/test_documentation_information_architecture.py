@@ -127,14 +127,11 @@ class DocumentationInformationArchitectureTests(unittest.TestCase):
                     self.assertEqual(item["area"], "contracts")
                 if item["authority_role"] == "LEGACY_PATH_ALIAS":
                     expected_aliases = {
-                        "docs/schema-composition-pilot-v0.1.md":
-                            "docs/experiments/schema-composition-pilot-v0.1.md",
-                        "docs/formal-binding-identity-v01.md":
-                            "docs/governance/evidence/formal-binding-identity-v01.md",
-                        "docs/formal-proof-receipt-v0.1.md":
-                            "docs/governance/evidence/formal-proof-receipt-v0.1.md",
-                        "docs/generated-formal-fixture-gate-v01.md":
-                            "docs/governance/evidence/generated-formal-fixture-gate-v01.md",
+                        move["legacy"]: move["canonical"]
+                        for move in json.loads(
+                            (DOCS / "governance/document-relocations-v0.1.json")
+                            .read_text(encoding="utf-8")
+                        )["moves"]
                     }
                     self.assertIn(path, expected_aliases)
                     self.assertEqual(item["area"], "navigation")
